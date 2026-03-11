@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONE SHOT GAME — The Prompt-Craft Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #090b10;
+    --panel:    #0d1117;
+    --border:   #1e2d40;
+    --accent1:  #00ffe1;
+    --accent2:  #ff3e6c;
+    --accent3:  #f5c518;
+    --dim:      #4a5568;
+    --text:     #cdd6e0;
+    --glow1: 0 0 8px #00ffe180, 0 0 24px #00ffe140;
+    --glow2: 0 0 8px #ff3e6c80, 0 0 24px #ff3e6c40;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 999; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,255,225,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,225,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: gridpan 30s linear infinite;
+  }
+
+  @keyframes gridpan {
+    from { background-position: 0 0; }
+    to   { background-position: 48px 48px; }
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,255,225,0.07) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: translate(-50%,-50%) scale(0.9); opacity: 0.6; }
+    to   { transform: translate(-50%,-50%) scale(1.1); opacity: 1; }
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 860px; }
+
+  .badge {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.25em;
+    color: var(--accent1);
+    border: 1px solid var(--accent1);
+    padding: 0.3em 1em;
+    border-radius: 2px;
+    margin-bottom: 1.4rem;
+    text-shadow: var(--glow1);
+    box-shadow: var(--glow1);
+    animation: fadein 1s ease both;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 12vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: 0.04em;
+    color: #fff;
+    animation: fadein 1s 0.2s ease both;
+  }
+
+  h1 .shot {
+    color: var(--accent2);
+    text-shadow: var(--glow2);
+    display: inline-block;
+    animation: jitter 8s 2s infinite;
+  }
+
+  @keyframes jitter {
+    0%,97%,100% { transform: translate(0,0) skew(0deg); }
+    98%          { transform: translate(-2px,1px) skew(-1deg); }
+    99%          { transform: translate(2px,-1px) skew(1deg); }
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--dim);
+    max-width: 580px;
+    margin: 1.6rem auto 0;
+    animation: fadein 1s 0.4s ease both;
+  }
+
+  .hero-sub em { color: var(--accent1); font-style: normal; }
+
+  .hero-cta {
+    margin-top: 2.5rem;
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    animation: fadein 1s 0.6s ease both;
+  }
+
+  .btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    padding: 0.75em 2em;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--accent1);
+    color: #000;
+    box-shadow: var(--glow1);
+  }
+  .btn-primary:hover {
+    background: #fff;
+    box-shadow: 0 0 16px #fff8, 0 0 40px #00ffe160;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    box-shadow: var(--glow2);
+  }
+  .btn-ghost:hover { background: var(--accent2); color: #000; }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SLOT ANIMATION ── */
+  .slot-row {
+    display: flex; justify-content: center; gap: 1rem;
+    margin: 2.8rem 0 0;
+    animation: fadein 1s 0.8s ease both;
+  }
+
+  .reel {
+    width: 70px; height: 70px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.5);
+  }
+
+  .reel-inner {
+    display: flex; flex-direction: column;
+    align-items: center;
+    animation: spin1 0.8s cubic-bezier(0.25,0.1,0.25,1) both;
+    animation-delay: calc(var(--d) * 0.15s + 0.8s);
+  }
+
+  .reel:nth-child(1) .reel-inner { --d:1; animation-name: spin1; }
+  .reel:nth-child(2) .reel-inner { --d:2; animation-name: spin1; }
+  .reel:nth-child(3) .reel-inner { --d:3; animation-name: spin1; }
+
+  @keyframes spin1 {
+    0%   { transform: translateY(-200%); }
+    60%  { transform: translateY(6%); }
+    80%  { transform: translateY(-3%); }
+    100% { transform: translateY(0); }
+  }
+
+  .reel-face {
+    width: 70px; height: 70px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 920px; margin: 0 auto; padding: 0 2rem; }
+
+  section { padding: 5rem 0; }
+
+  /* ── SECTION HEADERS ── */
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--accent1);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    letter-spacing: 0.04em;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 1.2rem;
+  }
+
+  .lead {
+    font-size: 1.05rem;
+    color: var(--text);
+    max-width: 680px;
+    margin-bottom: 3rem;
+  }
+
+  /* ── DIVIDERS ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .step {
+    background: var(--panel);
+    padding: 2rem 1.6rem;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .step:hover { background: #111820; }
+
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: var(--border);
+    margin-bottom: 0.8rem;
+    transition: color 0.2s;
+  }
+  .step:hover .step-num { color: var(--accent1); text-shadow: var(--glow1); }
+
+  .step h3 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    color: var(--accent1);
+    margin-bottom: 0.5rem;
+  }
+
+  .step p { font-size: 0.9rem; color: var(--dim); }
+
+  /* ── HINT CARDS ── */
+  .hint-section { margin-bottom: 3.5rem; }
+
+  .hint-section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--accent3);
+    border-left: 3px solid var(--accent3);
+    padding-left: 0.8rem;
+    margin-bottom: 1.2rem;
+    text-transform: uppercase;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .card {
+    background: var(--panel);
+    padding: 1.4rem 1.4rem 1.6rem;
+    transition: background 0.2s;
+  }
+  .card:hover { background: #0f161e; }
+
+  .card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.6rem;
+    display: block;
+  }
+
+  .card h4 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: #fff;
+    margin-bottom: 0.4rem;
+  }
+
+  .card p {
+    font-size: 0.82rem;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+
+  .card .tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.2em 0.6em;
+    background: rgba(0,255,225,0.07);
+    color: var(--accent1);
+    border-radius: 2px;
+    margin-top: 0.7rem;
+    margin-right: 0.3rem;
+    letter-spacing: 0.05em;
+  }
+
+  .card .tag.red { background: rgba(255,62,108,0.1); color: var(--accent2); }
+  .card .tag.yellow { background: rgba(245,197,24,0.1); color: var(--accent3); }
+
+  /* ── PROMPT HINTS ── */
+  .prompt-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .prompt-list li {
+    background: var(--panel);
+    padding: 0.9rem 1.2rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: background 0.15s;
+    cursor: default;
+  }
+  .prompt-list li:hover { background: #0f161e; }
+
+  .prompt-list li::before {
+    content: '//';
+    color: var(--accent1);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .prompt-list li span { color: var(--dim); font-size: 0.74rem; display: block; margin-top: 0.2rem; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+
+  /* ── SCORING ── */
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .score-item {
+    background: var(--panel);
+    padding: 1.6rem;
+    transition: background 0.2s;
+  }
+  .score-item:hover { background: #0f161e; }
+
+  .score-pts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    line-height: 1;
+    color: var(--accent2);
+    text-shadow: var(--glow2);
+  }
+
+  .score-item h4 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: #fff;
+    margin: 0.4rem 0 0.4rem;
+  }
+
+  .score-item p { font-size: 0.82rem; color: var(--dim); }
+
+  /* ── WARNING BOX ── */
+  .warning {
+    border: 1px solid rgba(245,197,24,0.3);
+    background: rgba(245,197,24,0.04);
+    border-radius: 4px;
+    padding: 1.4rem 1.6rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+  }
+
+  .warning-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+  .warning p { font-size: 0.875rem; color: var(--dim); }
+  .warning strong { color: var(--accent3); font-weight: 500; }
+
+  /* ── EXAMPLE PROMPT SHOWCASE ── */
+  .showcase {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 2rem;
+  }
+
+  .showcase-bar {
+    background: #111820;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .showcase pre {
+    background: var(--panel);
+    padding: 1.4rem 1.6rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.8;
+  }
+
+  .showcase pre .kw { color: var(--accent2); }
+  .showcase pre .str { color: var(--accent1); }
+  .showcase pre .cm { color: var(--dim); font-style: italic; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 0;
+    text-align: center;
+  }
+
+  footer p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+  }
+
+  footer .accent { color: var(--accent1); }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(9,11,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    color: var(--accent1);
+    text-shadow: var(--glow1);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.8rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover { color: var(--accent1); }
+
+  /* ── TABLE ── */
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+
+  .api-table th {
+    background: #111820;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent1);
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .api-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--dim);
+  }
+
+  .api-table tr:last-child td { border-bottom: none; }
+  .api-table tr:hover td { background: #0d1520; }
+
+  .api-table td:first-child { color: var(--text); font-weight: 500; }
+
+  .pill {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.15em 0.5em;
+    border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .pill-green { background: rgba(0,255,100,0.1); color: #00ff64; }
+  .pill-yellow { background: rgba(245,197,24,0.15); color: var(--accent3); }
+  .pill-red { background: rgba(255,62,108,0.12); color: var(--accent2); }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .steps { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">ONE·SHOT</a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#toolkit">Toolkit</a></li>
+    <li><a href="#apis">APIs</a></li>
+    <li><a href="#prompts">Prompt Hints</a></li>
+    <li><a href="#scoring">Scoring</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="badge">// COMMUNITY CHALLENGE — OPEN ENTRY</div>
+    <h1>ONE <span class="shot">SHOT</span><br>GAME</h1>
+    <p class="hero-sub">
+      One prompt. One pull of the lever. The LLM crafts your game.<br>
+      <em>The prompt is the skill. The game is the prize.</em>
+    </p>
+    <div class="slot-row">
+      <div class="reel"><div class="reel-inner"><div class="reel-face">🎮</div></div></div>
+      <div class="reel"><div class="reel-inner"><div class="reel-face">⚡</div></div></div>
+      <div class="reel"><div class="reel-inner"><div class="reel-face">🏆</div></div></div>
+    </div>
+    <div class="hero-cta">
+      <a href="#how" class="btn btn-primary">LEARN THE RULES</a>
+      <a href="#prompts" class="btn btn-ghost">HINT SHEET →</a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-label">// 01 — THE CONCEPT</div>
+    <h2>How It Works</h2>
+    <p class="lead">
+      A one-shot game is an HTML game generated in a single prompt to an LLM. No iteration, no follow-up, no editing. What comes out is what gets posted. The quality of your game is a direct measure of your prompt engineering skill.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Craft Your Prompt</h3>
+        <p>Write a single prompt describing the game you want. Use the hint sheet below to maximize the LLM's output quality. The prompt is your only move.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Pull the Lever</h3>
+        <p>Submit your prompt to an LLM (ChatGPT, Claude, Gemini — any frontier model). One shot. No follow-up prompts, no iteration, no editing the output.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Collect Your Loot</h3>
+        <p>The generated HTML is your prize. Save it exactly as returned. Host it on GitHub Pages. The output — bugs and all — is what gets judged.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3>Post &amp; Score</h3>
+        <p>Share your GitHub Pages link along with your original prompt. The community evaluates playability, originality, and visual quality. Your prompt goes on the record.</p>
+      </div>
+    </div>
+
+    <div class="warning">
+      <div class="warning-icon">⚠️</div>
+      <p><strong>The Honor Rule:</strong> No editing the LLM output. No multi-turn generation. No prompt chaining. One prompt in, one HTML file out. If it breaks on load, that's your score. If it's spectacular, that's your score. The constraint is the point.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- TOOLKIT -->
+<section id="toolkit">
+  <div class="container">
+    <div class="section-label">// 02 — WHAT YOU CAN USE</div>
+    <h2>The Toolkit</h2>
+    <p class="lead">
+      The generated game must be HTML suitable for GitHub Pages hosting. Single-file preferred. Tell the LLM exactly what libraries and techniques to use — it only knows what you ask for.
+    </p>
+
+    <div class="hint-section">
+      <div class="hint-section-title">⚙ Game Engines &amp; Rendering</div>
+      <div class="cards">
+        <div class="card">
+          <span class="card-icon">🕹️</span>
+          <h4>Phaser.js</h4>
+          <p>The gold standard for browser 2D games. Arcade physics, tilemaps, animations, input handling. Tell the LLM to use it and the output quality jumps dramatically.</p>
+          <span class="tag">2D</span><span class="tag">Physics</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🌐</span>
+          <h4>Three.js</h4>
+          <p>Full WebGL 3D scenes in the browser. Geometries, lighting, shaders, cameras. Instruct the LLM to add OrbitControls and a scene loop for best results.</p>
+          <span class="tag">3D</span><span class="tag">WebGL</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🔺</span>
+          <h4>Babylon.js</h4>
+          <p>Higher-level 3D engine. Better default lighting and physics than Three.js raw. Good for game-like 3D environments without deep shader work.</p>
+          <span class="tag">3D</span><span class="tag">Physics</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🎨</span>
+          <h4>Canvas / WebGL Raw</h4>
+          <p>No dependencies, maximum control. Good for pixel art, particle systems, or procedural generation. Ask the LLM to write a game loop with requestAnimationFrame.</p>
+          <span class="tag">Native</span><span class="tag">No CDN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">⚡ Physics, UI &amp; Audio</div>
+      <div class="cards">
+        <div class="card">
+          <span class="card-icon">💥</span>
+          <h4>Matter.js</h4>
+          <p>Rigid body 2D physics. Collisions, constraints, gravity. Great for puzzle games, pinball, or anything that needs realistic object stacking.</p>
+          <span class="tag">Physics</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🎵</span>
+          <h4>Tone.js</h4>
+          <p>Synthesized audio in the browser. Sound effects, music loops, and reactive audio without loading audio files. Underused, high visual score impact.</p>
+          <span class="tag">Audio</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">📊</span>
+          <h4>D3.js</h4>
+          <p>For data-driven games — market simulations, graph traversals, network visualizations with game mechanics layered on top.</p>
+          <span class="tag">Data</span><span class="tag">CDN</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🌊</span>
+          <h4>Anime.js / GSAP</h4>
+          <p>Professional animation timelines. UI transitions, sprite animations, screen effects. Dramatically improves perceived production value.</p>
+          <span class="tag">Animation</span><span class="tag">CDN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">💾 Persistence &amp; State</div>
+      <div class="cards">
+        <div class="card">
+          <span class="card-icon">🗄️</span>
+          <h4>localStorage</h4>
+          <p>5–10 MB, synchronous, zero setup. Best default for single-player state: high scores, settings, save files. Tell the LLM to persist scores here.</p>
+          <span class="tag">Client-Side</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🔗</span>
+          <h4>URL State Encoding</h4>
+          <p>Encode the entire game state in the URL hash. Shareable, zero storage, no server. Perfect for puzzle games ("share your board"). Ask for base64 encoding in the URL fragment.</p>
+          <span class="tag">Shareable</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🌍</span>
+          <h4>Supabase / Firebase</h4>
+          <p>Free-tier backends for cross-player leaderboards and persistent state. Requires API keys but enables true multiplayer scoring. Instruct the LLM to use the CDN SDK.</p>
+          <span class="tag yellow">Needs Keys</span>
+        </div>
+        <div class="card">
+          <span class="card-icon">🎲</span>
+          <h4>Seeded RNG</h4>
+          <p>Ask the LLM to use a seeded random number generator (e.g. mulberry32). Same seed = same level. Enables fair comparison and daily challenge modes.</p>
+          <span class="tag">Reproducible</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- APIS -->
+<section id="apis">
+  <div class="container">
+    <div class="section-label">// 03 — LIVE DATA HOOKS</div>
+    <h2>Third-Party APIs</h2>
+    <p class="lead">
+      Games that pull live data feel alive. The browser's CORS policy gatekeeps what's reachable — this table tells you what actually works from a static GitHub Pages host.
+    </p>
+
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>API / Service</th>
+          <th>Category</th>
+          <th>Free Tier</th>
+          <th>CORS from Browser</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Open-Meteo</td>
+          <td>Weather</td>
+          <td>Unlimited</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>No key needed. Real-time weather by coordinates.</td>
+        </tr>
+        <tr>
+          <td>Open Trivia DB</td>
+          <td>Trivia / Quiz</td>
+          <td>Unlimited</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Thousands of categorized trivia questions. No key.</td>
+        </tr>
+        <tr>
+          <td>PokeAPI</td>
+          <td>Game Data</td>
+          <td>Unlimited</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Pokémon stats, sprites, moves. Huge creative potential.</td>
+        </tr>
+        <tr>
+          <td>REST Countries</td>
+          <td>Geography</td>
+          <td>Unlimited</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Flags, populations, capitals. Good for geography games.</td>
+        </tr>
+        <tr>
+          <td>NASA APIs</td>
+          <td>Space / Science</td>
+          <td>Generous</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>APOD, asteroid data, Mars rover photos. Key required.</td>
+        </tr>
+        <tr>
+          <td>Finnhub / Alpha Vantage</td>
+          <td>Finance</td>
+          <td>Limited calls</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Real stock quotes. Free API key. Use for trading games.</td>
+        </tr>
+        <tr>
+          <td>Chess.com Public API</td>
+          <td>Gaming</td>
+          <td>Unlimited</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Player stats, game history, leaderboards. No key.</td>
+        </tr>
+        <tr>
+          <td>Wordnik / Datamuse</td>
+          <td>Language</td>
+          <td>Generous</td>
+          <td><span class="pill pill-green">✓ Works</span></td>
+          <td>Word definitions, rhymes, word associations. Word games.</td>
+        </tr>
+        <tr>
+          <td>Yahoo Finance (unofficial)</td>
+          <td>Finance</td>
+          <td>Unmetered</td>
+          <td><span class="pill pill-yellow">⚠ Fragile</span></td>
+          <td>Undocumented endpoint, no SLA. Works today, may not tomorrow.</td>
+        </tr>
+        <tr>
+          <td>Spotify / Google Maps</td>
+          <td>Various</td>
+          <td>Yes</td>
+          <td><span class="pill pill-red">✗ Blocked</span></td>
+          <td>Requires server-side OAuth or a proxy. Not usable from static pages.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning">
+      <div class="warning-icon">⚠️</div>
+      <p><strong>GitHub Pages is static.</strong> No server-side code, no proxies, no WebSockets. If an API requires a backend or OAuth redirect flow, it won't work from a GitHub Pages host. Stick to CORS-open APIs or include API keys directly in the HTML (acceptable for a contest, not for production).</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PROMPT HINTS -->
+<section id="prompts">
+  <div class="container">
+    <div class="section-label">// 04 — ENGINEERING YOUR PROMPT</div>
+    <h2>Prompt Hint Sheet</h2>
+    <p class="lead">
+      These are the phrases and instructions that unlock more capable, polished LLM-generated games. Copy, adapt, and layer them into your prompt.
+    </p>
+
+    <div class="hint-section">
+      <div class="hint-section-title">🏗 Structure &amp; Scaffolding</div>
+      <ul class="prompt-list">
+        <li>
+          <div>Generate a complete, self-contained single-file HTML game with all CSS and JavaScript inline.
+            <span>Forces the LLM to produce a drop-in file that needs no build step.</span>
+          </div>
+        </li>
+        <li>
+          <div>Use Phaser.js 3 loaded from CDN (cdnjs.cloudflare.com) for the game loop, physics, and rendering.
+            <span>Activates a full game framework instead of bare Canvas. Dramatically improves output.</span>
+          </div>
+        </li>
+        <li>
+          <div>The game must run correctly when opened as a local file OR hosted on GitHub Pages. No server required.
+            <span>Prevents the LLM from generating fetch() calls that break on file:// protocol.</span>
+          </div>
+        </li>
+        <li>
+          <div>Use a requestAnimationFrame game loop with fixed timestep and delta-time interpolation.
+            <span>Produces frame-rate-independent movement. Games don't run at 2x speed on fast machines.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">🎨 Visual Quality</div>
+      <ul class="prompt-list">
+        <li>
+          <div>Use CSS custom properties for the color palette and apply a cohesive dark neon / retro-arcade / soft pastel aesthetic throughout.
+            <span>Gets you a themed game instead of default gray boxes.</span>
+          </div>
+        </li>
+        <li>
+          <div>Add particle effects using canvas for explosions, collectibles, and level-up events.
+            <span>Cheap visual payoff. LLMs can write particle systems readily.</span>
+          </div>
+        </li>
+        <li>
+          <div>Implement screen shake on impact or death using a canvas translate offset.
+            <span>Single-line game feel upgrade. Always worth asking for.</span>
+          </div>
+        </li>
+        <li>
+          <div>Use Google Fonts (loaded via link tag) — choose [font name] for UI and [font name] for score display.
+            <span>Gets you typography that doesn't look like a coding exercise.</span>
+          </div>
+        </li>
+        <li>
+          <div>Add a parallax background with at least three depth layers scrolling at different speeds.
+            <span>Immediately gives depth and polish to any side-scrolling game.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">⚙ Gameplay &amp; Mechanics</div>
+      <ul class="prompt-list">
+        <li>
+          <div>Use mulberry32 as the seeded random number generator, with the seed shown in the UI and encodable in the URL.
+            <span>Same seed = reproducible game. Players can share and compare identical runs.</span>
+          </div>
+        </li>
+        <li>
+          <div>Include difficulty scaling: increase enemy speed, spawn rate, and obstacle density every 30 seconds.
+            <span>Without this, most LLM-generated games are static and immediately boring.</span>
+          </div>
+        </li>
+        <li>
+          <div>Add keyboard controls (WASD + arrow keys), mouse/click controls, and mobile touch support.
+            <span>Games playable on phone rank higher. LLMs forget mobile unless told.</span>
+          </div>
+        </li>
+        <li>
+          <div>Implement a combo multiplier system: consecutive hits within 2 seconds multiply score by up to 4x.
+            <span>Turns any action game into something with depth and replay value.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">💾 Persistence &amp; Sharing</div>
+      <ul class="prompt-list">
+        <li>
+          <div>Persist the top 5 high scores in localStorage with player initials and date, displayed on a retro leaderboard screen.
+            <span>Free feature with zero dependencies. Judges notice it.</span>
+          </div>
+        </li>
+        <li>
+          <div>Encode the game seed and final score in the URL hash on game over, so the run is shareable as a link.
+            <span>Enables post-game sharing without any backend.</span>
+          </div>
+        </li>
+        <li>
+          <div>Add a "Share Score" button that copies a pre-formatted text string to clipboard including score, seed, and a link to the game.
+            <span>navigator.clipboard.writeText() — trivial to implement, high social value.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hint-section">
+      <div class="hint-section-title">🌐 Live Data Integration</div>
+      <ul class="prompt-list">
+        <li>
+          <div>Fetch live trivia questions from the Open Trivia DB API (opentdb.com/api.php) and integrate them as game events.
+            <span>No key needed. Endless content for quiz-based games.</span>
+          </div>
+        </li>
+        <li>
+          <div>Use the Open-Meteo API to fetch real-time weather at the player's coordinates and adjust game difficulty or theme accordingly.
+            <span>No key, no CORS issues. Raining in real life = harder rain level in game.</span>
+          </div>
+        </li>
+        <li>
+          <div>Pull stock price data from Finnhub.io using API key [KEY] and use real ticker movements as gameplay input.
+            <span>Finnhub's free tier is CORS-friendly and has decent rate limits.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- EXAMPLE PROMPT -->
+    <div class="hint-section">
+      <div class="hint-section-title">📋 Example Full Prompt</div>
+      <div class="showcase">
+        <div class="showcase-bar">
+          <div class="dot" style="background:#ff3e6c"></div>
+          <div class="dot" style="background:#f5c518"></div>
+          <div class="dot" style="background:#00ffe1"></div>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--dim);margin-left:0.5rem">prompt.txt</span>
+        </div>
+        <pre><span class="cm">// ONE SHOT GAME CONTEST ENTRY — PROMPT EXAMPLE</span>
+
+<span class="kw">Generate</span> a complete, self-contained single-file HTML5 game.
+<span class="kw">No external assets</span>. All CSS and JavaScript inline. <span class="kw">Must run</span>
+on GitHub Pages with no server.
+
+<span class="str">GAME:</span> Asteroid mining roguelite. The player pilots a ship,
+mines floating asteroid fields, and upgrades their drill
+between waves. Wave 10 is a boss encounter.
+
+<span class="str">TECH:</span>
+  - Phaser.js 3 from cdnjs CDN
+  - Canvas particle effects for explosions and ore pickups
+  - Screen shake on damage (canvas translate offset)
+  - Google Fonts: "Orbitron" for UI, "Share Tech Mono" for data
+  - Dark space aesthetic with neon accent colors via CSS vars
+
+<span class="str">MECHANICS:</span>
+  - mulberry32 seeded RNG, seed visible and URL-encodable
+  - WASD + arrow keys + mobile touch support
+  - Combo multiplier up to 4x for rapid mining
+  - Difficulty scaling: asteroid speed +10% per wave
+  - Upgrade shop between waves (speed, drill power, shields)
+
+<span class="str">PERSISTENCE:</span>
+  - Top 5 scores in localStorage with initials + date
+  - Encode final score + seed in URL hash on game over
+  - "Share Run" button copies seed link to clipboard
+
+<span class="str">POLISH:</span>
+  - Parallax star field with 3 depth layers
+  - Idle animations on all UI elements
+  - Sound effects via Tone.js (loaded from CDN) — mining
+    ping, explosion boom, wave clear fanfare</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- SCORING -->
+<section id="scoring">
+  <div class="container">
+    <div class="section-label">// 05 — EVALUATION</div>
+    <h2>How Entries Are Scored</h2>
+    <p class="lead">
+      Community judges rate each submitted game across five dimensions. Scores are 1–10 per category. The prompt is judged separately — shorter, more elegant prompts that produce equivalent output rank higher.
+    </p>
+
+    <div class="score-grid">
+      <div class="score-item">
+        <div class="score-pts">/10</div>
+        <h4>PLAYABILITY</h4>
+        <p>Does it load? Does it run? Is it actually playable from start to game-over? Broken games score a 1 regardless of other qualities.</p>
+      </div>
+      <div class="score-item">
+        <div class="score-pts">/10</div>
+        <h4>VISUAL FIDELITY</h4>
+        <p>Does it look intentional? Typography, color coherence, animation quality, and overall polish. Default browser styling is a 2.</p>
+      </div>
+      <div class="score-item">
+        <div class="score-pts">/10</div>
+        <h4>MECHANICAL DEPTH</h4>
+        <p>Does it have progression, difficulty scaling, or interesting decisions? A game you'd actually play for more than 60 seconds.</p>
+      </div>
+      <div class="score-item">
+        <div class="score-pts">/10</div>
+        <h4>ORIGINALITY</h4>
+        <p>Is the concept novel? Does it use live data, generative systems, or an unusual mechanic? Clones of common games score low here.</p>
+      </div>
+      <div class="score-item">
+        <div class="score-pts">/10</div>
+        <h4>PROMPT EFFICIENCY</h4>
+        <p>Bonus category. A 150-word prompt that produces a great game scores higher than a 600-word prompt for the same result. Compression is skill.</p>
+      </div>
+    </div>
+
+    <div class="warning">
+      <div class="warning-icon">💡</div>
+      <p><strong>The Meta-Game:</strong> Post both your GitHub Pages link <em>and</em> your original prompt. The community sees both. A beautiful game with a brilliant short prompt is the jackpot. A mediocre game with a 1000-word prompt is its own commentary.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>ONE SHOT GAME &nbsp;·&nbsp; <span class="accent">PULL THE LEVER. POST THE OUTPUT. LET IT SPEAK.</span></p>
+    <p style="margin-top:0.5rem">Hosted on GitHub Pages &nbsp;·&nbsp; No accounts. No backend. No cheating.</p>
+  </div>
+</footer>
+
+</body>
+</html>

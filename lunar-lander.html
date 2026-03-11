@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUNAR LANDER: Dignity Not Included</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#e88a00}
+#c{display:block;position:absolute;top:0;left:0}
+#hud{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#hud::after{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.08) 3px,rgba(0,0,0,0.08) 4px);
+  pointer-events:none;z-index:100
+}
+.panel{
+  background:rgba(5,12,5,0.88);
+  border:1px solid rgba(220,130,0,0.6);
+  padding:12px 16px;position:absolute;
+  box-shadow:0 0 12px rgba(220,130,0,0.2),inset 0 0 30px rgba(220,130,0,0.03)
+}
+.lbl{font-size:9px;color:#a06000;text-transform:uppercase;letter-spacing:2.5px;margin-bottom:4px}
+.val{font-family:'Orbitron',sans-serif;font-size:18px;color:#ffd040;line-height:1}
+.val.warn{color:#ff6600}
+.val.danger{color:#ff2200;animation:blink .4s step-end infinite}
+.val.good{color:#40ff90}
+@keyframes blink{50%{opacity:0.2}}
+#ptop{top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:280px;padding:10px 24px}
+#mission-title{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:5px;color:#e88a00;margin-bottom:3px}
+#scoreline{font-size:11px;color:#664400;letter-spacing:1px}
+#scoreline span{color:#cc8800}
+#pleft{top:76px;left:14px;width:175px}
+#pright{top:76px;right:14px;width:175px}
+.trow{margin-bottom:14px}
+.trow:last-child{margin-bottom:0}
+#fuelbar-bg{width:100%;height:10px;background:rgba(220,130,0,0.1);border:1px solid rgba(220,130,0,0.4);margin-top:6px}
+#fuelbar{height:100%;background:linear-gradient(90deg,#cc4400,#ffcc00);box-shadow:0 0 6px rgba(255,200,0,0.5);transition:width .1s}
+#pradio{
+  bottom:14px;left:50%;transform:translateX(-50%);
+  min-width:480px;max-width:680px;text-align:center;padding:10px 20px
+}
+#radio-inner{font-size:11.5px;color:#66cc66;font-style:italic;min-height:32px;line-height:1.5}
+.rpfx{color:#e88a00;font-style:normal;font-weight:bold}
+#ctrls{
+  bottom:106px;right:14px;font-size:9px;color:#333;text-align:right;
+  padding:8px 12px;border:1px solid #1a1a1a;background:rgba(0,0,0,0.5);line-height:1.8;letter-spacing:1px
+}
+#minimap-wrap{
+  bottom:100px;left:14px;
+  border:1px solid rgba(220,130,0,0.5);background:rgba(5,12,5,0.9);overflow:hidden
+}
+#minimap-title{font-size:8px;color:#664400;letter-spacing:2px;padding:3px 6px;border-bottom:1px solid rgba(220,130,0,0.3)}
+#radarc{display:block}
+
+/* ---- ALTITUDE TAPE ---- */
+#alttape{
+  position:absolute;right:198px;top:80px;bottom:110px;
+  width:28px;border:1px solid rgba(220,130,0,0.4);background:rgba(5,12,5,0.7);overflow:hidden
+}
+#altfill{position:absolute;bottom:0;left:0;right:0;background:rgba(220,130,0,0.15);transition:height .15s}
+#altptr{
+  position:absolute;right:-1px;
+  width:0;height:0;
+  border-top:5px solid transparent;border-bottom:5px solid transparent;
+  border-right:8px solid #ffd040;
+  transition:top .15s
+}
+
+/* ---- OVERLAY ---- */
+#ov{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,3,0.82);z-index:200;pointer-events:all;
+  backdrop-filter:blur(4px)
+}
+#ov.hide{display:none}
+.ovcontent{text-align:center;max-width:640px;padding:20px}
+.ovtitle{
+  font-family:'Orbitron',sans-serif;font-size:44px;font-weight:900;
+  letter-spacing:3px;margin-bottom:6px;
+  text-shadow:0 0 40px currentColor;line-height:1
+}
+.ovsub{font-size:13px;color:#555;letter-spacing:3px;margin-bottom:36px}
+.ovmsg{font-size:15px;color:#aaa;margin-bottom:30px;line-height:1.7}
+.btn{
+  display:inline-block;background:none;
+  border:1px solid #e88a00;color:#e88a00;
+  font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;
+  padding:13px 36px;cursor:pointer;text-transform:uppercase;
+  transition:all .2s;margin:6px;pointer-events:all
+}
+.btn:hover{background:rgba(232,138,0,0.12);box-shadow:0 0 20px rgba(232,138,0,0.4);transform:scale(1.02)}
+.btn.go{border-color:#40ff90;color:#40ff90}
+.btn.go:hover{background:rgba(64,255,144,0.08);box-shadow:0 0 20px rgba(64,255,144,0.3)}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.sitem{border:1px solid #1a2a1a;padding:10px}
+.slbl{font-size:9px;color:#446644;letter-spacing:2px;margin-bottom:4px}
+.sval{font-family:'Orbitron',sans-serif;font-size:22px;color:#ffd040}
+#grade{font-family:'Orbitron',sans-serif;font-size:90px;font-weight:900;line-height:1;margin-bottom:10px}
+.crashicon{font-size:72px;margin-bottom:12px;filter:drop-shadow(0 0 20px #ff4400)}
+.bigmission{font-family:'Orbitron',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:24px}
+.totalscore{font-family:'Orbitron',sans-serif;font-size:24px;color:#ffd040;margin-bottom:28px}
+
+/* key indicators */
+#keyinds{position:absolute;bottom:110px;left:200px;pointer-events:none}
+.ki{
+  display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;
+  border:1px solid #222;font-size:12px;color:#333;margin:2px;
+  transition:all .1s
+}
+.ki.active{border-color:#ffd040;color:#ffd040;background:rgba(255,208,0,0.1);box-shadow:0 0 8px rgba(255,208,0,0.4)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="panel" id="ptop">
+    <div id="mission-title">APOLLO ∞ &nbsp;·&nbsp; MISSION CONTROL</div>
+    <div id="scoreline">SCORE: <span id="sv">0</span> &nbsp;|&nbsp; CRASHES: <span id="cc">0</span></div>
+  </div>
+
+  <div class="panel" id="pleft">
+    <div class="trow"><div class="lbl">Altitude</div><div class="val" id="valt">---</div></div>
+    <div class="trow"><div class="lbl">Vertical Speed</div><div class="val" id="vvsp">---</div></div>
+    <div class="trow"><div class="lbl">Horizontal Speed</div><div class="val" id="vhsp">---</div></div>
+    <div class="trow"><div class="lbl">Tilt Angle</div><div class="val" id="vang">---</div></div>
+  </div>
+
+  <div class="panel" id="pright">
+    <div class="trow">
+      <div class="lbl">Fuel Remaining</div>
+      <div class="val" id="vfuel">100%</div>
+      <div id="fuelbar-bg"><div id="fuelbar" style="width:100%"></div></div>
+    </div>
+    <div class="trow"><div class="lbl">Engine</div><div class="val" id="vengine">STANDBY</div></div>
+    <div class="trow"><div class="lbl">Landing Zone</div><div class="val" id="vzone">IN FLIGHT</div></div>
+  </div>
+
+  <div id="alttape"><div id="altfill"></div><div id="altptr"></div></div>
+
+  <div class="panel" id="pradio">
+    <div class="lbl" style="margin-bottom:6px">⬤ &nbsp;MISSION CONTROL RADIO &nbsp;⬤</div>
+    <div id="radio-inner"><span class="rpfx">HOUSTON: </span><span id="rmsg">Godspeed. You will need it more than you think.</span></div>
+  </div>
+
+  <div id="minimap-wrap" class="panel" style="padding:0;left:14px;bottom:14px;">
+    <div id="minimap-title">SURFACE RADAR</div>
+    <canvas id="radarc" width="175" height="55"></canvas>
+  </div>
+
+  <div id="ctrls">
+    ↑ / W &nbsp; Main Engine<br>
+    ← → / A D &nbsp; Rotate<br>
+    R &nbsp; Restart
+  </div>
+
+  <div id="keyinds" style="display:none">
+    <div class="ki" id="ki-left">◀</div>
+    <div class="ki" id="ki-thrust">▲</div>
+    <div class="ki" id="ki-right">▶</div>
+  </div>
+</div>
+
+<div id="ov">
+  <div class="ovcontent" id="ovcontent"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// =============================================================
+// LUNAR LANDER: DIGNITY NOT INCLUDED
+// by a language model with too much time
+// =============================================================
+
+// ---- Renderer ----
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = false;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000208);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 3000);
+camera.position.set(0, 55, 280);
+camera.lookAt(0, 25, 0);
+
+function resize(){
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ---- Lights ----
+scene.add(new THREE.AmbientLight(0x112233, 0.8));
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.4);
+sun.position.set(80, 200, 60);
+scene.add(sun);
+const rimLight = new THREE.DirectionalLight(0x002244, 0.4);
+rimLight.position.set(-100, 50, -50);
+scene.add(rimLight);
+
+// ---- Stars ----
+(function(){
+  const N=4000, pos=new Float32Array(N*3), col=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]  =(Math.random()-.5)*2400;
+    pos[i*3+1]=(Math.random()-.5)*1200+200;
+    pos[i*3+2]=(Math.random()-.5)*200-100;
+    const b=.4+Math.random()*.6;
+    const r=Math.random();
+    if(r<.15){col[i*3]=b*.7;col[i*3+1]=b*.8;col[i*3+2]=b;}       // blue
+    else if(r<.25){col[i*3]=b;col[i*3+1]=b*.8;col[i*3+2]=b*.5;}  // yellow
+    else{col[i*3]=b;col[i*3+1]=b;col[i*3+2]=b;}                   // white
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:.7,vertexColors:true,opacity:.95,transparent:true})));
+})();
+
+// ---- Earth ----
+const earthMesh = (function(){
+  const g=new THREE.SphereGeometry(48,32,32);
+  const m=new THREE.MeshPhongMaterial({color:0x1a5fa8,emissive:0x081828,specular:0x4488cc,shininess:25});
+  const e=new THREE.Mesh(g,m);
+  e.position.set(180,130,-300);
+  // atmosphere halo
+  const hg=new THREE.SphereGeometry(52,32,32);
+  const hm=new THREE.MeshPhongMaterial({color:0x4488ff,transparent:true,opacity:.15,side:THREE.BackSide});
+  e.add(new THREE.Mesh(hg,hm));
+  // cloud layer
+  const cg=new THREE.SphereGeometry(49,32,32);
+  const cm=new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:.35});
+  const clouds=new THREE.Mesh(cg,cm);
+  e.add(clouds);
+  scene.add(e);
+  return {earth:e,clouds};
+})();
+
+// =============================================================
+// WORLD CONFIG
+// =============================================================
+const W=300, H=150, SEG=200;
+const PAD_W=14;        // segments wide
+let terrH=[], terrX=[], pads=[];
+
+function genTerrain(){
+  terrH=new Array(SEG+1).fill(0);
+  terrH[0]=18+Math.random()*8;
+  terrH[SEG]=18+Math.random()*8;
+
+  function md(lo,hi,rough){
+    if(hi-lo<=1)return;
+    const mid=Math.floor((lo+hi)/2);
+    terrH[mid]=(terrH[lo]+terrH[hi])/2+(Math.random()-.5)*rough*(hi-lo);
+    md(lo,mid,rough*.64); md(mid,hi,rough*.64);
+  }
+  md(0,SEG,1.0);
+
+  for(let i=0;i<=SEG;i++) terrH[i]=Math.max(6,Math.min(55,terrH[i]+14));
+
+  // 3 landing pads at ~20%, 52%, 78% of terrain
+  pads=[];
+  [.20,.52,.78].forEach((frac,idx)=>{
+    const ci=Math.round(frac*SEG);
+    const si=Math.max(2,ci-Math.floor(PAD_W/2));
+    const ei=Math.min(SEG-2,ci+Math.floor(PAD_W/2));
+    let avgH=0;
+    for(let i=si;i<=ei;i++) avgH+=terrH[i];
+    avgH/=(ei-si+1);
+    avgH=Math.max(9,Math.min(42,avgH));
+    for(let i=si;i<=ei;i++) terrH[i]=avgH;
+    // smooth 5 steps each side
+    for(let s=1;s<=6;s++){
+      if(si-s>=0) terrH[si-s]=lerp(terrH[Math.max(0,si-s-1)],avgH,s/7);
+      if(ei+s<=SEG) terrH[ei+s]=lerp(terrH[Math.min(SEG,ei+s+1)],avgH,s/7);
+    }
+    const cx=(ci/SEG)*W-W/2;
+    pads.push({si,ei,ci,cx,y:avgH,pts:[300,500,200][idx]});
+  });
+
+  terrX=[];
+  for(let i=0;i<=SEG;i++) terrX.push((i/SEG)*W-W/2);
+}
+
+function lerp(a,b,t){return a+(b-a)*t}
+
+function terrainAt(wx){
+  wx=Math.max(terrX[0],Math.min(terrX[SEG],wx));
+  const t=(wx-terrX[0])/W;
+  const idx=Math.min(SEG-1,Math.floor(t*SEG));
+  const f=(wx-terrX[idx])/(terrX[idx+1]-terrX[idx]);
+  return lerp(terrH[idx],terrH[idx+1],f);
+}
+
+function padAt(wx){
+  for(const p of pads){
+    if(wx>=terrX[p.si]&&wx<=terrX[p.ei]) return p;
+  }
+  return null;
+}
+
+// =============================================================
+// TERRAIN MESH
+// =============================================================
+let tMesh=null, tLine=null, padObjs=[];
+
+function buildTerrainMesh(){
+  [tMesh,tLine,...padObjs].forEach(o=>{if(o)scene.remove(o)});
+  padObjs=[];
+
+  const shape=new THREE.Shape();
+  shape.moveTo(terrX[0],0);
+  shape.lineTo(terrX[0],terrH[0]);
+  for(let i=1;i<=SEG;i++) shape.lineTo(terrX[i],terrH[i]);
+  shape.lineTo(terrX[SEG],0);
+  shape.lineTo(terrX[0],0);
+
+  const extGeo=new THREE.ExtrudeGeometry(shape,{depth:28,bevelEnabled:false});
+  extGeo.translate(0,0,-14);
+  const extMat=new THREE.MeshPhongMaterial({
+    color:0x7a7a80,emissive:0x111118,specular:0x181820,shininess:4
+  });
+  tMesh=new THREE.Mesh(extGeo,extMat);
+  scene.add(tMesh);
+
+  // Top edge highlight
+  const lpts=[];
+  for(let i=0;i<=SEG;i++) lpts.push(new THREE.Vector3(terrX[i],terrH[i]+.1,0));
+  tLine=new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(lpts),
+    new THREE.LineBasicMaterial({color:0xaaaaaa})
+  );
+  scene.add(tLine);
+
+  // Landing pads
+  pads.forEach((pad,idx)=>{
+    const px1=terrX[pad.si], px2=terrX[pad.ei], pw=px2-px1;
+    // pad surface
+    const pg=new THREE.BoxGeometry(pw,.6,30);
+    const pm=new THREE.MeshPhongMaterial({color:0xccccbb,specular:0x333322,shininess:10});
+    const pmesh=new THREE.Mesh(pg,pm);
+    pmesh.position.set((px1+px2)/2,pad.y+.3,0);
+    scene.add(pmesh); padObjs.push(pmesh);
+
+    // Markings
+    const stps=3;
+    for(let s=0;s<stps;s++){
+      const mg=new THREE.BoxGeometry(pw,.15,.8);
+      const mm=new THREE.MeshBasicMaterial({color:0xffee44});
+      const mmesh=new THREE.Mesh(mg,mm);
+      mmesh.position.set((px1+px2)/2,pad.y+.7,-8+s*8);
+      scene.add(mmesh); padObjs.push(mmesh);
+    }
+
+    // Lights at corners
+    const lcols=[0xff3300,0x00ff88,0x00ff88,0xff3300];
+    [px1+.8, px1+pw*.35, px1+pw*.65, px2-.8].forEach((lx,li)=>{
+      const lg=new THREE.SphereGeometry(.55,8,8);
+      const lm=new THREE.MeshBasicMaterial({color:lcols[li]});
+      const lmesh=new THREE.Mesh(lg,lm);
+      lmesh.position.set(lx,pad.y+1.1,0);
+      scene.add(lmesh); padObjs.push(lmesh);
+    });
+
+    // Flag pole
+    const polG=new THREE.CylinderGeometry(.12,.12,7,8);
+    const polM=new THREE.MeshPhongMaterial({color:0xeeeeee});
+    const pole=new THREE.Mesh(polG,polM);
+    pole.position.set(pad.cx+.5,pad.y+4,0);
+    scene.add(pole); padObjs.push(pole);
+
+    const flagG=new THREE.PlaneGeometry(4,2.2);
+    const flagM=new THREE.MeshBasicMaterial({
+      color:[0xcc2200,0xff9900,0x0044cc][idx],
+      side:THREE.DoubleSide
+    });
+    const flag=new THREE.Mesh(flagG,flagM);
+    flag.position.set(pad.cx+2.5,pad.y+7.5,0);
+    scene.add(flag); padObjs.push(flag);
+
+    // Points label (small box with color coded points)
+    const ptG=new THREE.BoxGeometry(pw*.8,.4,.4);
+    const ptM=new THREE.MeshBasicMaterial({color:[0xff6600,0xffff00,0x66ffaa][idx]});
+    const ptMesh=new THREE.Mesh(ptG,ptM);
+    ptMesh.position.set((px1+px2)/2,pad.y+1.5,0);
+    scene.add(ptMesh); padObjs.push(ptMesh);
+  });
+}
+
+// =============================================================
+// LANDER
+// =============================================================
+let landerGrp=null;
+let engineGlow=null, engineCone=null;
+
+function buildLander(){
+  if(landerGrp){scene.remove(landerGrp);}
+  landerGrp=new THREE.Group();
+
+  const bm=new THREE.MeshPhongMaterial({color:0xd8d8c8,specular:0x666655,shininess:40});
+  const dm=new THREE.MeshPhongMaterial({color:0x888899,specular:0x444455,shininess:20});
+  const wm=new THREE.MeshPhongMaterial({color:0x88bbff,specular:0xffffff,shininess:100,emissive:0x001122});
+
+  // Main body
+  const body=new THREE.Mesh(new THREE.BoxGeometry(4.5,5,4.5),bm);
+  body.position.y=2; landerGrp.add(body);
+
+  // Top dome
+  const dome=new THREE.Mesh(
+    new THREE.SphereGeometry(2,16,8,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshPhongMaterial({color:0xccccdd,specular:0x8888aa,shininess:60})
+  );
+  dome.position.y=4.5; landerGrp.add(dome);
+
+  // Engine bell
+  const eng=new THREE.Mesh(new THREE.CylinderGeometry(.6,1.8,2.2,14),dm);
+  eng.position.y=-.9; landerGrp.add(eng);
+
+  // Window
+  const win=new THREE.Mesh(new THREE.CircleGeometry(.85,16),wm);
+  win.position.set(0,2.6,2.26); landerGrp.add(win);
+
+  // Panel accent
+  const acc=new THREE.Mesh(new THREE.BoxGeometry(.1,3,2),
+    new THREE.MeshPhongMaterial({color:0x334488,emissive:0x001133}));
+  acc.position.set(2.26,2,0); landerGrp.add(acc);
+
+  // 4 legs
+  const legM=new THREE.MeshPhongMaterial({color:0x888888,specular:0x333333});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
+    // upper strut
+    const s1=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,5.5,6),legM);
+    s1.position.set(sx*2.4,-1.4,sz*2.4);
+    s1.rotation.z=sx*.42; s1.rotation.x=sz*.42;
+    landerGrp.add(s1);
+    // foot
+    const foot=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,.35,8),legM);
+    foot.position.set(sx*4.2,-4.1,sz*4.2);
+    landerGrp.add(foot);
+  });
+
+  // Engine glow (cone pointing down, hidden initially)
+  const egGeo=new THREE.ConeGeometry(1.2,5,12,1,true);
+  egGeo.translate(0,-2.5,0);
+  const egMat=new THREE.MeshBasicMaterial({
+    color:0xff8800,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+  });
+  engineGlow=new THREE.Mesh(egGeo,egMat);
+  engineGlow.position.y=-2;
+  landerGrp.add(engineGlow);
+
+  // Inner flame (brighter, smaller)
+  const efGeo=new THREE.ConeGeometry(.6,3.5,8,1,true);
+  efGeo.translate(0,-1.75,0);
+  const efMat=new THREE.MeshBasicMaterial({
+    color:0xffffff,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+  });
+  engineCone=new THREE.Mesh(efGeo,efMat);
+  engineCone.position.y=-2;
+  landerGrp.add(engineCone);
+
+  scene.add(landerGrp);
+}
+
+// =============================================================
+// THRUSTER PARTICLES
+// =============================================================
+const TP=100;
+let tPts=null, tPos=null, tVel=[], tIdx=0;
+
+function buildThrusterParticles(){
+  if(tPts){scene.remove(tPts);}
+  tPos=new Float32Array(TP*3);
+  for(let i=0;i<TP;i++){tPos[i*3+1]=-9999; tVel[i]={life:0};}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+  const m=new THREE.PointsMaterial({
+    size:1.8,color:0xff9900,transparent:true,opacity:.9,
+    blending:THREE.AdditiveBlending,depthWrite:false
+  });
+  tPts=new THREE.Points(g,m);
+  scene.add(tPts);
+}
+
+function spawnThrusterParticles(wx,wy,angle){
+  for(let e=0;e<4;e++){
+    const i=tIdx%TP; tIdx++;
+    const spread=(Math.random()-.5)*.6;
+    tPos[i*3]  =wx+(Math.random()-.5)*.8;
+    tPos[i*3+1]=wy+(Math.random()-.5)*.8;
+    tPos[i*3+2]=(Math.random()-.5)*3;
+    const spd=.08+Math.random()*.14;
+    const a=angle+spread+Math.PI; // opposite to thrust
+    tVel[i]={
+      vx:Math.sin(a)*spd, vy:Math.cos(a)*spd,
+      vz:(Math.random()-.5)*.04,
+      life:1, decay:.025+Math.random()*.03
+    };
+  }
+}
+
+function updateThrusterParticles(dt){
+  for(let i=0;i<TP;i++){
+    const v=tVel[i];
+    if(!v||v.life<=0){tPos[i*3+1]=-9999;continue;}
+    v.life-=v.decay*(dt/16);
+    if(v.life<=0){tPos[i*3+1]=-9999;continue;}
+    tPos[i*3]  +=v.vx*(dt/16);
+    tPos[i*3+1]+=v.vy*(dt/16);
+    tPos[i*3+2]+=v.vz*(dt/16);
+    v.vy-=.004*(dt/16); // gravity on particles
+  }
+  tPts.geometry.attributes.position.needsUpdate=true;
+  // Flicker color
+  const t2=Date.now()*.01;
+  tPts.material.color.setHSL(.07+Math.sin(t2)*.02,1,.55+Math.sin(t2*2)*.1);
+}
+
+// =============================================================
+// EXPLOSION
+// =============================================================
+const EP=150;
+let exPts=null, exVel=[], exActive=false;
+
+function boom(wx,wy){
+  if(exPts){scene.remove(exPts);}
+  const pos=new Float32Array(EP*3); exVel=[];
+  for(let i=0;i<EP;i++){
+    pos[i*3]=wx; pos[i*3+1]=wy; pos[i*3+2]=(Math.random()-.5)*6;
+    const a=Math.random()*Math.PI*2, spd=.3+Math.random()*2.5;
+    exVel.push({
+      vx:Math.cos(a)*spd, vy:Math.sin(a)*spd+.8,
+      vz:(Math.random()-.5)*spd*.5,
+      life:1, decay:.008+Math.random()*.016
+    });
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const m=new THREE.PointsMaterial({
+    size:2.8,color:0xff6600,transparent:true,opacity:1,
+    blending:THREE.AdditiveBlending,depthWrite:false
+  });
+  exPts=new THREE.Points(g,m);
+  scene.add(exPts);
+  exActive=true;
+}
+
+function updateExplosion(dt){
+  if(!exActive||!exPts)return;
+  const pos=exPts.geometry.attributes.position.array;
+  let alive=false;
+  for(let i=0;i<EP;i++){
+    const v=exVel[i];
+    v.life-=v.decay*(dt/16);
+    if(v.life>0){
+      alive=true;
+      pos[i*3]  +=v.vx*(dt/16);
+      pos[i*3+1]+=v.vy*(dt/16);
+      pos[i*3+2]+=v.vz*(dt/16);
+      v.vy-=.06*(dt/16);
+    } else pos[i*3+1]=-9999;
+  }
+  exPts.geometry.attributes.position.needsUpdate=true;
+  exPts.material.opacity=Math.max(0,exPts.material.opacity-.012*(dt/16));
+  if(!alive){exActive=false;scene.remove(exPts);exPts=null;}
+}
+
+// =============================================================
+// GAME STATE
+// =============================================================
+let GS='menu'; // menu|playing|landed|crashed
+let ship={x:0,y:80,vx:0,vy:0,ang:0,fuel:100};
+let thrusting=false, rotL=false, rotR=false;
+let crashes=0, score=0;
+let lastT=null, lastRadioT=0;
+let screenShake=0;
+
+// Physics constants
+const G=.00012, THR=.00038, RSPD=.0018;
+const SAFE_VY=0.11, SAFE_VX=0.08, SAFE_ANG=0.24;
+const FUEL_RATE=0.07;
+
+// =============================================================
+// RADIO
+// =============================================================
+const radio={
+  idle:[
+    "Pre-flight anxiety: completely normal. The paperwork, however, is not in order.",
+    "You have exactly enough fuel. Probably.",
+    "Fun fact: the moon has no atmosphere. Your excuses, however, are numerous.",
+    "Houston is monitoring the situation from a safe distance. A very safe distance.",
+    "Targeting systems nominal. Common sense systems... pending calibration.",
+    "You are not the first. You won't be the last. You might be the most memorable.",
+  ],
+  lowalt:[
+    "Surface proximity alert. The surface is, objectively, quite close.",
+    "Altitude decreasing. This is either a plan or a problem.",
+    "Ground is approaching. Reduce speed. This is not a suggestion.",
+  ],
+  fast:[
+    "Descent rate is... heroic. Tragically heroic.",
+    "You are basically a ballistic event right now.",
+    "That velocity is impressive. Medically speaking.",
+    "Houston would like you to slow down. Houston is using the calm voice. Don't make them use the other voice.",
+    "Impact computations running. Results: not great.",
+  ],
+  lowfuel:[
+    "Fuel at {F}%. Budget cuts were made. At the time it seemed fine.",
+    "Fuel critical. This is what we call a 'learning opportunity'.",
+    "Practically out of fuel. Consider: momentum is also a resource.",
+    "You can glide to the pad. Probably. We're running the math now.",
+  ],
+  nofuel:[
+    "Fuel depleted. Gravity is the pilot now. Gravity is not forgiving.",
+    "RCS offline. Engine offline. Gravity: very much online.",
+  ],
+  tilt:[
+    "Tilt angle suggests unconventional approach vector.",
+    "The lander is not supposed to be going in that direction.",
+    "Spacecraft attitude: sideways. Mission attitude: concerned.",
+  ],
+  goodapp:[
+    "Looking good. Possibly the first time this mission.",
+    "Nominal approach. Houston is quietly impressed.",
+    "Excellent descent profile. This will look great in the debrief.",
+  ],
+  onpad:[
+    "Pad lock confirmed. Don't blow it now.",
+    "You are directly above the landing zone. Don't blow it now.",
+    "This is where heroes are made. Or craters.",
+  ],
+};
+
+function getRadio(){
+  const alt=ship.y-4-terrainAt(ship.x);
+  const vsp=Math.abs(ship.vy), hsp=Math.abs(ship.vx);
+  const onPad=padAt(ship.x);
+  let pool;
+  if(ship.fuel<=0) pool=radio.nofuel;
+  else if(alt<22&&vsp>SAFE_VY*1.8) pool=radio.fast;
+  else if(onPad&&alt<18) pool=radio.onpad;
+  else if(alt<28) pool=radio.lowalt;
+  else if(Math.abs(ship.ang)>SAFE_ANG*1.3) pool=radio.tilt;
+  else if(ship.fuel<20) pool=radio.lowfuel;
+  else if(vsp<SAFE_VY*.6&&alt<40) pool=radio.goodapp;
+  else pool=radio.idle;
+  let msg=pool[Math.floor(Math.random()*pool.length)];
+  return msg.replace('{F}',Math.round(ship.fuel));
+}
+
+let radioInterval=5000;
+function tickRadio(now){
+  if(GS!=='playing')return;
+  if(now-lastRadioT<radioInterval)return;
+  lastRadioT=now;
+  radioInterval=3500+Math.random()*4000;
+  const alt=ship.y-4-terrainAt(ship.x);
+  if(alt<25&&Math.abs(ship.vy)>SAFE_VY*1.5) radioInterval=1800;
+  document.getElementById('rmsg').textContent=getRadio();
+}
+
+// =============================================================
+// INPUT
+// =============================================================
+const K={};
+window.addEventListener('keydown',e=>{
+  K[e.code]=true;
+  if(e.code==='KeyR') restartGame();
+  if((e.code==='Space'||e.code==='Enter')&&(GS==='landed'||GS==='crashed')) restartGame();
+  e.preventDefault&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)&&e.preventDefault();
+},{passive:false});
+window.addEventListener('keyup',e=>{K[e.code]=false;});
+
+// Touch controls
+let touchThrust=false, touchLeft=false, touchRight=false;
+
+// =============================================================
+// PHYSICS
+// =============================================================
+function updatePhysics(dt){
+  if(GS!=='playing')return;
+
+  thrusting=(K['ArrowUp']||K['KeyW']||touchThrust)&&ship.fuel>0;
+  rotL=K['ArrowLeft']||K['KeyA']||touchLeft;
+  rotR=K['ArrowRight']||K['KeyD']||touchRight;
+
+  if(rotL) ship.ang-=RSPD*dt;
+  if(rotR) ship.ang+=RSPD*dt;
+
+  if(thrusting){
+    ship.vx+=Math.sin(ship.ang)*THR*dt;
+    ship.vy+=Math.cos(ship.ang)*THR*dt;
+    ship.fuel=Math.max(0,ship.fuel-FUEL_RATE*(dt/16));
+    spawnThrusterParticles(ship.x,ship.y-2.5,ship.ang);
+  }
+
+  ship.vy-=G*dt;
+  ship.x+=ship.vx*(dt/16);
+  ship.y+=ship.vy*(dt/16);
+
+  // Soft boundary push
+  const hw=W/2-5;
+  if(ship.x<-hw) ship.vx+=.003*dt;
+  if(ship.x>hw)  ship.vx-=.003*dt;
+
+  const ty=terrainAt(ship.x);
+  if(ship.y-4<=ty){
+    ship.y=ty+4;
+    handleLanding(ty);
+  }
+  if(ship.y>H+80){ship.y=H+80; ship.vy=-.01;}
+}
+
+function handleLanding(ty){
+  const onPad=padAt(ship.x);
+  const vy=Math.abs(ship.vy), vx=Math.abs(ship.vx), ang=Math.abs(ship.ang);
+  const safe=vy<SAFE_VY&&vx<SAFE_VX&&ang<SAFE_ANG;
+
+  if(safe&&onPad){
+    GS='landed';
+    ship.vx=0; ship.vy=0;
+    const fb=Math.round(ship.fuel*8);
+    const spd_b=Math.round((SAFE_VY-vy)/SAFE_VY*400);
+    const ang_b=Math.round((1-ang/SAFE_ANG)*150);
+    const pad_b=onPad.pts;
+    const ts=fb+spd_b+ang_b+pad_b;
+    score+=ts;
+    setTimeout(()=>showLandedScreen({fb,spd_b,ang_b,pad_b,ts,score,vy,fuel:ship.fuel}),400);
+  } else {
+    GS='crashed'; crashes++;
+    boom(ship.x,ty);
+    scene.remove(landerGrp); landerGrp=null;
+    screenShake=25;
+    const reason=!onPad?'off-pad':vy>=SAFE_VY?'speed':vx>=SAFE_VX?'hspeed':'tilt';
+    setTimeout(()=>showCrashScreen({reason,vy,vx,ang:ang*180/Math.PI}),1800);
+  }
+}
+
+// =============================================================
+// VISUAL UPDATE
+// =============================================================
+let camX=0, camY=55;
+
+function updateVisuals(dt,now){
+  if(landerGrp){
+    landerGrp.position.set(ship.x,ship.y,0);
+    landerGrp.rotation.z=-ship.ang;
+
+    const ef=thrusting?(.7+Math.sin(now*.03)*.3):0;
+    engineGlow.material.opacity=ef*.85;
+    engineCone.material.opacity=ef;
+    engineGlow.scale.y=.8+Math.sin(now*.04)*.25;
+  }
+
+  updateThrusterParticles(dt);
+  updateExplosion(dt);
+
+  // Screen shake
+  if(screenShake>0){
+    screenShake=Math.max(0,screenShake-.8*(dt/16));
+    camera.position.x=camX+(Math.random()-.5)*screenShake*.15;
+    camera.position.y=camY+(Math.random()-.5)*screenShake*.1;
+  } else {
+    const tgX=ship.x*.75;
+    const alt=ship.y-terrainAt(ship.x);
+    const zoom=Math.max(140,Math.min(320,200-alt*0.4));
+    camX+=(tgX-camX)*.06*(dt/16);
+    camY+=((35+ship.y*.25)-camY)*.04*(dt/16);
+    camera.position.x=camX;
+    camera.position.y=camY;
+    camera.position.z=zoom;
+  }
+  camera.lookAt(camX,camY*.6,0);
+
+  // Earth rotation
+  earthMesh.earth.rotation.y+=.00006*dt;
+  earthMesh.clouds.rotation.y+=.00004*dt;
+
+  // Animate pad lights
+  pads.forEach((p,pi)=>{});
+}
+
+// =============================================================
+// HUD
+// =============================================================
+function updateHUD(now){
+  if(GS!=='playing')return;
+  const ty=terrainAt(ship.x);
+  const alt=Math.max(0,ship.y-4-ty);
+  const vy=-ship.vy, vx=ship.vx;
+  const angDeg=ship.ang*180/Math.PI;
+
+  function setV(id,val,cls){
+    const el=document.getElementById(id);
+    el.textContent=val; el.className='val'+' '+(cls||'');
+  }
+
+  const altCls=alt<18?'danger':alt<35?'warn':'';
+  setV('valt',Math.round(alt)+' m',altCls);
+
+  const vyCls=Math.abs(vy)>SAFE_VY?'danger':Math.abs(vy)<SAFE_VY*.5?'good':'';
+  setV('vvsp',(vy*100).toFixed(1)+' m/s',vyCls);
+
+  const vxCls=Math.abs(vx)>SAFE_VX?'danger':'';
+  setV('vhsp',(Math.abs(vx)*100).toFixed(1)+' m/s',vxCls);
+
+  const angCls=Math.abs(ship.ang)>SAFE_ANG?'danger':Math.abs(ship.ang)<SAFE_ANG*.4?'good':'';
+  setV('vang',angDeg.toFixed(1)+'°',angCls);
+
+  const fuelCls=ship.fuel<15?'danger':ship.fuel<35?'warn':'good';
+  setV('vfuel',Math.round(ship.fuel)+'%',fuelCls);
+  document.getElementById('fuelbar').style.width=ship.fuel+'%';
+  document.getElementById('fuelbar').style.background=
+    ship.fuel<15?'#cc2200':ship.fuel<35?'#ff8800':'linear-gradient(90deg,#cc4400,#ffcc00)';
+
+  setV('vengine',thrusting?'FIRING ▲':'STANDBY',thrusting?'good':'');
+
+  const op=padAt(ship.x);
+  setV('vzone',op?'PAD IN RANGE':'IN FLIGHT',op?'good':'');
+
+  document.getElementById('sv').textContent=score;
+  document.getElementById('cc').textContent=crashes;
+
+  // Altitude tape
+  const maxAlt=H-10;
+  const pct=Math.min(1,alt/maxAlt);
+  const tape=document.getElementById('alttape');
+  const tH=tape.clientHeight||200;
+  document.getElementById('altfill').style.height=(pct*100)+'%';
+  document.getElementById('altptr').style.top=((1-pct)*tH-5)+'px';
+
+  // Key indicators
+  document.getElementById('ki-left').className='ki'+(rotL?' active':'');
+  document.getElementById('ki-thrust').className='ki'+(thrusting?' active':'');
+  document.getElementById('ki-right').className='ki'+(rotR?' active':'');
+
+  tickRadio(now);
+}
+
+// =============================================================
+// RADAR
+// =============================================================
+function updateRadar(){
+  const rc=document.getElementById('radarc');
+  const ctx=rc.getContext('2d');
+  const rw=rc.width=175, rh=rc.height=55;
+  ctx.fillStyle='rgba(0,8,0,.95)';
+  ctx.fillRect(0,0,rw,rh);
+
+  // Terrain
+  ctx.strokeStyle='#336633'; ctx.lineWidth=1; ctx.beginPath();
+  for(let i=0;i<=SEG;i++){
+    const px=i/SEG*rw, py=rh-(terrH[i]/(H*.5))*rh;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // Pads
+  pads.forEach(p=>{
+    const px1=p.si/SEG*rw, px2=p.ei/SEG*rw, py=rh-(p.y/(H*.5))*rh;
+    ctx.strokeStyle='#ffff44'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px1,py); ctx.lineTo(px2,py); ctx.stroke();
+  });
+
+  // Lander dot
+  const lx=(ship.x+W/2)/W*rw, ly=rh-(ship.y/(H*.5))*rh;
+  ctx.fillStyle='#00ff88';
+  ctx.beginPath(); ctx.arc(lx,ly,2.5,0,Math.PI*2); ctx.fill();
+  // sweep line
+  const sw=(Date.now()%2000)/2000*rw;
+  const grad=ctx.createLinearGradient(sw,0,sw+30,0);
+  grad.addColorStop(0,'rgba(0,255,100,0)');
+  grad.addColorStop(1,'rgba(0,255,100,.2)');
+  ctx.fillStyle=grad;
+  ctx.fillRect(sw,0,30,rh);
+}
+
+// =============================================================
+// OVERLAY SCREENS
+// =============================================================
+function showOv(html){
+  document.getElementById('ovcontent').innerHTML=html;
+  document.getElementById('ov').classList.remove('hide');
+}
+function hideOv(){document.getElementById('ov').classList.add('hide');}
+
+function showMenu(){
+  showOv(`
+    <div class="ovtitle" style="color:#e88a00">LUNAR LANDER</div>
+    <div class="ovsub">DIGNITY NOT INCLUDED &nbsp;·&nbsp; EST. 1979</div>
+    <div class="ovmsg">
+      Three landing pads. One spacecraft. Questionable odds.<br>
+      <br>
+      Land gently on a marked pad. Watch your speed, tilt, and fuel.<br>
+      Don't become a crater. Craters are embarrassing.<br>
+      <br>
+      <span style="color:#446644;font-size:12px">
+        ↑/W: Main Engine &nbsp;&nbsp; ←→ / A D: Rotate &nbsp;&nbsp; R: Restart
+      </span>
+    </div>
+    <button class="btn go" onclick="startGame()">INITIATE MISSION</button>
+  `);
+}
+
+function showLandedScreen(r){
+  let grade,gc,msg;
+  if(r.ts>1300){grade='A+';gc='#40ff90';msg="Perfect. Houston is doing embarrassingly small fist pumps.";}
+  else if(r.ts>1000){grade='A';gc='#40ff90';msg="Outstanding. The coffee in Mission Control tastes better now.";}
+  else if(r.ts>700){grade='B';gc='#ffd040';msg="Good work. The lander only creaked a little. Probably fine.";}
+  else if(r.ts>400){grade='C';gc='#ff9900';msg="You have landed. Technically. The crew is mildly nauseous.";}
+  else {grade='D';gc='#ff5500';msg="Landed. Insurance claim status: under review.";}
+
+  showOv(`
+    <div id="grade" style="color:${gc}">${grade}</div>
+    <div class="bigmission" style="color:#40ff90">TOUCHDOWN CONFIRMED</div>
+    <div class="ovmsg" style="color:#888;margin-bottom:16px">${msg}</div>
+    <div class="sgrid">
+      <div class="sitem"><div class="slbl">Pad Bonus</div><div class="sval">+${r.pad_b}</div></div>
+      <div class="sitem"><div class="slbl">Speed Bonus</div><div class="sval">+${r.spd_b}</div></div>
+      <div class="sitem"><div class="slbl">Fuel Bonus</div><div class="sval">+${r.fb}</div></div>
+      <div class="sitem"><div class="slbl">Angle Bonus</div><div class="sval">+${r.ang_b}</div></div>
+    </div>
+    <div class="totalscore">MISSION: ${r.ts} pts &nbsp;·&nbsp; TOTAL: ${r.score} pts</div>
+    <button class="btn go" onclick="startGame()">NEXT MISSION</button>
+    <button class="btn" onclick="resetAll()">RESET</button>
+  `);
+}
+
+const crashMsgs=[
+  "The crater has been officially named. After you.",
+  "Well. That happened. Mission debrief will be brief.",
+  "Neil Armstrong would like a word. Several words.",
+  "The lander's black box survived. It's already on YouTube.",
+  "Somewhere, a mission patch designer just got excited.",
+  "Moon: 1, Pilot: 0.",
+  "Houston confirms: you have found the surface. Emphatically.",
+  "Cause of incident: gravity, poor decisions, and hubris (in that order).",
+];
+const crashReasons={
+  'off-pad':'⊗ Missed the landing pad entirely',
+  'speed':'↓ Vertical impact velocity exceeded limits',
+  'hspeed':'↔ Horizontal speed exceeded safe limits',
+  'tilt':'↗ Impact angle was, uh, creative',
+};
+
+function showCrashScreen(r){
+  const msg=crashMsgs[Math.floor(Math.random()*crashMsgs.length)];
+  showOv(`
+    <div class="crashicon">💥</div>
+    <div class="bigmission" style="color:#ff2200">MISSION FAILURE</div>
+    <div class="ovmsg" style="color:#777;margin-bottom:14px">${msg}</div>
+    <div style="color:#883300;font-size:11px;letter-spacing:1px;margin-bottom:8px">CAUSE: ${crashReasons[r.reason]||r.reason}</div>
+    <div style="color:#333;font-size:11px;margin-bottom:28px;letter-spacing:1px">
+      Impact: ${(r.vy*100).toFixed(1)} m/s vertical &nbsp;|&nbsp; Crashes: ${crashes}
+    </div>
+    <button class="btn go" onclick="startGame()">TRY AGAIN</button>
+    <button class="btn" onclick="resetAll()">RESET SCORE</button>
+  `);
+}
+
+// =============================================================
+// GAME LIFECYCLE
+// =============================================================
+function initShip(){
+  genTerrain();
+  buildTerrainMesh();
+
+  // Start position
+  const sx=(Math.random()-.5)*W*.5;
+  const sy=terrainAt(sx)+70+Math.random()*25;
+  ship={x:sx,y:sy,vx:(Math.random()-.5)*.025,vy:0,ang:(Math.random()-.5)*.15,fuel:100};
+
+  buildLander();
+  buildThrusterParticles();
+  camX=sx; camY=55;
+  lastRadioT=0; tIdx=0;
+  screenShake=0;
+  document.getElementById('rmsg').textContent=radio.idle[Math.floor(Math.random()*radio.idle.length)];
+}
+
+function startGame(){
+  hideOv();
+  GS='playing';
+  initShip();
+  document.getElementById('keyinds').style.display='block';
+}
+
+function restartGame(){
+  if(GS==='menu')return;
+  if(landerGrp){scene.remove(landerGrp); landerGrp=null;}
+  GS='playing';
+  initShip();
+  hideOv();
+}
+
+function resetAll(){score=0; crashes=0; startGame();}
+
+// =============================================================
+// GAME LOOP
+// =============================================================
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!lastT)lastT=ts;
+  const dt=Math.min(ts-lastT,50);
+  lastT=ts;
+
+  updatePhysics(dt);
+  updateVisuals(dt,ts);
+  updateHUD(ts);
+  updateRadar();
+
+  renderer.render(scene,camera);
+}
+
+// =============================================================
+// BOOTSTRAP
+// =============================================================
+genTerrain();
+buildTerrainMesh();
+// Fake ship for menu background (visible terrain)
+ship={x:0,y:60,vx:0,vy:0,ang:0,fuel:100};
+buildLander();
+buildThrusterParticles();
+showMenu();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

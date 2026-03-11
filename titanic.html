@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rearranging Deck Chairs on the Titanic</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; }
+  canvas { display: block; }
+
+  #ui {
+    position: fixed; top: 14px; left: 50%;
+    transform: translateX(-50%);
+    text-align: center; pointer-events: none; user-select: none;
+  }
+  #score {
+    font-family: 'Cinzel', Georgia, serif; font-size: 1.85em;
+    color: #ffd700; letter-spacing: 3px;
+    text-shadow: 0 0 18px rgba(255,215,0,0.85), 0 2px 5px rgba(0,0,0,0.9);
+  }
+  #hint {
+    font-family: 'Cinzel', Georgia, serif; font-size: 0.82em;
+    color: rgba(190,190,200,0.65); margin-top: 3px; letter-spacing: 1px;
+  }
+
+  #overlay {
+    position: fixed; inset: 0; display: none;
+    align-items: center; justify-content: center; flex-direction: column;
+    background: rgba(0,4,18,0.9); backdrop-filter: blur(5px);
+  }
+  #overlay h1 {
+    font-family: 'Cinzel Decorative', Georgia, serif; font-size: clamp(1.5em, 4vw, 2.8em);
+    color: #ffd700; text-shadow: 0 0 35px rgba(255,215,0,0.7);
+    margin-bottom: 22px; text-align: center; padding: 0 20px;
+  }
+  #overlay p {
+    font-family: 'Cinzel', Georgia, serif; font-size: clamp(0.85em, 2vw, 1.1em);
+    color: #bbb; white-space: pre-line; text-align: center;
+    line-height: 1.9; margin-bottom: 34px; max-width: 520px; padding: 0 20px;
+  }
+  #overlay button {
+    font-family: 'Cinzel', Georgia, serif; font-size: 1em;
+    padding: 13px 36px; background: transparent;
+    border: 2px solid #ffd700; color: #ffd700;
+    cursor: pointer; letter-spacing: 3px; transition: all 0.2s;
+  }
+  #overlay button:hover { background: #ffd700; color: #000; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="score">Score: 0</div>
+  <div id="hint">Click chairs for points &nbsp;·&nbsp; Click the lifeboat to survive</div>
+</div>
+<div id="overlay">
+  <h1 id="oTitle"></h1>
+  <p  id="oMsg"></p>
+  <button onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+// ── CANVAS SETUP ──────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width  = innerWidth;
+  H = canvas.height = innerHeight;
+  initPivot();
+}
+window.addEventListener('resize', resize);
+
+// ── AUDIO ─────────────────────────────────────────────────────────
+let AC = null;
+function ac() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+
+function tone(freq, dur, type='sine', vol=0.22, delay=0) {
+  try {
+    const a = ac(), t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur);
+  } catch(e) {}
+}
+
+function sndDing()  { [523,659,784,1047].forEach((f,i) => tone(f, 0.22, 'sine', 0.2, i*0.065)); }
+function sndWin()   { [392,494,587,784,988,1175,1568].forEach((f,i) => tone(f, 0.35, 'sine', 0.22, i*0.085)); }
+function sndLose()  {
+  [440,370,294,220,165].forEach((f,i) => tone(f, 0.7, 'sawtooth', 0.12, i*0.2));
+  try {
+    const a = ac(), buf = a.createBuffer(1, a.sampleRate*1.4, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(a.sampleRate*0.55));
+    const src = a.createBufferSource(), flt = a.createBiquadFilter(), g = a.createGain();
+    flt.type='lowpass'; flt.frequency.value=450;
+    g.gain.setValueAtTime(0.5, a.currentTime+1.0);
+    src.buffer=buf; src.connect(flt).connect(g).connect(a.destination);
+    src.start(a.currentTime+1.0);
+  } catch(e) {}
+}
+
+// ── CONSTANTS ─────────────────────────────────────────────────────
+const SHIP_L  = 460;   // ship length (local coords, stern=0, bow=-460)
+const HULL_D  = 52;    // hull depth below deck line
+const SUPER_H = 64;    // superstructure height
+const WATER_R = 0.62;  // water level as fraction of H
+const GAME_T  = 95;    // seconds of game time
+
+const FUNNELS      = [-332, -258, -184, -112];
+const CHAIR_STARTS = [-398,-318,-238,-162,-88];
+const LB = { lx:-54, ly:-HULL_D-SUPER_H-10, w:60, h:24 }; // lifeboat
+
+// ── PIVOT (stern, world coords) ────────────────────────────────────
+let PX, PY;
+function initPivot() {
+  PX = W * 0.74;
+  PY = H * WATER_R - 48;
+}
+
+// ── STARS ─────────────────────────────────────────────────────────
+const STARS = Array.from({length:220}, () => ({
+  x: Math.random(), y: Math.random()*0.57,
+  r: Math.random()*1.6+0.2,
+  tw: Math.random()*Math.PI*2,
+  sp: 0.7+Math.random()*1.5,
+}));
+
+// ── GAME STATE ────────────────────────────────────────────────────
+let phase    = 'intro';
+let gameTime = 0;
+let angle    = 0.04;
+let sinkY    = 0;
+let score    = 0;
+let lastTS   = null;
+let mx = 0, my = 0;
+let chairs, coins, popups;
+
+function initGame() {
+  angle=0.04; sinkY=0; gameTime=0; score=0; lastTS=null;
+  chairs = CHAIR_STARTS.map((x,i)=>({
+    lx:x, ly:-HULL_D, vx:0, w:28, h:20, hue:25+i*18,
+  }));
+  coins=[]; popups=[];
+}
+initGame();
+
+// ── TRANSFORMS ────────────────────────────────────────────────────
+function toWorld(lx,ly) {
+  const c=Math.cos(angle), s=Math.sin(angle);
+  return { x: PX + lx*c - ly*s, y: PY+sinkY + lx*s + ly*c };
+}
+function toLocal(wx,wy) {
+  const dx=wx-PX, dy=wy-PY-sinkY;
+  const c=Math.cos(angle), s=Math.sin(angle);
+  return { x: dx*c + dy*s, y: -dx*s + dy*c };
+}
+
+// Returns 'lifeboat', chair-index, or null
+function hitTest(wx,wy) {
+  if (phase!=='playing') return null;
+  const L = toLocal(wx,wy);
+  if (Math.abs(L.x-LB.lx)<LB.w/2+5 && Math.abs(L.y-(LB.ly+LB.h*0.55))<LB.h/2+5) return 'lifeboat';
+  for (let i=0;i<chairs.length;i++) {
+    const ch=chairs[i];
+    if (Math.abs(L.x-ch.lx)<ch.w/2+7 && Math.abs(L.y-(ch.ly-ch.h*0.5))<ch.h/2+7) return i;
+  }
+  return null;
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────────
+function spawnCoins(wx,wy) {
+  for (let i=0;i<22;i++) coins.push({
+    x: wx+(Math.random()-.5)*55, y: wy-Math.random()*12,
+    vx:(Math.random()-.5)*8, vy:-(Math.random()*9+4),
+    life:1, r:5+Math.random()*7, spin:Math.random()*Math.PI*2,
+  });
+}
+function spawnPopup(wx,wy,pts) { popups.push({x:wx,y:wy,text:`+${pts}`,life:1}); }
+
+// ── DRAW SKY ──────────────────────────────────────────────────────
+function drawSky() {
+  const skyH = H*WATER_R;
+  const g = ctx.createLinearGradient(0,0,0,skyH);
+  g.addColorStop(0,'#000005'); g.addColorStop(0.65,'#061220'); g.addColorStop(1,'#091b2c');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,skyH+2);
+
+  const t = Date.now()*0.001;
+  STARS.forEach(st => {
+    ctx.globalAlpha = 0.35 + 0.65*(0.5+0.5*Math.sin(t*st.sp+st.tw));
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(st.x*W, st.y*skyH, st.r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // Moon
+  ctx.save();
+  const mx2=W*0.09, my2=H*0.1;
+  ctx.shadowColor='rgba(255,252,220,0.55)'; ctx.shadowBlur=40;
+  ctx.fillStyle='#fffce5';
+  ctx.beginPath(); ctx.arc(mx2,my2,34,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#030c1a';
+  ctx.beginPath(); ctx.arc(mx2+15,my2-3,30,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ── DRAW OCEAN (drawn AFTER ship to mask submerged parts) ─────────
+function drawOcean() {
+  const wy = H*WATER_R;
+  const t  = Date.now()*0.001;
+  const g  = ctx.createLinearGradient(0,wy,0,H);
+  g.addColorStop(0,'#08192c'); g.addColorStop(0.35,'#050f1c'); g.addColorStop(1,'#010408');
+  ctx.fillStyle=g; ctx.fillRect(0,wy,W,H-wy);
+
+  // Waves
+  for (let w=0;w<5;w++) {
+    ctx.strokeStyle=`rgba(55,130,190,${0.1+w*0.04})`; ctx.lineWidth=1+w*0.25;
+    ctx.beginPath();
+    for (let x=0;x<=W;x+=5) {
+      const y = wy + Math.sin(x*0.011+t*1.1+w*0.95)*7 + w*5;
+      x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  // Waterline highlight
+  ctx.strokeStyle='rgba(110,170,210,0.18)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,wy); ctx.lineTo(W,wy); ctx.stroke();
+
+  // Moon shimmer
+  ctx.save(); ctx.globalAlpha=0.05;
+  const sg=ctx.createLinearGradient(W*0.09,wy,W*0.35,H);
+  sg.addColorStop(0,'#fffce0'); sg.addColorStop(1,'transparent');
+  ctx.fillStyle=sg; ctx.fillRect(0,wy,W,H-wy);
+  ctx.restore();
+}
+
+// ── DRAW SHIP ─────────────────────────────────────────────────────
+function drawShip() {
+  ctx.save();
+  ctx.translate(PX, PY+sinkY);
+  ctx.rotate(angle);
+
+  const bx  = -SHIP_L;
+  const dy  = -HULL_D;
+  const sy  = dy - SUPER_H;
+
+  // ---- Hull ----
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.lineTo(bx+52,0);
+  ctx.quadraticCurveTo(bx,0, bx+18,dy);
+  ctx.lineTo(-14,dy);
+  ctx.closePath();
+  ctx.fillStyle='#0b1825'; ctx.fill();
+  ctx.strokeStyle='#183050'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Red bottom stripe
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(bx+52,0);
+  ctx.quadraticCurveTo(bx,0, bx+18,dy);
+  ctx.lineTo(bx+22,dy*0.22); ctx.lineTo(-14,dy*0.22);
+  ctx.closePath();
+  ctx.fillStyle='#180808'; ctx.fill();
+
+  // Waterline stripe
+  ctx.strokeStyle='rgba(70,130,170,0.3)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(bx+52,0); ctx.stroke();
+
+  // Portholes (hull)
+  for (let px=bx+68; px<-18; px+=38) {
+    ctx.save();
+    ctx.shadowColor='#ffd060'; ctx.shadowBlur=10;
+    ctx.fillStyle='rgba(255,210,80,0.88)';
+    ctx.beginPath(); ctx.arc(px, dy*0.38, 4.2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle='#3a4860'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(px, dy*0.38, 5, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // ---- Superstructure ----
+  const sl=bx+38, sr=-16;
+  ctx.fillStyle='#101d2e'; ctx.fillRect(sl,sy,sr-sl,SUPER_H);
+  ctx.strokeStyle='#1c3452'; ctx.lineWidth=1; ctx.strokeRect(sl,sy,sr-sl,SUPER_H);
+
+  // Windows (two decks)
+  for (let row=0;row<2;row++) {
+    for (let wx=sl+28; wx<sr-14; wx+=28) {
+      ctx.fillStyle=`rgba(255,218,95,${0.28+row*0.12})`;
+      ctx.fillRect(wx-5, sy+14+row*26, 10, 9);
+    }
+  }
+
+  // Upper decks
+  ctx.fillStyle='#152535'; ctx.fillRect(sl+18,sy-20,sr-sl-18,20);
+  ctx.fillStyle='#1a2e42'; ctx.fillRect(sl+55,sy-36,sr-sl-85,17);
+
+  // Top deck rail
+  ctx.strokeStyle='#243a52'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(sl,sy-12); ctx.lineTo(sr,sy-12); ctx.stroke();
+  ctx.lineWidth=1;
+  for (let rx=sl; rx<=sr; rx+=20) {
+    ctx.beginPath(); ctx.moveTo(rx,sy-12); ctx.lineTo(rx,dy); ctx.stroke();
+  }
+
+  // ---- Funnels ----
+  const t = Date.now()*0.001;
+  FUNNELS.forEach((fx,i) => {
+    const fW=24, fH=74, functional=i<3;
+    const fTop = sy-12-fH;
+
+    // Body (tapered)
+    ctx.beginPath();
+    ctx.moveTo(fx-fW/2, sy-12); ctx.lineTo(fx-fW/2-3, fTop);
+    ctx.lineTo(fx+fW/2+3, fTop); ctx.lineTo(fx+fW/2, sy-12);
+    ctx.closePath();
+    ctx.fillStyle = functional ? '#0e0e0e' : '#1c1c1c'; ctx.fill();
+
+    // Yellow livery band
+    ctx.fillStyle='#cc9c18'; ctx.fillRect(fx-fW/2, fTop+14, fW, 12);
+
+    // Black cap
+    ctx.beginPath();
+    ctx.moveTo(fx-fW/2-3,fTop); ctx.lineTo(fx-fW/2-1,fTop-9);
+    ctx.lineTo(fx+fW/2+1,fTop-9); ctx.lineTo(fx+fW/2+3,fTop);
+    ctx.closePath(); ctx.fillStyle='#040404'; ctx.fill();
+
+    // Smoke
+    if (functional && phase==='playing') {
+      for (let s=0;s<5;s++) {
+        const sr2=6+s*6, ox=Math.sin(t*0.6+s*1.9+i*0.8)*12;
+        ctx.save(); ctx.globalAlpha=Math.max(0, 0.26-s*0.05);
+        ctx.fillStyle='#607282';
+        ctx.beginPath(); ctx.arc(fx+ox, fTop-10-s*13, sr2, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+    }
+  });
+
+  // Bow mast
+  ctx.strokeStyle='#2e3d4e'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(bx+85,sy-12); ctx.lineTo(bx+88,sy-82); ctx.stroke();
+  ctx.fillStyle='#1a2b3a';
+  ctx.fillRect(bx+79, sy-84, 18, 14);
+
+  // ---- Lifeboat ----
+  const lbHov = hitTest(mx,my)==='lifeboat';
+  ctx.save();
+
+  // Davit ropes
+  ctx.strokeStyle='#45453a'; ctx.lineWidth=1.5;
+  [LB.lx-LB.w/2+8, LB.lx+LB.w/2-8].forEach(rx => {
+    ctx.beginPath(); ctx.moveTo(rx,LB.ly); ctx.lineTo(rx,sy-12); ctx.stroke();
+  });
+
+  // Hull of lifeboat
+  const lbCY = LB.ly+LB.h*0.6;
+  if (lbHov) {
+    ctx.save(); ctx.shadowColor='#ffd700'; ctx.shadowBlur=22;
+    ctx.strokeStyle='#ffd700'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(LB.lx,lbCY,LB.w/2+5,LB.h/2+4,0,0,Math.PI*2);
+    ctx.stroke(); ctx.restore();
+  }
+  ctx.beginPath(); ctx.ellipse(LB.lx,lbCY,LB.w/2,LB.h/2,0,0,Math.PI*2);
+  ctx.fillStyle = lbHov ? '#ffe055' : '#b89030'; ctx.fill();
+  ctx.strokeStyle = lbHov ? '#cc9900' : '#7a5a10'; ctx.lineWidth=2; ctx.stroke();
+
+  ctx.fillStyle='#2a1800'; ctx.font="bold 7.5px Georgia";
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('LIFEBOAT', LB.lx, lbCY);
+
+  if (lbHov) {
+    ctx.fillStyle='#ffe055'; ctx.font="bold 9.5px Georgia";
+    ctx.fillText('✦ CLICK TO ESCAPE! ✦', LB.lx, LB.ly);
+  }
+  ctx.restore();
+
+  // ---- Deck Chairs ----
+  chairs.forEach((ch,i) => {
+    const hov = hitTest(mx,my)===i;
+    ctx.save();
+    if (hov) { ctx.shadowColor=`hsl(${ch.hue},100%,65%)`; ctx.shadowBlur=14; }
+
+    // Seat
+    ctx.fillStyle=`hsl(${ch.hue},${hov?88:68}%,${hov?72:54}%)`;
+    ctx.fillRect(ch.lx-ch.w/2, ch.ly-ch.h, ch.w, ch.h*0.58);
+
+    // Seatback (stern side)
+    ctx.fillStyle=`hsl(${ch.hue},58%,42%)`;
+    ctx.fillRect(ch.lx+ch.w/2-5, ch.ly-ch.h, 5, ch.h);
+
+    // Stripes (deck chair look)
+    ctx.fillStyle=`hsl(${ch.hue+30},82%,76%)`;
+    for (let s=0;s<3;s++) {
+      ctx.fillRect(ch.lx-ch.w/2+s*(ch.w/3.5)+3, ch.ly-ch.h+2, ch.w/8, ch.h*0.5);
+    }
+
+    ctx.shadowBlur=0;
+    ctx.strokeStyle=`hsl(${ch.hue},48%,28%)`; ctx.lineWidth=1.5;
+    ctx.strokeRect(ch.lx-ch.w/2, ch.ly-ch.h, ch.w, ch.h*0.58);
+
+    // Legs
+    ctx.strokeStyle=`hsl(${ch.hue},42%,32%)`; ctx.lineWidth=2;
+    [[ch.lx-ch.w/2+4, ch.lx-ch.w/2+2],[ch.lx+ch.w/2-9,ch.lx+ch.w/2-7]].forEach(([tx,bx2]) => {
+      ctx.beginPath(); ctx.moveTo(tx,ch.ly-ch.h); ctx.lineTo(bx2,ch.ly+3); ctx.stroke();
+    });
+    ctx.restore();
+  });
+
+  ctx.restore(); // end ship transform
+}
+
+// ── DRAW COINS ────────────────────────────────────────────────────
+function drawCoins() {
+  const nt = Date.now()*0.009;
+  coins.forEach(c => {
+    ctx.save(); ctx.globalAlpha=Math.max(0,c.life);
+    const scX = Math.abs(Math.cos(c.spin+nt));
+    ctx.fillStyle=`hsl(${44+Math.sin(c.spin)*8},96%,54%)`;
+    ctx.strokeStyle='#8b6000'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.ellipse(c.x,c.y, c.r, c.r*(0.15+scX*0.85), 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.38)';
+    ctx.beginPath();
+    ctx.ellipse(c.x-c.r*0.22,c.y-c.r*0.18, c.r*0.28, c.r*0.14*(0.15+scX*0.85), 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── DRAW POPUPS ───────────────────────────────────────────────────
+function drawPopups() {
+  popups.forEach(p => {
+    ctx.save(); ctx.globalAlpha=p.life;
+    ctx.font='bold 24px Georgia'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,0.75)'; ctx.lineWidth=4;
+    ctx.strokeText(p.text, p.x, p.y);
+    ctx.fillStyle='#ffd700'; ctx.fillText(p.text, p.x, p.y);
+    ctx.restore();
+  });
+}
+
+// ── WARNING FLASH ─────────────────────────────────────────────────
+function drawWarning() {
+  if (phase!=='playing') return;
+  const pct = angle / (Math.PI*0.56);
+  if (pct < 0.48) return;
+  const urg = (pct-0.48)/0.52;
+  const pulse = 0.5+0.5*Math.sin(Date.now()*(0.004+urg*0.009));
+  ctx.save();
+  ctx.globalAlpha = urg*0.85*pulse;
+  ctx.fillStyle='#ff3300';
+  ctx.shadowColor='#ff4400'; ctx.shadowBlur=18;
+  ctx.font=`bold ${22+urg*14}px Georgia`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const msgs = ['⚠️  SHE\'S GOING DOWN!  ⚠️','🚨  ABANDON SHIP!  🚨','🌊  CLICK THE LIFEBOAT!  🌊'];
+  ctx.fillText(msgs[Math.floor(urg*2.99)%3], W/2, H*0.12);
+  ctx.restore();
+}
+
+// ── INTRO SCREEN ──────────────────────────────────────────────────
+function drawIntro() {
+  ctx.save();
+  ctx.fillStyle='rgba(0,4,18,0.8)'; ctx.fillRect(0,0,W,H);
+  const cx=W/2, cy=H/2, fs=Math.min(W/28, 40);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+
+  ctx.save();
+  ctx.shadowColor='#ffd700'; ctx.shadowBlur=32;
+  ctx.fillStyle='#ffd700';
+  ctx.font=`700 ${fs}px 'Cinzel Decorative', Georgia, serif`;
+  ctx.fillText('Rearranging Deck Chairs', cx, cy-fs*1.15);
+  ctx.fillText('on the Titanic', cx, cy-fs*0.1);
+  ctx.restore();
+
+  ctx.fillStyle='#cccccc';
+  ctx.font=`${fs*0.54}px 'Cinzel', Georgia, serif`;
+  ctx.fillText('Click the chairs to score glorious, meaningless points', cx, cy+fs*1.2);
+  ctx.fillText('Click the lifeboat to actually survive', cx, cy+fs*1.82);
+
+  ctx.fillStyle='rgba(165,165,175,0.65)';
+  ctx.font=`italic ${fs*0.43}px Georgia`;
+  ctx.fillText('(The Titanic sinks regardless. That\'s rather the point.)', cx, cy+fs*2.6);
+
+  const blink = Math.sin(Date.now()*0.004)>0;
+  ctx.fillStyle = blink ? '#ffd700' : 'rgba(255,215,0,0.3)';
+  ctx.font=`${fs*0.5}px Georgia`;
+  ctx.fillText('— Click anywhere to begin —', cx, cy+fs*3.65);
+  ctx.restore();
+}
+
+// ── GAME UPDATE ───────────────────────────────────────────────────
+function updateGame(dt) {
+  if (phase!=='playing') return;
+  gameTime += dt;
+  const t = Math.min(gameTime/GAME_T, 1);
+  const e = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; // ease in-out
+
+  angle = 0.04 + e*(Math.PI*0.52);  // 0.04 → ~98°
+
+  const sinkT = Math.max(0,(t-0.54)/0.46);
+  sinkY = sinkT*sinkT*H*0.62;
+
+  // Check lose: stern (pivot) sinks below waterline
+  if (PY+sinkY > H*WATER_R+58) { triggerLose(); return; }
+
+  // Chairs: gravity along ship deck pulls toward bow (negative lx direction)
+  const grav=182, bowLim=-SHIP_L+40, sternLim=-30;
+  chairs.forEach(ch => {
+    ch.vx -= Math.sin(angle)*grav*dt;
+    ch.vx *= (1-2.2*dt);          // friction
+    ch.lx += ch.vx*dt;
+    if (ch.lx<bowLim) { ch.lx=bowLim; if(ch.vx<0) ch.vx=0; }
+    if (ch.lx>sternLim){ ch.lx=sternLim; if(ch.vx>0) ch.vx=0; }
+  });
+
+  // Particles
+  coins = coins.map(c=>({...c,
+    x:c.x+c.vx, y:c.y+c.vy, vy:c.vy+15*dt,
+    spin:c.spin+dt*3.5, life:c.life-dt,
+  })).filter(c=>c.life>0);
+
+  popups = popups.map(p=>({...p,
+    y:p.y-58*dt, life:p.life-dt*1.4,
+  })).filter(p=>p.life>0);
+}
+
+function triggerWin() {
+  if (phase!=='playing') return;
+  phase='won'; sndWin();
+  setTimeout(()=>{
+    document.getElementById('oTitle').textContent='🛥️ You Escaped!';
+    document.getElementById('oMsg').textContent=
+      `You found the lifeboat and survived!\nFinal Score: ${score.toLocaleString()}\n\n"Well played. Most people just keep moving the chairs."`;
+    document.getElementById('overlay').style.display='flex';
+  }, 500);
+}
+
+function triggerLose() {
+  if (phase!=='playing') return;
+  phase='lost'; sndLose();
+  setTimeout(()=>{
+    document.getElementById('oTitle').textContent='🌊 She\'s Gone...';
+    document.getElementById('oMsg').textContent=
+      `The Titanic has sunk to the bottom of the Atlantic.\nFinal Score: ${score.toLocaleString()}\n\n"The chairs were perfectly arranged.\nMuch good it did."`;
+    document.getElementById('overlay').style.display='flex';
+  }, 1400);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────
+function loop(ts) {
+  if (!lastTS) lastTS=ts;
+  const dt = Math.min((ts-lastTS)/1000, 0.05);
+  lastTS=ts;
+  updateGame(dt);
+
+  ctx.clearRect(0,0,W,H);
+  drawSky();
+  drawShip();
+  drawOcean();     // ← drawn AFTER ship so it masks submerged parts
+  drawCoins();
+  drawPopups();
+  drawWarning();
+  if (phase==='intro') drawIntro();
+
+  requestAnimationFrame(loop);
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────
+window.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  canvas.style.cursor = (phase==='playing' && hitTest(mx,my)!==null) ? 'pointer' : 'default';
+});
+
+window.addEventListener('click', e => {
+  if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+  if (AC.state==='suspended') AC.resume();
+
+  if (phase==='intro') { phase='playing'; return; }
+  if (phase!=='playing') return;
+
+  const tgt = hitTest(e.clientX, e.clientY);
+
+  if (tgt==='lifeboat') { triggerWin(); return; }
+
+  if (typeof tgt==='number') {
+    const ch = chairs[tgt];
+    ch.vx += 135;                            // impulse toward stern
+    const wp = toWorld(ch.lx, ch.ly-ch.h*0.5);
+    spawnCoins(wp.x, wp.y);
+    spawnPopup(wp.x, wp.y-22, 100);
+    score += 100;
+    document.getElementById('score').textContent = `Score: ${score.toLocaleString()}`;
+    sndDing();
+  }
+});
+
+// Touch support
+window.addEventListener('touchend', e => {
+  if (e.changedTouches.length) {
+    const t = e.changedTouches[0];
+    window.dispatchEvent(new MouseEvent('click',{clientX:t.clientX,clientY:t.clientY}));
+    e.preventDefault();
+  }
+}, {passive:false});
+
+// ── START ─────────────────────────────────────────────────────────
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
