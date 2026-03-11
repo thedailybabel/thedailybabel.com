@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Free Throw Challenge</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            user-select: none; /* Prevent text selection while holding mouse */
+        }
+
+        #gameContainer {
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            background: linear-gradient(to bottom, #87CEEB 0%, #f0f8ff 100%); /* Sky gradient */
+            border: 4px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none; /* Let clicks pass through */
+        }
+
+        .stat { margin-bottom: 5px; font-size: 18px; font-weight: bold; }
+        .stat.success { color: #4CAF50; }
+        .stat.fail { color: #f44336; }
+
+        #powerMeterContainer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background-color: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            display: none; /* Hidden until power up */
+        }
+
+        #powerBar {
+            height: 100%;
+            background: linear-gradient(to right, #4CAF50, #FFEB3B, #f44336);
+            width: 0%;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div id="ui">
+            <div class="stat">Attempts: <span id="attempts">0</span> / 10</div>
+            <div class="stat success">Made: <span id="made">0</span></div>
+            <div class="stat fail">Missed: <span id="missed">0</span></div>
+        </div>
+
+        <div id="powerMeterContainer">
+            <div id="powerBar"></div>
+        </div>
+
+        <div id="instructions">Hold SPACE or Mouse Click to power up. Release to shoot.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const uiAttempts = document.getElementById('attempts');
+        const uiMade = document.getElementById('made');
+        const uiMissed = document.getElementById('missed');
+        const powerMeter = document.getElementById('powerMeterContainer');
+        const powerBar = document.getElementById('powerBar');
+
+        // --- Game State & Constants ---
+        const GRAVITY = 0.15;
+        const FULL_POWER_TIME = 1500; // ms to reach 100% power
+        const TOTAL_ATTEMPTS = 10;
+        
+        let gameState = 'IDLE'; // IDLE, POWERING, SHOT_IN_FLIGHT, GAME_OVER
+        let score = { made: 0, missed: 0, attempts: 0 };
+        let powerStartTime = 0;
+        let currentPower = 0; // 0 to 1
+
+        // --- World Objects Geometry ---
+        // Defined in pixels. Canvas is 800x500
+        const court = { floorY: 450 };
+        
+        const hoop = {
+            x: 700, // Distance from left
+            y: 150, // Height from top
+            rimRadius: 25,
+            rimThickness: 5,
+            backboardX: 725, // Behind rim
+            backboardY: 80,
+            backboardWidth: 10,
+            backboardHeight: 100
+        };
+
+        const ballInitial = {
+            x: 100, // Player standing spot
+            y: court.floorY - 25, // Just above ground
+            radius: 15
+        };
+
+        let ball = { ...ballInitial, vx: 0, vy: 0 };
+
+        // --- Input Handling ---
+        function startCharging(e) {
+            if (e.repeat) return; // Prevent key repeat events
+            if (gameState !== 'IDLE') return;
+            
+            gameState = 'POWERING';
+            powerStartTime = Date.now();
+            powerMeter.style.display = 'block';
+        }
+
+        function releaseShot() {
+            if (gameState !== 'POWERING') return;
+
+            gameState = 'SHOT_IN_FLIGHT';
+            powerMeter.style.display = 'none';
+
+            // Calculate initial velocity based on power
+            // Base vectors for a typical arc
+            const baseVX = 8; 
+            const baseVY = -12;
+
+            // Power scales the velocity (with some minimum power)
+            const finalPower = Math.max(0.1, currentPower); 
+            ball.vx = baseVX * (0.8 + finalPower * 0.7); // Affects distance
+            ball.vy = baseVY * (0.9 + finalPower * 0.4); // Affects height/arc
+
+            currentPower = 0; // Reset power for UI
+            updatePowerBar();
+        }
+
+        // Listeners for both Keyboard (Space) and Mouse (Left Click/Touch)
+        window.addEventListener('keydown', (e) => { if (e.code === 'Space') startCharging(e); });
+        window.addEventListener('keyup', (e) => { if (e.code === 'Space') releaseShot(); });
+        canvas.addEventListener('mousedown', startCharging);
+        window.addEventListener('mouseup', releaseShot); // Listen on window for release outside canvas
+
+        // --- Core Game Logic & Physics ---
+        function update() {
+            if (gameState === 'POWERING') {
+                let elapsed = Date.now() - powerStartTime;
+                currentPower = Math.min(1, elapsed / FULL_POWER_TIME);
+                updatePowerBar();
+            }
+
+            if (gameState === 'SHOT_IN_FLIGHT') {
+                // Apply Gravity
+                ball.vy += GRAVITY;
+                // Move Ball
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+
+                checkCollisions();
+            }
+        }
+
+        function checkCollisions() {
+            // 1. Collision with Floor
+            if (ball.y + ball.radius > court.floorY) {
+                ball.y = court.floorY - ball.radius;
+                ball.vy *= -0.4; // Bounce loss
+                ball.vx *= 0.8;  // Friction
+                
+                // If stopped moving vertically significantly after bouncing, call it a miss
+                if (Math.abs(ball.vy) < 0.5) {
+                    handleShotResult(false);
+                }
+            }
+
+            // 2. Collision with Backboard
+            if (ball.x + ball.radius > hoop.backboardX &&
+                ball.x - ball.radius < hoop.backboardX + hoop.backboardWidth &&
+                ball.y > hoop.backboardY &&
+                ball.y < hoop.backboardY + hoop.backboardHeight) {
+                
+                // Simple bounce off backboard
+                ball.x = hoop.backboardX - ball.radius;
+                ball.vx *= -0.5; // Reflect and lose energy
+            }
+
+            // 3. Collision with Rim (The crucial part)
+            // Determine if the ball is *passing through* the rim area from above
+            const distToRimCenter = Math.sqrt(Math.pow(ball.x - hoop.x, 2) + Math.pow(ball.y - hoop.y, 2));
+
+            // Successful Make Criteria:
+            // Ball is moving downward (vy > 0), near the rim center vertically,
+            // and within the rim radius horizontally.
+            if (ball.vy > 0 && 
+                ball.y > hoop.y - 10 && ball.y < hoop.y + 10 &&
+                ball.x > hoop.x - hoop.rimRadius && ball.x < hoop.x + hoop.rimRadius) {
+                
+                handleShotResult(true);
+                return; // Exit collision loop
+            }
+
+            // Hit the Front Rim (simplistic bounce)
+            const frontRimX = hoop.x - hoop.rimRadius;
+            const distToFrontRim = Math.sqrt(Math.pow(ball.x - frontRimX, 2) + Math.pow(ball.y - hoop.y, 2));
+            if (distToFrontRim < ball.radius + hoop.rimThickness) {
+                // Hit front rim, bounce back wildly
+                ball.vx = -Math.abs(ball.vx) * 0.6;
+                ball.vy *= -0.8;
+            }
+
+            // 4. Out of Bounds
+            if (ball.x > canvas.width + ball.radius || ball.x < -ball.radius) {
+                handleShotResult(false);
+            }
+        }
+
+        function handleShotResult(isMake) {
+            gameState = 'IDLE'; // Stop physics
+            score.attempts++;
+
+            if (isMake) {
+                score.made++;
+                // Add a visual 'swish' indicator or sound here later
+                ball.vx *= 0.2; // Slow down drastically as it goes through net
+            } else {
+                score.missed++;
+            }
+
+            updateUI();
+            resetBall();
+
+            if (score.attempts >= TOTAL_ATTEMPTS) {
+                endGame();
+            }
+        }
+
+        function resetBall() {
+            // Small delay before resetting to let the result sink in
+            setTimeout(() => {
+                if(gameState !== 'GAME_OVER') {
+                    ball = { ...ballInitial, vx: 0, vy: 0 };
+                    gameState = 'IDLE';
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameState = 'GAME_OVER';
+            setTimeout(() => {
+                alert(`Game Over!\nMade: ${score.made}\nMissed: ${score.missed}`);
+                // Simple reload to reset game state
+                location.reload();
+            }, 500);
+        }
+
+        // --- Rendering ---
+        function draw() {
+            // Clear Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawCourt();
+            drawHoop();
+            drawBall();
+            
+            if (gameState === 'GAME_OVER') {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '40px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText("FINISH!", canvas.width/2, canvas.height/2);
+            }
+        }
+
+        function drawCourt() {
+            // Floor
+            ctx.fillStyle = '#CD853F'; // Peru brown
+            ctx.fillRect(0, court.floorY, canvas.width, canvas.height - court.floorY);
+            // Floor Line
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, court.floorY);
+            ctx.lineTo(canvas.width, court.floorY);
+            ctx.stroke();
+        }
+
+        function drawHoop() {
+            // Backboard Support Structure
+            ctx.fillStyle = '#555';
+            ctx.fillRect(hoop.backboardX + hoop.backboardWidth, hoop.backboardY + 20, 100, 10);
+
+            // Backboard
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(hoop.backboardX, hoop.backboardY, hoop.backboardWidth, hoop.backboardHeight);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hoop.backboardX, hoop.backboardY, hoop.backboardWidth, hoop.backboardHeight);
+            // Inner Backboard square
+            ctx.strokeRect(hoop.backboardX, hoop.backboardY + 40, hoop.backboardWidth, 40);
+
+            // Rim (Side View)
+            ctx.strokeStyle = '#FF4500'; // OrangeRed
+            ctx.lineWidth = hoop.rimThickness;
+            ctx.beginPath();
+            // Drawing a slightly flattened ellipse for perspective
+            ctx.ellipse(hoop.x, hoop.y, hoop.rimRadius, hoop.rimRadius * 0.3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Net (very basic graphic representation)
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<5; i++) {
+                ctx.moveTo(hoop.x - hoop.rimRadius + (i * hoop.rimRadius*0.5), hoop.y);
+                ctx.lineTo(hoop.x - 10 + (i*5), hoop.y + 40);
+            }
+            ctx.stroke();
+        }
+
+        function drawBall() {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#FF8C00'; // DarkOrange
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Basketball lines (creates a spin effect visually if vx is high)
+            ctx.translate(ball.x, ball.y);
+            // Basic representation of lines
+            ctx.beginPath();
+            ctx.moveTo(-ball.radius, 0); ctx.lineTo(ball.radius, 0);
+            ctx.moveTo(0, -ball.radius); ctx.lineTo(0, ball.radius);
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function updateUI() {
+            uiAttempts.innerText = score.attempts;
+            uiMade.innerText = score.made;
+            uiMissed.innerText = score.missed;
+        }
+
+        function updatePowerBar() {
+            powerBar.style.width = (currentPower * 100) + '%';
+        }
+
+        // --- Main Game Loop ---
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start everything
+        gameLoop();
+
+    </script>
+</body>
+</html>
