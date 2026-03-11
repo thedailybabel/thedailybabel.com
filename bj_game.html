@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Royale</title>
+    <style>
+        :root {
+            --felt-green: #2e7d32;
+            --gold: #ffd700;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, var(--felt-green) 0%, #1b4332 100%);
+            border: 12px solid #3e2723;
+            border-radius: 50px;
+            margin-top: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .area {
+            width: 80%;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hand-label {
+            position: absolute;
+            top: -25px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Card Styling & Animation */
+        .card {
+            width: 90px;
+            height: 130px;
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), left 0.6s ease;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            border-radius: 5px;
+        }
+
+        .back {
+            background-image: url('https://deckofcardsapi.com/static/img/back.png');
+        }
+
+        /* Controls */
+        #ui-layer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .stats {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            transition: 0.2s;
+        }
+
+        .btn-hit { background: #e91e63; color: white; }
+        .btn-stand { background: #2196f3; color: white; }
+        .btn-deal { background: var(--gold); color: black; }
+        
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 10px black;
+            pointer-events: none;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .chip-area {
+            font-size: 1.2rem;
+            color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="message"></div>
+
+        <div class="area" id="dealer-area">
+            <div class="hand-label">Dealer: <span id="dealer-score">?</span></div>
+        </div>
+
+        <div class="area" id="player-area">
+            <div class="hand-label">You: <span id="player-score">0</span></div>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="stats">
+            Balance: $<span id="balance">1000</span> | 
+            Bet: $<span id="current-bet">10</span>
+        </div>
+        
+        <button class="btn btn-deal" id="deal-btn">DEAL $10</button>
+        <button class="btn btn-hit" id="hit-btn" disabled>HIT</button>
+        <button class="btn btn-stand" id="stand-btn" disabled>STAND</button>
+    </div>
+
+    <script>
+        const deckUrl = "https://deckofcardsapi.com/static/img/";
+        const suits = ['S', 'D', 'C', 'H'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '0', 'J', 'Q', 'K', 'A'];
+        
+        let deck = [];
+        let playerHand = [];
+        let dealerHand = [];
+        let balance = 1000;
+        let bet = 10;
+        let gameActive = false;
+
+        // Elements
+        const dealerArea = document.getElementById('dealer-area');
+        const playerArea = document.getElementById('player-area');
+        const dealBtn = document.getElementById('deal-btn');
+        const hitBtn = document.getElementById('hit-btn');
+        const standBtn = document.getElementById('stand-btn');
+        const msgDisplay = document.getElementById('message');
+
+        function createDeck() {
+            deck = [];
+            for (let s of suits) {
+                for (let v of values) {
+                    deck.push({ suit: s, value: v });
+                }
+            }
+            deck = deck.sort(() => Math.random() - 0.5);
+        }
+
+        function getCardValue(card) {
+            if (['J', 'Q', 'K', '0'].includes(card.value)) return 10;
+            if (card.value === 'A') return 11;
+            return parseInt(card.value);
+        }
+
+        function calculateScore(hand) {
+            let score = hand.reduce((sum, card) => sum + getCardValue(card), 0);
+            let aces = hand.filter(c => c.value === 'A').length;
+            while (score > 21 && aces > 0) {
+                score -= 10;
+                aces--;
+            }
+            return score;
+        }
+
+        async function createCardElement(card, isHidden, index) {
+            const div = document.createElement('div');
+            div.className = 'card ' + (isHidden ? 'back' : '');
+            if (!isHidden) div.style.backgroundImage = `url('${deckUrl}${card.value}${card.suit}.png')`;
+            
+            // Start from deck position (offscreen right)
+            div.style.left = '150%';
+            div.style.top = '0px';
+            
+            return div;
+        }
+
+        async function dealInitial() {
+            if (balance < bet) return alert("Not enough money!");
+            
+            // Reset
+            gameActive = true;
+            balance -= bet;
+            updateUI();
+            playerHand = [];
+            dealerHand = [];
+            playerArea.innerHTML = '<div class="hand-label">You: <span id="player-score">0</span></div>';
+            dealerArea.innerHTML = '<div class="hand-label">Dealer: <span id="dealer-score">?</span></div>';
+            msgDisplay.innerText = "";
+            createDeck();
+
+            // Deal sequence
+            await drawCard(playerHand, playerArea, false);
+            await drawCard(dealerHand, dealerArea, false);
+            await drawCard(playerHand, playerArea, false);
+            await drawCard(dealerHand, dealerArea, true);
+
+            hitBtn.disabled = false;
+            standBtn.disabled = false;
+            dealBtn.disabled = true;
+
+            if (calculateScore(playerHand) === 21) stand();
+        }
+
+        async function drawCard(hand, area, isHidden) {
+            const card = deck.pop();
+            hand.push(card);
+            const cardEl = await createCardElement(card, isHidden, hand.length);
+            area.appendChild(cardEl);
+            
+            // Trigger animation
+            setTimeout(() => {
+                cardEl.style.left = `${(hand.length - 1) * 30}px`;
+            }, 50);
+
+            if (!isHidden) {
+                updateScores();
+            }
+            return new Promise(resolve => setTimeout(resolve, 400));
+        }
+
+        function updateScores() {
+            document.getElementById('player-score').innerText = calculateScore(playerHand);
+        }
+
+        async function hit() {
+            await drawCard(playerHand, playerArea, false);
+            if (calculateScore(playerHand) > 21) {
+                endGame("BUST!");
+            }
+        }
+
+        async function stand() {
+            hitBtn.disabled = true;
+            standBtn.disabled = true;
+
+            // Reveal hidden card
+            const hiddenCard = dealerArea.querySelectorAll('.card')[1];
+            hiddenCard.classList.remove('back');
+            hiddenCard.style.backgroundImage = `url('${deckUrl}${dealerHand[1].value}${dealerHand[1].suit}.png')`;
+            
+            let dealerScore = calculateScore(dealerHand);
+            
+            while (dealerScore < 17) {
+                await drawCard(dealerHand, dealerArea, false);
+                dealerScore = calculateScore(dealerHand);
+            }
+
+            document.getElementById('dealer-score').innerText = dealerScore;
+            
+            let playerScore = calculateScore(playerHand);
+            if (dealerScore > 21 || playerScore > dealerScore) {
+                balance += bet * 2;
+                endGame("YOU WIN!");
+            } else if (playerScore < dealerScore) {
+                endGame("DEALER WINS");
+            } else {
+                balance += bet;
+                endGame("PUSH");
+            }
+        }
+
+        function endGame(msg) {
+            msgDisplay.innerText = msg;
+            gameActive = false;
+            dealBtn.disabled = false;
+            hitBtn.disabled = true;
+            standBtn.disabled = true;
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = balance;
+        }
+
+        dealBtn.addEventListener('click', dealInitial);
+        hitBtn.addEventListener('click', hit);
+        standBtn.addEventListener('click', stand);
+    </script>
+</body>
+</html>
