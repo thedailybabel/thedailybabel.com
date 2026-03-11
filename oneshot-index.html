@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Shot Games — The Daily Babel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #111820;
+    --amber: #ffb800;
+    --amber-dim: #a07500;
+    --amber-glow: rgba(255,184,0,0.12);
+    --green: #39ff14;
+    --green-glow: rgba(57,255,20,0.1);
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0,229,255,0.1);
+    --magenta: #ff00aa;
+    --magenta-glow: rgba(255,0,170,0.1);
+    --red: #ff2244;
+    --text: #c8d8e8;
+    --text-dim: #55687a;
+    --scan-lines: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px
+    );
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--scan-lines);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.35;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,184,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: drift 25s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes drift {
+    from { background-position: 0 0; }
+    to { background-position: 48px 48px; }
+  }
+
+  /* Layout */
+  .page {
+    position: relative;
+    z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .breadcrumb a:hover { color: var(--amber); }
+  .breadcrumb .sep { margin: 0 0.6em; color: var(--amber-dim); }
+  .breadcrumb .current { color: var(--amber); }
+
+  /* Header */
+  header {
+    margin-bottom: 3.5rem;
+    position: relative;
+  }
+
+  .header-accent {
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .page-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(2rem, 6vw, 4rem);
+    color: var(--amber);
+    text-shadow: 0 0 16px rgba(255,184,0,0.4), 0 0 60px rgba(255,184,0,0.15);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    animation: flicker 10s infinite;
+  }
+
+  @keyframes flicker {
+    0%, 94%, 96%, 98%, 100% { opacity: 1; }
+    95%, 97% { opacity: 0.88; }
+  }
+
+  .page-subtitle {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    line-height: 1.6;
+    max-width: 560px;
+  }
+
+  .header-line {
+    margin-top: 1.5rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--amber), rgba(255,184,0,0.1), transparent);
+    box-shadow: 0 0 8px rgba(255,184,0,0.3);
+  }
+
+  /* Rules section */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,184,0,0.1);
+  }
+
+  /* Rules / info cards - horizontal strip */
+  .info-strip {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .info-card {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid rgba(255,184,0,0.15);
+    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  }
+
+  .info-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--amber-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .info-card:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 16px var(--amber-glow);
+    transform: translateY(-2px);
+  }
+
+  .info-card:hover::before { opacity: 1; }
+
+  .info-icon {
+    font-size: 1.6rem;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .info-text { position: relative; }
+
+  .info-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 0.2rem;
+  }
+
+  .info-desc {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  /* Games grid */
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+  }
+
+  .game-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--card-color, rgba(255,184,0,0.15));
+    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s;
+    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+  }
+
+  .game-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 24px 24px 0;
+    border-color: transparent var(--card-color, rgba(255,184,0,0.3)) transparent transparent;
+    transition: border-color 0.3s;
+  }
+
+  .game-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 0 24px var(--card-glow, rgba(255,184,0,0.15)), 0 12px 40px rgba(0,0,0,0.6);
+    border-color: var(--card-accent, var(--amber));
+  }
+
+  .game-card:hover::after {
+    border-color: transparent var(--card-accent, var(--amber)) transparent transparent;
+  }
+
+  /* Card header bar */
+  .card-header {
+    background: linear-gradient(90deg, var(--card-glow, rgba(255,184,0,0.05)), transparent);
+    border-bottom: 1px solid var(--card-color, rgba(255,184,0,0.1));
+    padding: 0.6rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-num {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--card-accent, var(--amber-dim));
+  }
+
+  .card-status {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+  }
+
+  .card-status::before {
+    content: '●';
+    color: var(--green);
+    margin-right: 0.4em;
+    text-shadow: 0 0 6px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 1.4rem 1.4rem 1.2rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .game-emoji {
+    font-size: 2.4rem;
+    margin-bottom: 0.8rem;
+    display: block;
+    filter: drop-shadow(0 0 8px var(--card-glow, rgba(255,184,0,0.3)));
+    transition: transform 0.3s;
+  }
+
+  .game-card:hover .game-emoji { transform: scale(1.15) rotate(-3deg); }
+
+  .game-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--card-accent, var(--amber));
+    text-shadow: 0 0 10px var(--card-glow, rgba(255,184,0,0.3));
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.03em;
+  }
+
+  .game-desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.65;
+    flex: 1;
+  }
+
+  .card-footer {
+    padding: 0.8rem 1.4rem;
+    border-top: 1px solid var(--card-color, rgba(255,184,0,0.1));
+    font-size: 0.65rem;
+    color: var(--card-accent, var(--amber-dim));
+    letter-spacing: 0.2em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: color 0.3s;
+  }
+
+  .game-card:hover .card-footer {
+    color: var(--card-accent, var(--amber));
+  }
+
+  .launch-arrow {
+    font-size: 1rem;
+    transition: transform 0.3s;
+  }
+
+  .game-card:hover .launch-arrow { transform: translateX(5px); }
+
+  /* Color themes per card */
+  .theme-amber { --card-color: rgba(255,184,0,0.2); --card-accent: #ffb800; --card-glow: rgba(255,184,0,0.12); }
+  .theme-green { --card-color: rgba(57,255,20,0.2); --card-accent: #39ff14; --card-glow: rgba(57,255,20,0.1); }
+  .theme-cyan  { --card-color: rgba(0,229,255,0.2); --card-accent: #00e5ff; --card-glow: rgba(0,229,255,0.1); }
+  .theme-magenta { --card-color: rgba(255,0,170,0.2); --card-accent: #ff00aa; --card-glow: rgba(255,0,170,0.1); }
+  .theme-red   { --card-color: rgba(255,80,60,0.2); --card-accent: #ff503c; --card-glow: rgba(255,80,60,0.1); }
+
+  /* Footer */
+  .page-footer {
+    border-top: 1px solid rgba(255,184,0,0.1);
+    padding-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .page-footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .page-footer a:hover { color: var(--amber); }
+
+  .prompt-line {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+
+  .prompt-char { color: var(--amber); }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 0.9em;
+    background: var(--amber);
+    animation: blink 1.2s step-end infinite;
+    box-shadow: 0 0 5px var(--amber);
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Entrance animations */
+  .game-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: cardIn 0.5s ease forwards;
+  }
+
+  @keyframes cardIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .game-card:nth-child(1) { animation-delay: 0.05s; }
+  .game-card:nth-child(2) { animation-delay: 0.12s; }
+  .game-card:nth-child(3) { animation-delay: 0.19s; }
+  .game-card:nth-child(4) { animation-delay: 0.26s; }
+  .game-card:nth-child(5) { animation-delay: 0.33s; }
+
+  .info-card {
+    opacity: 0;
+    animation: cardIn 0.5s ease forwards;
+  }
+  .info-card:nth-child(1) { animation-delay: 0.02s; }
+  .info-card:nth-child(2) { animation-delay: 0.08s; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="page">
+
+  <div class="breadcrumb">
+    <a href="index.html">THE DAILY BABEL</a>
+    <span class="sep">/</span>
+    <span class="current">ONE SHOT GAMES</span>
+  </div>
+
+  <header>
+    <div class="header-accent">// Arcade Module — Loaded</div>
+    <h1 class="page-title">ONE SHOT<br>GAMES</h1>
+    <p class="page-subtitle">
+      No saves. No continues. No second chances. Each session is a commitment.
+      Pick your game, make your moves, live with the consequences.
+    </p>
+    <div class="header-line"></div>
+  </header>
+
+  <!-- Rules & Docs Section -->
+  <div class="section-label">Briefings & Docs</div>
+
+  <div class="info-strip">
+    <a href="oneshot.html" class="info-card">
+      <div class="info-icon">📋</div>
+      <div class="info-text">
+        <div class="info-title">Rules &amp; Hints</div>
+        <div class="info-desc">Mission briefing. Read before engagement.</div>
+      </div>
+    </a>
+
+    <a href="https://github.com/thedailybabel/thedailybabel.com/blob/main/README.md" target="_blank" rel="noopener" class="info-card">
+      <div class="info-icon">📖</div>
+      <div class="info-text">
+        <div class="info-title">README</div>
+        <div class="info-desc">Project documentation on GitHub.</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Games Section -->
+  <div class="section-label">Active Games</div>
+
+  <div class="games-grid">
+
+    <a href="castle-wolfenstein.html" class="game-card theme-red">
+      <div class="card-header">
+        <span class="card-num">GAME_01</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🏰</span>
+        <div class="game-title">Castle Wolfenstein</div>
+        <div class="game-desc">Infiltrate the fortress. Extract the intel. Don't get shot. Classic stealth action — you only get one run at the castle walls.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="lucky-sevens-slots.html" class="game-card theme-amber">
+      <div class="card-header">
+        <span class="card-num">GAME_02</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎰</span>
+        <div class="game-title">Lucky Sevens Slots</div>
+        <div class="game-desc">Feed the machine. Chase the triple sevens. The house always wins — but maybe not today. One session, one bankroll, zero reloads.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="titanic.html" class="game-card theme-cyan">
+      <div class="card-header">
+        <span class="card-num">GAME_03</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🚢</span>
+        <div class="game-title">Titanic</div>
+        <div class="game-desc">You know how this ends. The question is whether you can change it. Navigate the crisis, make your choices, steer clear of history.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="lunar-lander.html" class="game-card theme-green">
+      <div class="card-header">
+        <span class="card-num">GAME_04</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🚀</span>
+        <div class="game-title">Lunar Lander</div>
+        <div class="game-desc">Burn retros. Manage fuel. Stick the landing or become a crater. Gravity doesn't care about your feelings and neither does this game.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="vortex-command.html" class="game-card theme-magenta">
+      <div class="card-header">
+        <span class="card-num">GAME_05</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🌀</span>
+        <div class="game-title">Vortex Command</div>
+        <div class="game-desc">Command the vortex. Control the chaos. One session to master the spiral or get swallowed by it. The vortex does not forgive.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer class="page-footer">
+    <div class="prompt-line">
+      <span class="prompt-char">oneshot@babel:~$</span>
+      <span class="cursor"></span>
+    </div>
+    <div>
+      <a href="index.html">← Back to Hub</a>
+      &nbsp;&nbsp;·&nbsp;&nbsp;
+      <a href="https://github.com/thedailybabel/thedailybabel.com" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

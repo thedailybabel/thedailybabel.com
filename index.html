@@ -1,30 +1,409 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>OmegEth</title>
-        <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-        }
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Daily Babel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --amber: #ffb800;
+    --amber-dim: #a07500;
+    --amber-glow: rgba(255,184,0,0.15);
+    --green: #39ff14;
+    --green-dim: #1a7a00;
+    --green-glow: rgba(57,255,20,0.12);
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0,229,255,0.12);
+    --red: #ff2244;
+    --text: #c8d8e8;
+    --text-dim: #556677;
+    --border: rgba(255,184,0,0.2);
+    --scan-lines: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.3) 2px,
+      rgba(0,0,0,0.3) 4px
+    );
+  }
 
-        body {
-            display: table;
-        }
-        
-        .center {
-            text-align: center;
-            display: table-cell;
-            vertical-align: middle;
-            font-size:700px;
-        }
-        </style>
-    </head>
-    <body>
-        <div class="center">
-            <span style='color:lightgray'><s>&Omega;</s></span>
-        </div>
-    </body>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    overflow-x: hidden;
+  }
+
+  /* CRT scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--scan-lines);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* Animated grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,184,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridDrift 30s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes gridDrift {
+    from { background-position: 0 0; }
+    to { background-position: 40px 40px; }
+  }
+
+  /* Floating particle effect */
+  .particles {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    animation: float linear infinite;
+  }
+
+  @keyframes float {
+    from { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to { transform: translateY(-10vh) translateX(var(--drift)); opacity: 0; }
+  }
+
+  /* Main layout */
+  .container {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 3rem;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    position: relative;
+  }
+
+  .logo-line {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    text-shadow:
+      0 0 10px var(--amber),
+      0 0 30px rgba(255,184,0,0.5),
+      0 0 80px rgba(255,184,0,0.2);
+    line-height: 1;
+    animation: flicker 8s infinite;
+    position: relative;
+  }
+
+  .logo-line::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: transparent;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 4s ease-in-out infinite;
+    -webkit-background-clip: text;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: -200% 0; }
+    50% { background-position: 200% 0; }
+  }
+
+  @keyframes flicker {
+    0%, 95%, 97%, 99%, 100% { opacity: 1; }
+    96%, 98% { opacity: 0.85; }
+  }
+
+  .subtitle {
+    font-family: 'Michroma', monospace;
+    font-size: clamp(0.65rem, 2vw, 0.9rem);
+    letter-spacing: 0.4em;
+    color: var(--amber-dim);
+    margin-top: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    margin-top: 1.5rem;
+    box-shadow: 0 0 8px var(--amber);
+  }
+
+  /* Status bar */
+  .status-bar {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+
+  .status-bar span { position: relative; }
+  .status-bar .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    margin-right: 0.4em;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Nav cards */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 960px;
+  }
+
+  .nav-card {
+    position: relative;
+    display: block;
+    padding: 1.8rem 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  }
+
+  .nav-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--amber-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .nav-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 20px 20px 0;
+    border-color: transparent var(--amber-dim) transparent transparent;
+    transition: border-color 0.3s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--amber);
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px var(--amber-glow), 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .nav-card:hover::before { opacity: 1; }
+  .nav-card:hover::after { border-color: transparent var(--amber) transparent transparent; }
+
+  .card-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    position: relative;
+  }
+
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--amber);
+    text-shadow: 0 0 12px rgba(255,184,0,0.4);
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+
+  .card-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .card-arrow {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.8rem;
+    font-size: 1.2rem;
+    color: var(--amber-dim);
+    transition: color 0.3s, transform 0.3s;
+  }
+
+  .nav-card:hover .card-arrow {
+    color: var(--amber);
+    transform: translateX(4px);
+  }
+
+  /* GitHub card variant */
+  .nav-card.github {
+    --border: rgba(0,229,255,0.2);
+    --glow: var(--cyan-glow);
+    border-color: rgba(0,229,255,0.2);
+  }
+
+  .nav-card.github::before { background: var(--cyan-glow); }
+  .nav-card.github::after { border-color: transparent rgba(0,229,255,0.4) transparent transparent; }
+  .nav-card.github:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--cyan-glow), 0 8px 32px rgba(0,0,0,0.5); }
+  .nav-card.github:hover::after { border-color: transparent var(--cyan) transparent transparent; }
+  .nav-card.github .card-tag,
+  .nav-card.github .card-title { color: var(--cyan); text-shadow: 0 0 12px rgba(0,229,255,0.4); }
+  .nav-card.github:hover .card-arrow { color: var(--cyan); }
+  .nav-card.github .card-arrow { color: rgba(0,229,255,0.4); }
+
+  /* Terminal prompt footer */
+  footer {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+
+  .prompt-char { color: var(--amber); }
+
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 1em;
+    background: var(--amber);
+    animation: blink 1.2s step-end infinite;
+    vertical-align: middle;
+    box-shadow: 0 0 6px var(--amber);
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="particles" id="particles"></div>
+
+<div class="container">
+  <header>
+    <div class="logo-line" data-text="THE DAILY BABEL">THE DAILY BABEL</div>
+    <div class="subtitle">Transmission Hub &nbsp;/&nbsp; Signal Active</div>
+    <div class="divider"></div>
+    <div class="status-bar">
+      <span><span class="dot"></span>Systems Online</span>
+      <span><span class="dot"></span>Games Loaded</span>
+      <span><span class="dot"></span>Ready to Play</span>
+    </div>
+  </header>
+
+  <nav class="nav-grid">
+    <a href="oneshot-index.html" class="nav-card">
+      <div class="card-tag">// Module 01</div>
+      <div class="card-title">One Shot Games</div>
+      <div class="card-desc">Browser-based games built for a single session. No saves, no mercy, no reload. Just you and the machine.</div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a href="https://github.com/thedailybabel/thedailybabel.com" target="_blank" rel="noopener" class="nav-card github">
+      <div class="card-tag">// Source</div>
+      <div class="card-title">GitHub Repo</div>
+      <div class="card-desc">View the source code, file issues, or fork it and make it weirder. Contributions welcome.</div>
+      <div class="card-arrow">↗</div>
+    </a>
+  </nav>
+
+  <footer>
+    <div class="prompt">
+      <span class="prompt-char">babel@daily:~$</span>
+      <span>_</span>
+      <span class="cursor"></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  // Spawn floating particles
+  const container = document.getElementById('particles');
+  const colors = ['#ffb800', '#39ff14', '#00e5ff', '#ff2244'];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${color};
+      box-shadow: 0 0 4px ${color};
+      animation-duration: ${8 + Math.random() * 20}s;
+      animation-delay: ${Math.random() * -30}s;
+      --drift: ${(Math.random() - 0.5) * 100}px;
+      opacity: 0;
+    `;
+    container.appendChild(p);
+  }
+</script>
+
+</body>
 </html>
