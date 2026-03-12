@@ -365,11 +365,11 @@
   .game-card:hover .launch-arrow { transform: translateX(5px); }
 
   /* Color themes per card */
-  .theme-amber { --card-color: rgba(255,184,0,0.2); --card-accent: #ffb800; --card-glow: rgba(255,184,0,0.12); }
-  .theme-green { --card-color: rgba(57,255,20,0.2); --card-accent: #39ff14; --card-glow: rgba(57,255,20,0.1); }
-  .theme-cyan  { --card-color: rgba(0,229,255,0.2); --card-accent: #00e5ff; --card-glow: rgba(0,229,255,0.1); }
-  .theme-magenta { --card-color: rgba(255,0,170,0.2); --card-accent: #ff00aa; --card-glow: rgba(255,0,170,0.1); }
-  .theme-red   { --card-color: rgba(255,80,60,0.2); --card-accent: #ff503c; --card-glow: rgba(255,80,60,0.1); }
+  .theme-amber   { --card-color: rgba(255,184,0,0.2);   --card-accent: #ffb800; --card-glow: rgba(255,184,0,0.12); }
+  .theme-green   { --card-color: rgba(57,255,20,0.2);   --card-accent: #39ff14; --card-glow: rgba(57,255,20,0.1); }
+  .theme-cyan    { --card-color: rgba(0,229,255,0.2);   --card-accent: #00e5ff; --card-glow: rgba(0,229,255,0.1); }
+  .theme-magenta { --card-color: rgba(255,0,170,0.2);   --card-accent: #ff00aa; --card-glow: rgba(255,0,170,0.1); }
+  .theme-red     { --card-color: rgba(255,80,60,0.2);   --card-accent: #ff503c; --card-glow: rgba(255,80,60,0.1); }
 
   /* Footer */
   .page-footer {
@@ -425,11 +425,25 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .game-card:nth-child(1) { animation-delay: 0.05s; }
-  .game-card:nth-child(2) { animation-delay: 0.12s; }
-  .game-card:nth-child(3) { animation-delay: 0.19s; }
-  .game-card:nth-child(4) { animation-delay: 0.26s; }
-  .game-card:nth-child(5) { animation-delay: 0.33s; }
+  .game-card:nth-child(1)  { animation-delay: 0.05s; }
+  .game-card:nth-child(2)  { animation-delay: 0.10s; }
+  .game-card:nth-child(3)  { animation-delay: 0.15s; }
+  .game-card:nth-child(4)  { animation-delay: 0.20s; }
+  .game-card:nth-child(5)  { animation-delay: 0.25s; }
+  .game-card:nth-child(6)  { animation-delay: 0.30s; }
+  .game-card:nth-child(7)  { animation-delay: 0.35s; }
+  .game-card:nth-child(8)  { animation-delay: 0.40s; }
+  .game-card:nth-child(9)  { animation-delay: 0.45s; }
+  .game-card:nth-child(10) { animation-delay: 0.50s; }
+  .game-card:nth-child(11) { animation-delay: 0.55s; }
+  .game-card:nth-child(12) { animation-delay: 0.60s; }
+  .game-card:nth-child(13) { animation-delay: 0.65s; }
+  .game-card:nth-child(14) { animation-delay: 0.70s; }
+  .game-card:nth-child(15) { animation-delay: 0.75s; }
+  .game-card:nth-child(16) { animation-delay: 0.80s; }
+  .game-card:nth-child(17) { animation-delay: 0.85s; }
+  .game-card:nth-child(18) { animation-delay: 0.90s; }
+  .game-card:nth-child(19) { animation-delay: 0.95s; }
 
   .info-card {
     opacity: 0;
@@ -462,7 +476,7 @@
   </header>
 
   <!-- Rules & Docs Section -->
-  <div class="section-label">Briefings & Docs</div>
+  <div class="section-label">Briefings &amp; Docs</div>
 
   <div class="info-strip">
     <a href="oneshot.html" class="info-card">
@@ -487,7 +501,7 @@
 
   <div class="games-grid">
 
-    <a href="castle-wolfenstein.html" class="game-card theme-red">
+    <a href="games/castle-wolfenstein.html" class="game-card theme-red">
       <div class="card-header">
         <span class="card-num">GAME_01</span>
         <span class="card-status">READY</span>
@@ -503,7 +517,7 @@
       </div>
     </a>
 
-    <a href="lucky-sevens-slots.html" class="game-card theme-amber">
+    <a href="games/lucky-sevens-slots.html" class="game-card theme-amber">
       <div class="card-header">
         <span class="card-num">GAME_02</span>
         <span class="card-status">READY</span>
@@ -519,7 +533,7 @@
       </div>
     </a>
 
-    <a href="titanic.html" class="game-card theme-cyan">
+    <a href="games/titanic.html" class="game-card theme-cyan">
       <div class="card-header">
         <span class="card-num">GAME_03</span>
         <span class="card-status">READY</span>
@@ -535,7 +549,7 @@
       </div>
     </a>
 
-    <a href="lunar-lander.html" class="game-card theme-green">
+    <a href="games/lunar-lander.html" class="game-card theme-green">
       <div class="card-header">
         <span class="card-num">GAME_04</span>
         <span class="card-status">READY</span>
@@ -551,7 +565,7 @@
       </div>
     </a>
 
-    <a href="vortex-command.html" class="game-card theme-magenta">
+    <a href="games/vortex-command.html" class="game-card theme-magenta">
       <div class="card-header">
         <span class="card-num">GAME_05</span>
         <span class="card-status">READY</span>
@@ -560,6 +574,231 @@
         <span class="game-emoji">🌀</span>
         <div class="game-title">Vortex Command</div>
         <div class="game-desc">Command the vortex. Control the chaos. One session to master the spiral or get swallowed by it. The vortex does not forgive.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/bj_game.html" class="game-card theme-amber">
+      <div class="card-header">
+        <span class="card-num">GAME_06</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🃏</span>
+        <div class="game-title">Blackjack</div>
+        <div class="game-desc">Hit or stand. Beat the dealer without busting. You've got one stack of chips and no rebuys. Count your cards, trust your gut, don't go over 21.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/breakthru.html" class="game-card theme-cyan">
+      <div class="card-header">
+        <span class="card-num">GAME_07</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">💥</span>
+        <div class="game-title">Breakthru</div>
+        <div class="game-desc">Smash through the wall. One ball, one paddle, a field full of bricks standing between you and glory. Miss the ball and it's over.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/bubble_pop.html" class="game-card theme-magenta">
+      <div class="card-header">
+        <span class="card-num">GAME_08</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🫧</span>
+        <div class="game-title">Bubble Pop</div>
+        <div class="game-desc">Aim. Fire. Match. The bubbles keep coming and your shots are finite. Pop the clusters before the ceiling drops. Satisfying until it isn't.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/chess_clock.html" class="game-card theme-green">
+      <div class="card-header">
+        <span class="card-num">GAME_09</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">♟️</span>
+        <div class="game-title">Chess Clock</div>
+        <div class="game-desc">Time is the only enemy that never makes a mistake. A precision chess clock for over-the-board play. Tap your side, watch the seconds bleed.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/Dynamic_Chroma_Maze.html" class="game-card theme-cyan">
+      <div class="card-header">
+        <span class="card-num">GAME_10</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🌈</span>
+        <div class="game-title">Dynamic Chroma Maze</div>
+        <div class="game-desc">Navigate a maze that shifts color as you move. The walls don't lie — your perception might. Find the exit before the chroma overwhelms your sense of direction.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/free_throw.html" class="game-card theme-amber">
+      <div class="card-header">
+        <span class="card-num">GAME_11</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🏀</span>
+        <div class="game-title">Free Throw</div>
+        <div class="game-desc">Step to the line. No defense, no excuses. Nail your arc, time your release, drain the shot. The crowd is silent. Don't choke.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/max_frequency.html" class="game-card theme-green">
+      <div class="card-header">
+        <span class="card-num">GAME_12</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">📡</span>
+        <div class="game-title">Max Frequency</div>
+        <div class="game-desc">Tune into the signal. Filter the noise. A frequency-based challenge that rewards precision and pattern recognition over button-mashing.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/sudoku.html" class="game-card theme-cyan">
+      <div class="card-header">
+        <span class="card-num">GAME_13</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🔢</span>
+        <div class="game-title">Sudoku</div>
+        <div class="game-desc">Fill the grid. Every row, column, and box — exactly 1 through 9. No guessing allowed. Logic only. One puzzle, one shot to get it right.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/tt_toe.html" class="game-card theme-red">
+      <div class="card-header">
+        <span class="card-num">GAME_14</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">❌</span>
+        <div class="game-title">Tic-Tac-Toe</div>
+        <div class="game-desc">Three in a row. It's solved — you know it, the AI knows it. Play anyway. Dignity is optional, but losing is not.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- Piano Suite -->
+    <a href="games/piano_claude.html" class="game-card theme-amber">
+      <div class="card-header">
+        <span class="card-num">GAME_15</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎹</span>
+        <div class="game-title">Piano — Claude</div>
+        <div class="game-desc">A fully playable keyboard crafted by Claude. Tickle the ivories, experiment with chords, or just hammer the keys. No sheet music required.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/piano_chatgpt.html" class="game-card theme-green">
+      <div class="card-header">
+        <span class="card-num">GAME_16</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎹</span>
+        <div class="game-title">Piano — ChatGPT</div>
+        <div class="game-desc">Same keys, different AI. ChatGPT's take on a browser piano. Compare the implementation, notice the choices, play the same wrong notes either way.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/piano_gemini.html" class="game-card theme-cyan">
+      <div class="card-header">
+        <span class="card-num">GAME_17</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎹</span>
+        <div class="game-title">Piano — Gemini</div>
+        <div class="game-desc">Gemini's interpretation of a web piano. One instrument, five AIs, infinite excuses for why you can't play Für Elise.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/piano_grok.html" class="game-card theme-magenta">
+      <div class="card-header">
+        <span class="card-num">GAME_18</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎹</span>
+        <div class="game-title">Piano — Grok</div>
+        <div class="game-desc">Grok's spin on the keyboard. Probably has opinions about it. Play a few bars, form your own.</div>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH GAME</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="games/piano_perplexity.html" class="game-card theme-red">
+      <div class="card-header">
+        <span class="card-num">GAME_19</span>
+        <span class="card-status">READY</span>
+      </div>
+      <div class="card-body">
+        <span class="game-emoji">🎹</span>
+        <div class="game-title">Piano — Perplexity</div>
+        <div class="game-desc">Perplexity's version of the browser piano. The fifth and final entry in the AI piano showdown. May the best keyboard win.</div>
       </div>
       <div class="card-footer">
         <span>LAUNCH GAME</span>
