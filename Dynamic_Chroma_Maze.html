@@ -2,326 +2,260 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Chroma Maze</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>High-Density Chroma Maze</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --wall-color: #333;
-            --path-color: #444;
-            --cursor-color: #00ffcc;
-            --goal-color: #ff3366;
+            --bg-color: #0f172a;
+            --wall-color: #334155;
+            --path-color: #1e293b;
+            --cursor-color: #22d3ee;
+            --goal-color: #f43f5e;
         }
 
         body {
             background-color: var(--bg-color);
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            transition: background-color 0.5s ease;
+            overflow: hidden;
+            touch-action: none;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        #timer {
-            font-size: 1.5rem;
-            font-family: monospace;
-            background: rgba(0,0,0,0.3);
-            padding: 5px 15px;
-            border-radius: 5px;
-            border: 1px solid var(--cursor-color);
+        #timer { 
+            font-size: 1.2rem; 
+            font-family: 'JetBrains Mono', monospace; 
+            margin-bottom: 8px; 
+            color: var(--cursor-color);
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
         }
 
         #maze-container {
             position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            border: 5px solid var(--wall-color);
-            cursor: crosshair;
-            touch-action: none; /* Prevents scrolling on mobile/trackpad drag */
+            border: 2px solid var(--wall-color);
+            background-color: var(--path-color);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        canvas {
-            display: block;
-        }
+        canvas { display: block; touch-action: none; }
 
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 10px 25px;
-            font-size: 1rem;
-            cursor: pointer;
-            background: var(--wall-color);
+        .btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #1e293b;
             color: white;
-            border: 2px solid var(--cursor-color);
-            border-radius: 5px;
-            transition: all 0.2s;
+            border: 1px solid var(--cursor-color);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
         }
 
-        button:hover {
-            background: var(--cursor-color);
-            color: black;
-        }
-
-        .victory-msg {
+        #victory {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            padding: 20px;
-            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 25px;
+            border-radius: 12px;
             text-align: center;
             display: none;
-            border: 2px solid var(--goal-color);
+            border: 1px solid var(--cursor-color);
+            width: 260px;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Chroma Maze</h1>
-        <div id="timer">00:00.0</div>
-    </div>
+    <div id="timer">00:00.0</div>
 
     <div id="maze-container">
         <canvas id="mazeCanvas"></canvas>
-        <div id="victory" class="victory-msg">
-            <h2>Maze Escaped!</h2>
-            <p id="final-time"></p>
-            <button onclick="initGame()">Play Again</button>
+        <div id="victory">
+            <h2 style="margin-top:0; color:var(--cursor-color);">COMPLETED</h2>
+            <p id="final-time" style="font-family:monospace;"></p>
+            <button class="btn" onclick="initGame()">Generate Harder</button>
         </div>
     </div>
 
-    <div class="controls">
-        <button onclick="initGame()">New Maze</button>
-    </div>
+    <button class="btn" onclick="initGame()">New Maze</button>
 
     <script>
         const canvas = document.getElementById('mazeCanvas');
         const ctx = canvas.getContext('2d');
         const timerElement = document.getElementById('timer');
         const victoryScreen = document.getElementById('victory');
-        const finalTimeElement = document.getElementById('final-time');
-
-        // Configuration
-        const cols = 25;
-        const rows = 20;
-        const cellSize = 30;
         
+        let cols, rows, cellSize;
         let grid = [];
-        let current;
-        let stack = [];
         let player = { x: 0, y: 0 };
-        let goal = { x: cols - 1, y: rows - 1 };
-        
-        let startTime;
-        let timerInterval;
-        let gameActive = false;
+        let goal = { x: 0, y: 0 };
+        let startTime, timerInterval, gameActive = false;
 
         class Cell {
             constructor(r, c) {
                 this.r = r;
                 this.c = c;
-                this.walls = [true, true, true, true]; // Top, Right, Bottom, Left
+                this.walls = [true, true, true, true]; // T, R, B, L
                 this.visited = false;
             }
-
-            show() {
+            draw() {
                 let x = this.c * cellSize;
                 let y = this.r * cellSize;
                 ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--wall-color');
-                ctx.lineWidth = 2;
-
-                if (this.walls[0]) ctx.strokeRect(x, y, cellSize, 0); // Top
-                if (this.walls[1]) ctx.strokeRect(x + cellSize, y, 0, cellSize); // Right
-                if (this.walls[2]) ctx.strokeRect(x, y + cellSize, cellSize, 0); // Bottom
-                if (this.walls[3]) ctx.strokeRect(x, y, 0, cellSize); // Left
-
-                if (this.visited) {
-                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--path-color');
-                    ctx.fillRect(x, y, cellSize, cellSize);
-                }
+                ctx.lineWidth = 1; // Thinner lines for higher density
+                ctx.beginPath();
+                if (this.walls[0]) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+                if (this.walls[1]) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+                if (this.walls[2]) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
+                if (this.walls[3]) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+                ctx.stroke();
             }
         }
 
-        function setupGrid() {
-            grid = [];
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    grid.push(new Cell(r, c));
-                }
-            }
-            current = grid[0];
-        }
-
-        function index(r, c) {
-            if (c < 0 || r < 0 || c > cols - 1 || r > rows - 1) return -1;
-            return c + r * cols;
+        function calculateDimensions() {
+            // Density Setting: 40 columns for a very detailed maze
+            cols = 40; 
+            const padding = 20;
+            cellSize = Math.floor((window.innerWidth - padding) / cols);
+            
+            // Calculate rows to fill the screen vertically
+            const availableHeight = window.innerHeight - 160;
+            rows = Math.floor(availableHeight / cellSize);
+            
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+            goal = { x: cols - 1, y: rows - 1 };
         }
 
         function generateMaze() {
-            while (true) {
-                current.visited = true;
-                let next = checkNeighbors(current);
-                if (next) {
+            grid = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) grid.push(new Cell(r, c));
+            }
+            let stack = [];
+            let current = grid[0];
+            current.visited = true;
+            while(true) {
+                let neighbors = getUnvisitedNeighbors(current);
+                if (neighbors.length > 0) {
+                    let next = neighbors[Math.floor(Math.random() * neighbors.length)];
                     next.visited = true;
                     stack.push(current);
                     removeWalls(current, next);
                     current = next;
                 } else if (stack.length > 0) {
                     current = stack.pop();
-                } else {
-                    break;
-                }
+                } else break;
             }
         }
 
-        function checkNeighbors(cell) {
-            let neighbors = [];
-            let top = grid[index(cell.r - 1, cell.c)];
-            let right = grid[index(cell.r, cell.c + 1)];
-            let bottom = grid[index(cell.r + 1, cell.c)];
-            let left = grid[index(cell.r, cell.c - 1)];
-
-            if (top && !top.visited) neighbors.push(top);
-            if (right && !right.visited) neighbors.push(right);
-            if (bottom && !bottom.visited) neighbors.push(bottom);
-            if (left && !left.visited) neighbors.push(left);
-
-            if (neighbors.length > 0) {
-                let r = Math.floor(Math.random() * neighbors.length);
-                return neighbors[r];
-            }
-            return undefined;
+        function getUnvisitedNeighbors(cell) {
+            const idx = (r, c) => (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : c + r * cols;
+            let neighbors = [
+                grid[idx(cell.r-1, cell.c)], grid[idx(cell.r, cell.c+1)],
+                grid[idx(cell.r+1, cell.c)], grid[idx(cell.r, cell.c-1)]
+            ];
+            return neighbors.filter(c => c && !c.visited);
         }
 
         function removeWalls(a, b) {
-            let x = a.c - b.c;
-            if (x === -1) { a.walls[1] = false; b.walls[3] = false; }
-            else if (x === 1) { a.walls[3] = false; b.walls[1] = false; }
-            let y = a.r - b.r;
-            if (y === -1) { a.walls[2] = false; b.walls[0] = false; }
-            else if (y === 1) { a.walls[0] = false; b.walls[2] = false; }
+            let dx = a.c - b.c;
+            if (dx === -1) { a.walls[1] = false; b.walls[3] = false; }
+            else if (dx === 1) { a.walls[3] = false; b.walls[1] = false; }
+            let dy = a.r - b.r;
+            if (dy === -1) { a.walls[2] = false; b.walls[0] = false; }
+            else if (dy === 1) { a.walls[0] = false; b.walls[2] = false; }
         }
 
-        function randomizeColors() {
-            const hue = Math.floor(Math.random() * 360);
-            document.documentElement.style.setProperty('--bg-color', `hsl(${hue}, 30%, 10%)`);
-            document.documentElement.style.setProperty('--wall-color', `hsl(${hue}, 40%, 30%)`);
-            document.documentElement.style.setProperty('--path-color', `hsl(${hue}, 20%, 15%)`);
-            document.documentElement.style.setProperty('--cursor-color', `hsl(${(hue + 180) % 360}, 100%, 60%)`);
-        }
-
-        function draw() {
+        function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            grid.forEach(cell => cell.show());
-
-            // Draw Goal
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
-            ctx.beginPath();
-            ctx.arc(goal.x * cellSize + cellSize/2, goal.y * cellSize + cellSize/2, cellSize/3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw Player
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--cursor-color');
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = ctx.fillStyle;
-            ctx.fillRect(player.x * cellSize + 5, player.y * cellSize + 5, cellSize - 10, cellSize - 10);
-            ctx.shadowBlur = 0;
-        }
-
-        function movePlayer(dx, dy) {
-            if (!gameActive) return;
-            let currentCell = grid[index(player.y, player.x)];
-            let canMove = false;
-
-            if (dx === 1 && !currentCell.walls[1]) canMove = true;
-            if (dx === -1 && !currentCell.walls[3]) canMove = true;
-            if (dy === 1 && !currentCell.walls[2]) canMove = true;
-            if (dy === -1 && !currentCell.walls[0]) canMove = true;
-
-            if (canMove) {
-                player.x += dx;
-                player.y += dy;
-                draw();
-                checkWin();
-            }
-        }
-
-        // Mouse/Touchpad Logic
-        canvas.addEventListener('mousemove', (e) => {
-            if (!gameActive) return;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            grid.forEach(c => c.draw());
             
-            const targetX = Math.floor(mouseX / cellSize);
-            const targetY = Math.floor(mouseY / cellSize);
+            // Goal (Red square)
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
+            ctx.fillRect(goal.x * cellSize + 2, goal.y * cellSize + 2, cellSize - 4, cellSize - 4);
+            
+            // Player (Cyan square - tighter padding for smaller look)
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--cursor-color');
+            ctx.fillRect(player.x * cellSize + 1.5, player.y * cellSize + 1.5, cellSize - 3, cellSize - 3);
+        }
 
-            // If mouse is on an adjacent cell, move there
-            if (targetX !== player.x || targetY !== player.y) {
-                const dx = targetX - player.x;
-                const dy = targetY - player.y;
-                if (Math.abs(dx) + Math.abs(dy) === 1) {
-                    movePlayer(dx, dy);
+        function movePlayer(nx, ny) {
+            if (!gameActive) return;
+            const dx = nx - player.x;
+            const dy = ny - player.y;
+            if (Math.abs(dx) + Math.abs(dy) !== 1) return;
+
+            let cur = grid[player.y * cols + player.x];
+            let blocked = false;
+            if (dx === 1 && cur.walls[1]) blocked = true;
+            if (dx === -1 && cur.walls[3]) blocked = true;
+            if (dy === 1 && cur.walls[2]) blocked = true;
+            if (dy === -1 && cur.walls[0]) blocked = true;
+
+            if (!blocked) {
+                player.x = nx; player.y = ny;
+                render();
+                if (player.x === goal.x && player.y === goal.y) {
+                    gameActive = false;
+                    clearInterval(timerInterval);
+                    document.getElementById('final-time').innerText = "TIME: " + timerElement.innerText;
+                    victoryScreen.style.display = 'block';
                 }
             }
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === "ArrowUp") movePlayer(0, -1);
-            if (e.key === "ArrowDown") movePlayer(0, 1);
-            if (e.key === "ArrowLeft") movePlayer(-1, 0);
-            if (e.key === "ArrowRight") movePlayer(1, 0);
-        });
-
-        function checkWin() {
-            if (player.x === goal.x && player.y === goal.y) {
-                gameActive = false;
-                clearInterval(timerInterval);
-                victoryScreen.style.display = 'block';
-                finalTimeElement.innerText = `Time: ${timerElement.innerText}`;
-            }
         }
 
-        function updateTimer() {
-            const now = new Date();
-            const diff = now - startTime;
-            const mins = Math.floor(diff / 60000).toString().padStart(2, '0');
-            const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-            const ms = Math.floor((diff % 1000) / 100);
-            timerElement.innerText = `${mins}:${secs}.${ms}`;
+        function processInput(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((clientX - rect.left) / (rect.width / cols));
+            const y = Math.floor((clientY - rect.top) / (rect.height / rows));
+            if (x >= 0 && x < cols && y >= 0 && y < rows) movePlayer(x, y);
         }
+
+        canvas.addEventListener('mousemove', e => { if(e.buttons === 1) processInput(e.clientX, e.clientY); });
+        canvas.addEventListener('mousedown', e => processInput(e.clientX, e.clientY));
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            processInput(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            processInput(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+
+        window.addEventListener('keydown', e => {
+            if (e.key === "ArrowUp") movePlayer(player.x, player.y - 1);
+            if (e.key === "ArrowDown") movePlayer(player.x, player.y + 1);
+            if (e.key === "ArrowLeft") movePlayer(player.x - 1, player.y);
+            if (e.key === "ArrowRight") movePlayer(player.x + 1, player.y);
+        });
 
         function initGame() {
-            randomizeColors();
-            canvas.width = cols * cellSize;
-            canvas.height = rows * cellSize;
+            calculateDimensions();
+            generateMaze();
             player = { x: 0, y: 0 };
             victoryScreen.style.display = 'none';
-            setupGrid();
-            generateMaze();
-            draw();
-            
             gameActive = true;
-            startTime = new Date();
+            render();
+            startTime = Date.now();
             clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimer, 100);
+            timerInterval = setInterval(() => {
+                let d = new Date(Date.now() - startTime);
+                timerElement.innerText = d.toISOString().substr(14, 7);
+            }, 100);
         }
 
         initGame();
+        window.addEventListener('resize', initGame);
     </script>
 </body>
 </html>
