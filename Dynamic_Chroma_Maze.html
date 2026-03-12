@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Adaptive Density Maze</title>
+    <title>Chroma Maze Adaptive</title>
     <style>
         :root {
-            --bg: #0a0a0a;
+            --bg: #050505;
             --wall: #444;
             --player: #00ffcc;
             --goal: #ff3366;
@@ -23,7 +23,7 @@
             justify-content: space-between; width: 90%; color: white;
             z-index: 10;
         }
-        #timer { font-family: monospace; font-size: 1.2rem; }
+        #timer { font-family: monospace; font-size: 1.2rem; color: var(--player); }
         
         #maze-wrapper {
             flex-grow: 1; display: flex; align-items: center; justify-content: center;
@@ -34,16 +34,20 @@
             background: var(--path);
             touch-action: none;
             display: block;
+            border-radius: 4px;
         }
         button {
             background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--player);
-            padding: 6px 14px; border-radius: 15px; font-size: 12px; cursor: pointer;
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; cursor: pointer;
+            transition: 0.2s;
         }
+        button:active { background: var(--player); color: black; }
+        
         #victory {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9); border: 1px solid var(--player);
-            padding: 25px; text-align: center; color: white; display: none; z-index: 100;
-            border-radius: 10px;
+            background: rgba(0,0,0,0.95); border: 2px solid var(--player);
+            padding: 30px; text-align: center; color: white; display: none; z-index: 100;
+            border-radius: 15px; box-shadow: 0 0 40px rgba(0,255,204,0.3);
         }
     </style>
 </head>
@@ -51,7 +55,7 @@
 
     <div id="ui">
         <div id="timer">00:00.0</div>
-        <button onclick="initGame()">Generate Maze</button>
+        <button onclick="initGame()">New Maze</button>
     </div>
 
     <div id="maze-wrapper">
@@ -60,8 +64,8 @@
 
     <div id="victory">
         <h2 style="color:var(--player); margin-top:0;">GOAL REACHED</h2>
-        <p id="final-time"></p>
-        <button onclick="initGame()">New Maze</button>
+        <p id="final-time" style="font-family: monospace; font-size: 1.2rem;"></p>
+        <button onclick="initGame()">Play Again</button>
     </div>
 
     <script>
@@ -75,28 +79,31 @@
         function randomizeColors() {
             const hue = Math.floor(Math.random() * 360);
             const root = document.documentElement;
-            root.style.setProperty('--bg', `hsl(${hue}, 40%, 5%)`);
-            root.style.setProperty('--path', `hsl(${hue}, 30%, 10%)`);
-            root.style.setProperty('--wall', `hsl(${hue}, 20%, 40%)`);
+            root.style.setProperty('--bg', `hsl(${hue}, 45%, 4%)`);
+            root.style.setProperty('--path', `hsl(${hue}, 30%, 8%)`);
+            root.style.setProperty('--wall', `hsl(${hue}, 25%, 35%)`);
             root.style.setProperty('--player', `hsl(${(hue + 180) % 360}, 100%, 60%)`);
         }
 
         function initGame() {
             randomizeColors();
             
-            // ADAPTIVE LOGIC: 
-            // Target channel width is 26px (comfortable for fingers)
-            const targetSize = 26; 
+            // Detect Mobile (Pixel) vs Desktop (Mac)
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
+            
+            // Mac target size: ~22px (Dense)
+            // Pixel target size: ~38px (50%+ wider for finger navigation)
+            const targetSize = isMobile ? 38 : 22; 
+            
             const padding = 30;
             const availableW = window.innerWidth - padding;
-            const availableH = (window.innerHeight - 100) - padding;
+            const availableH = (window.innerHeight - 110) - padding;
 
             cols = Math.floor(availableW / targetSize);
-            // Re-calculate exact cell size to fill width perfectly
             cellSize = availableW / cols; 
             rows = Math.floor(availableH / cellSize);
 
-            // DPI Scaling for sharp lines
+            // Handle High DPI (Retina/OLED)
             const dpr = window.devicePixelRatio || 1;
             canvas.width = (cols * cellSize) * dpr;
             canvas.height = (rows * cellSize) * dpr;
@@ -170,15 +177,17 @@
 
             // Goal
             ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal');
-            ctx.fillRect(goal.x * cellSize + cellSize*0.25, goal.y * cellSize + cellSize*0.25, cellSize*0.5, cellSize*0.5);
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fillRect(goal.x * cellSize + cellSize*0.2, goal.y * cellSize + cellSize*0.2, cellSize*0.6, cellSize*0.6);
             
-            // Cursor (Player)
+            // Cursor (Player) - Radius is now much bigger on Pixel
             const pColor = getComputedStyle(document.documentElement).getPropertyValue('--player');
             ctx.fillStyle = pColor;
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 12;
             ctx.shadowColor = pColor;
             ctx.beginPath();
-            ctx.arc(player.x * cellSize + cellSize/2, player.y * cellSize + cellSize/2, cellSize*0.3, 0, Math.PI*2);
+            ctx.arc(player.x * cellSize + cellSize/2, player.y * cellSize + cellSize/2, cellSize*0.35, 0, Math.PI*2);
             ctx.fill();
             ctx.shadowBlur = 0;
         }
@@ -242,7 +251,7 @@
             gameActive = false;
             clearInterval(timerInterval);
             document.getElementById('victory').style.display = 'block';
-            document.getElementById('final-time').innerText = "Time: " + timerElement.innerText;
+            document.getElementById('final-time').innerText = "Clear Time: " + timerElement.innerText;
         }
 
         window.onload = initGame;
@@ -250,3 +259,4 @@
     </script>
 </body>
 </html>
+
