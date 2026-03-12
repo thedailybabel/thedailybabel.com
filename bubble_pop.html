@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bubble Pop</title>
+    <style>
+        :root {
+            --bg-color: #e0e5ec;
+            --bubble-unpopped: radial-gradient(circle at 30% 30%, #ffffff, #a3b1c6);
+            --bubble-popped: radial-gradient(circle at 50% 50%, #d1d9e6, #f0f4f8);
+            --shadow-light: #ffffff;
+            --shadow-dark: #a3b1c6;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #app-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #bubble-grid {
+            flex-grow: 1;
+            display: grid;
+            padding: 10px;
+            gap: 12px;
+            justify-content: center;
+            align-content: center;
+        }
+
+        .bubble {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bubble-unpopped);
+            box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+            cursor: pointer;
+            transition: transform 0.05s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bubble:active {
+            transform: scale(0.92);
+        }
+
+        .bubble.popped {
+            background: var(--bubble-popped);
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+            cursor: default;
+            transform: scale(0.98);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(224, 229, 236, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #reset-btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 30px;
+            background: var(--bg-color);
+            box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+            color: #4a4a4a;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #reset-btn:active {
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+            transform: scale(0.98);
+        }
+
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div id="bubble-grid"></div>
+        <div id="overlay">
+            <h1>All Popped!</h1>
+            <button id="reset-btn">Reset Board</button>
+        </div>
+    </div>
+
+    <audio id="pop-sound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+    <audio id="tada-sound" src="https://actions.google.com/sounds/v1/cartoon/ta_da.ogg" preload="auto"></audio>
+
+    <script>
+        const grid = document.getElementById('bubble-grid');
+        const overlay = document.getElementById('overlay');
+        const resetBtn = document.getElementById('reset-btn');
+        const popSound = document.getElementById('pop-sound');
+        const tadaSound = document.getElementById('tada-sound');
+
+        let totalBubbles = 0;
+        let poppedCount = 0;
+
+        function createGrid() {
+            grid.innerHTML = '';
+            poppedCount = 0;
+            overlay.style.display = 'none';
+
+            // Calculate grid size to fill screen without scrolling
+            const bubbleSpacing = 72; // 60px width + 12px gap
+            const cols = Math.floor((window.innerWidth - 20) / bubbleSpacing);
+            const rows = Math.floor((window.innerHeight - 20) / bubbleSpacing);
+            totalBubbles = cols * rows;
+
+            grid.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
+            grid.style.gridTemplateRows = `repeat(${rows}, 60px)`;
+
+            for (let i = 0; i < totalBubbles; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                // Use pointerdown for the fastest response across all platforms
+                bubble.addEventListener('pointerdown', handlePop);
+                grid.appendChild(bubble);
+            }
+        }
+
+        function handlePop(e) {
+            const bubble = e.currentTarget;
+            if (!bubble.classList.contains('popped')) {
+                bubble.classList.add('popped');
+                
+                // Play the requested cartoon pop sound
+                const soundClone = popSound.cloneNode();
+                soundClone.play().catch(() => {
+                    // Fallback for browsers blocking auto-play
+                });
+
+                poppedCount++;
+                if (poppedCount === totalBubbles) {
+                    endGame();
+                }
+            }
+        }
+
+        function endGame() {
+            setTimeout(() => {
+                tadaSound.play();
+                overlay.style.display = 'flex';
+            }, 400);
+        }
+
+        resetBtn.addEventListener('click', createGrid);
+        
+        // Handle orientation changes and window resizing
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(createGrid, 250);
+        });
+
+        // Initial setup
+        createGrid();
+    </script>
+</body>
+</html>
