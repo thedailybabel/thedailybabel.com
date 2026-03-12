@@ -2,155 +2,135 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High-Density Chroma Maze</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Chroma Maze Pro</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --wall-color: #334155;
-            --path-color: #1e293b;
-            --cursor-color: #22d3ee;
-            --goal-color: #f43f5e;
+            --bg: #1a1a1a;
+            --wall: #444;
+            --player: #00ffcc;
+            --goal: #ff3366;
+            --path: #222;
         }
-
-        body {
-            background-color: var(--bg-color);
-            color: white;
-            font-family: 'Inter', system-ui, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            touch-action: none;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center;
+            font-family: 'Segoe UI', sans-serif; touch-action: none;
         }
-
-        #timer { 
-            font-size: 1.2rem; 
-            font-family: 'JetBrains Mono', monospace; 
-            margin-bottom: 8px; 
-            color: var(--cursor-color);
-            text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        #ui {
+            height: 70px; display: flex; align-items: center; 
+            justify-content: space-between; width: 90%; color: white;
+            z-index: 10;
         }
-
-        #maze-container {
-            position: relative;
-            border: 2px solid var(--wall-color);
-            background-color: var(--path-color);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        #timer { font-family: monospace; font-size: 1.4rem; font-weight: bold; }
+        
+        #maze-wrapper {
+            flex-grow: 1; display: flex; align-items: center; justify-content: center;
+            width: 100vw; padding: 10px; box-sizing: border-box;
         }
-
-        canvas { display: block; touch-action: none; }
-
-        .btn {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: #1e293b;
-            color: white;
-            border: 1px solid var(--cursor-color);
-            border-radius: 6px;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
+        canvas {
+            border: 3px solid var(--wall);
+            background: var(--path);
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+            image-rendering: pixelated; /* Keeps lines sharp on mobile */
         }
-
+        button {
+            background: rgba(255,255,255,0.1); color: white; border: 1px solid white;
+            padding: 8px 16px; border-radius: 20px; font-size: 14px; cursor: pointer;
+        }
         #victory {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(15, 23, 42, 0.95);
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            display: none;
-            border: 1px solid var(--cursor-color);
-            width: 260px;
-            z-index: 100;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95); border: 2px solid var(--player);
+            padding: 30px; text-align: center; color: white; display: none; z-index: 100;
+            border-radius: 15px; box-shadow: 0 0 50px var(--player);
         }
     </style>
 </head>
 <body>
 
-    <div id="timer">00:00.0</div>
-
-    <div id="maze-container">
-        <canvas id="mazeCanvas"></canvas>
-        <div id="victory">
-            <h2 style="margin-top:0; color:var(--cursor-color);">COMPLETED</h2>
-            <p id="final-time" style="font-family:monospace;"></p>
-            <button class="btn" onclick="initGame()">Generate Harder</button>
-        </div>
+    <div id="ui">
+        <div id="timer">00:00.0</div>
+        <button onclick="initGame()">New Maze</button>
     </div>
 
-    <button class="btn" onclick="initGame()">New Maze</button>
+    <div id="maze-wrapper">
+        <canvas id="mazeCanvas"></canvas>
+    </div>
+
+    <div id="victory">
+        <h2 style="color:var(--player)">MAZE ESCAPED</h2>
+        <p id="final-time" style="font-size: 1.2rem;"></p>
+        <button onclick="initGame()">Play Again</button>
+    </div>
 
     <script>
         const canvas = document.getElementById('mazeCanvas');
         const ctx = canvas.getContext('2d');
         const timerElement = document.getElementById('timer');
-        const victoryScreen = document.getElementById('victory');
         
-        let cols, rows, cellSize;
-        let grid = [];
-        let player = { x: 0, y: 0 };
-        let goal = { x: 0, y: 0 };
+        // High Density for Mac/Pixel feel
+        const COLS = 30; 
+        let rows, cellSize, grid = [], player = {x:0, y:0}, goal = {x:0, y:0};
         let startTime, timerInterval, gameActive = false;
 
-        class Cell {
-            constructor(r, c) {
-                this.r = r;
-                this.c = c;
-                this.walls = [true, true, true, true]; // T, R, B, L
-                this.visited = false;
-            }
-            draw() {
-                let x = this.c * cellSize;
-                let y = this.r * cellSize;
-                ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--wall-color');
-                ctx.lineWidth = 1; // Thinner lines for higher density
-                ctx.beginPath();
-                if (this.walls[0]) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
-                if (this.walls[1]) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
-                if (this.walls[2]) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
-                if (this.walls[3]) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
-                ctx.stroke();
-            }
+        function randomizeColors() {
+            const hue = Math.floor(Math.random() * 360);
+            const root = document.documentElement;
+            root.style.setProperty('--bg', `hsl(${hue}, 30%, 8%)`);
+            root.style.setProperty('--path', `hsl(${hue}, 25%, 12%)`);
+            root.style.setProperty('--wall', `hsl(${hue}, 40%, 35%)`);
+            root.style.setProperty('--player', `hsl(${(hue + 160) % 360}, 100%, 60%)`);
+            root.style.setProperty('--goal', `hsl(${(hue + 320) % 360}, 100%, 50%)`);
         }
 
-        function calculateDimensions() {
-            // Density Setting: 40 columns for a very detailed maze
-            cols = 40; 
-            const padding = 20;
-            cellSize = Math.floor((window.innerWidth - padding) / cols);
+        function initGame() {
+            randomizeColors();
+            const padding = 30;
+            const availableWidth = window.innerWidth - padding;
+            const availableHeight = (window.innerHeight - 100) - padding;
             
-            // Calculate rows to fill the screen vertically
-            const availableHeight = window.innerHeight - 160;
+            cellSize = Math.floor(availableWidth / COLS);
             rows = Math.floor(availableHeight / cellSize);
             
-            canvas.width = cols * cellSize;
-            canvas.height = rows * cellSize;
-            goal = { x: cols - 1, y: rows - 1 };
+            // Adjust for High DPI screens (Pixel 6a)
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = (COLS * cellSize) * dpr;
+            canvas.height = (rows * cellSize) * dpr;
+            ctx.scale(dpr, dpr);
+            
+            canvas.style.width = (COLS * cellSize) + 'px';
+            canvas.style.height = (rows * cellSize) + 'px';
+            
+            generateMazeData();
+            player = {x: 0, y: 0};
+            goal = {x: COLS - 1, y: rows - 1};
+            gameActive = true;
+            document.getElementById('victory').style.display = 'none';
+            
+            render();
+            startTimer();
         }
 
-        function generateMaze() {
-            grid = [];
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) grid.push(new Cell(r, c));
-            }
+        function generateMazeData() {
+            grid = Array.from({ length: rows * COLS }, (_, i) => ({
+                r: Math.floor(i / COLS),
+                c: i % COLS,
+                walls: [true, true, true, true],
+                visited: false
+            }));
+
             let stack = [];
             let current = grid[0];
             current.visited = true;
-            while(true) {
+
+            while (true) {
                 let neighbors = getUnvisitedNeighbors(current);
                 if (neighbors.length > 0) {
                     let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    removeWalls(current, next);
                     next.visited = true;
                     stack.push(current);
-                    removeWalls(current, next);
                     current = next;
                 } else if (stack.length > 0) {
                     current = stack.pop();
@@ -159,103 +139,124 @@
         }
 
         function getUnvisitedNeighbors(cell) {
-            const idx = (r, c) => (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : c + r * cols;
-            let neighbors = [
-                grid[idx(cell.r-1, cell.c)], grid[idx(cell.r, cell.c+1)],
-                grid[idx(cell.r+1, cell.c)], grid[idx(cell.r, cell.c-1)]
-            ];
-            return neighbors.filter(c => c && !c.visited);
+            const moves = [{r:-1, c:0}, {r:0, c:1}, {r:1, c:0}, {r:0, c:-1}];
+            return moves.map(m => {
+                const nr = cell.r + m.r, nc = cell.c + m.c;
+                return (nr >= 0 && nr < rows && nc >= 0 && nc < COLS) ? grid[nr * COLS + nc] : null;
+            }).filter(n => n && !n.visited);
         }
 
         function removeWalls(a, b) {
-            let dx = a.c - b.c;
+            const dx = a.c - b.c;
             if (dx === -1) { a.walls[1] = false; b.walls[3] = false; }
             else if (dx === 1) { a.walls[3] = false; b.walls[1] = false; }
-            let dy = a.r - b.r;
+            const dy = a.r - b.r;
             if (dy === -1) { a.walls[2] = false; b.walls[0] = false; }
             else if (dy === 1) { a.walls[0] = false; b.walls[2] = false; }
         }
 
         function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            grid.forEach(c => c.draw());
+            ctx.clearRect(0, 0, COLS * cellSize, rows * cellSize);
             
-            // Goal (Red square)
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
-            ctx.fillRect(goal.x * cellSize + 2, goal.y * cellSize + 2, cellSize - 4, cellSize - 4);
+            // Draw Maze
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--wall');
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
             
-            // Player (Cyan square - tighter padding for smaller look)
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--cursor-color');
-            ctx.fillRect(player.x * cellSize + 1.5, player.y * cellSize + 1.5, cellSize - 3, cellSize - 3);
+            grid.forEach(cell => {
+                const x = cell.c * cellSize, y = cell.r * cellSize;
+                ctx.beginPath();
+                if (cell.walls[0]) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+                if (cell.walls[1]) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+                if (cell.walls[2]) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
+                if (cell.walls[3]) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+                ctx.stroke();
+            });
+
+            // Draw Goal
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal');
+            ctx.fillRect(goal.x * cellSize + cellSize*0.2, goal.y * cellSize + cellSize*0.2, cellSize*0.6, cellSize*0.6);
+            
+            // Draw Player (Cursor) with Glow
+            const pColor = getComputedStyle(document.documentElement).getPropertyValue('--player');
+            ctx.fillStyle = pColor;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = pColor;
+            ctx.fillRect(player.x * cellSize + cellSize*0.2, player.y * cellSize + cellSize*0.2, cellSize*0.6, cellSize*0.6);
+            ctx.shadowBlur = 0;
         }
 
-        function movePlayer(nx, ny) {
+        function handleInput(e) {
             if (!gameActive) return;
-            const dx = nx - player.x;
-            const dy = ny - player.y;
-            if (Math.abs(dx) + Math.abs(dy) !== 1) return;
-
-            let cur = grid[player.y * cols + player.x];
-            let blocked = false;
-            if (dx === 1 && cur.walls[1]) blocked = true;
-            if (dx === -1 && cur.walls[3]) blocked = true;
-            if (dy === 1 && cur.walls[2]) blocked = true;
-            if (dy === -1 && cur.walls[0]) blocked = true;
-
-            if (!blocked) {
-                player.x = nx; player.y = ny;
-                render();
-                if (player.x === goal.x && player.y === goal.y) {
-                    gameActive = false;
-                    clearInterval(timerInterval);
-                    document.getElementById('final-time').innerText = "TIME: " + timerElement.innerText;
-                    victoryScreen.style.display = 'block';
+            const t = e.touches ? e.touches[0] : e;
+            const rect = canvas.getBoundingClientRect();
+            
+            // Convert screen touch to grid coordinates
+            const x = Math.floor(((t.clientX - rect.left) / rect.width) * COLS);
+            const y = Math.floor(((t.clientY - rect.top) / rect.height) * rows);
+            
+            if (x >= 0 && x < COLS && y >= 0 && y < rows) {
+                const dx = x - player.x, dy = y - player.y;
+                if (Math.abs(dx) + Math.abs(dy) === 1) {
+                    const cur = grid[player.y * COLS + player.x];
+                    let blocked = false;
+                    if (dx === 1 && cur.walls[1]) blocked = true;
+                    if (dx === -1 && cur.walls[3]) blocked = true;
+                    if (dy === 1 && cur.walls[2]) blocked = true;
+                    if (dy === -1 && cur.walls[0]) blocked = true;
+                    
+                    if (!blocked) {
+                        player.x = x; player.y = y;
+                        render();
+                        if (player.x === goal.x && player.y === goal.y) win();
+                    }
                 }
             }
         }
 
-        function processInput(clientX, clientY) {
-            const rect = canvas.getBoundingClientRect();
-            const x = Math.floor((clientX - rect.left) / (rect.width / cols));
-            const y = Math.floor((clientY - rect.top) / (rect.height / rows));
-            if (x >= 0 && x < cols && y >= 0 && y < rows) movePlayer(x, y);
-        }
-
-        canvas.addEventListener('mousemove', e => { if(e.buttons === 1) processInput(e.clientX, e.clientY); });
-        canvas.addEventListener('mousedown', e => processInput(e.clientX, e.clientY));
-        canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            processInput(e.touches[0].clientX, e.touches[0].clientY);
-        }, {passive: false});
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            processInput(e.touches[0].clientX, e.touches[0].clientY);
-        }, {passive: false});
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
+        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('mousemove', (e) => { if(e.buttons === 1) handleInput(e); });
 
         window.addEventListener('keydown', e => {
-            if (e.key === "ArrowUp") movePlayer(player.x, player.y - 1);
-            if (e.key === "ArrowDown") movePlayer(player.x, player.y + 1);
-            if (e.key === "ArrowLeft") movePlayer(player.x - 1, player.y);
-            if (e.key === "ArrowRight") movePlayer(player.x + 1, player.y);
+            if (e.key === "ArrowUp") move(0, -1);
+            if (e.key === "ArrowDown") move(0, 1);
+            if (e.key === "ArrowLeft") move(-1, 0);
+            if (e.key === "ArrowRight") move(1, 0);
         });
 
-        function initGame() {
-            calculateDimensions();
-            generateMaze();
-            player = { x: 0, y: 0 };
-            victoryScreen.style.display = 'none';
-            gameActive = true;
-            render();
+        function move(dx, dy) {
+            const nx = player.x + dx, ny = player.y + dy;
+            if (nx >= 0 && nx < COLS && ny >= 0 && ny < rows) {
+                const cur = grid[player.y * COLS + player.x];
+                let blocked = false;
+                if (dx === 1 && cur.walls[1]) blocked = true;
+                if (dx === -1 && cur.walls[3]) blocked = true;
+                if (dy === 1 && cur.walls[2]) blocked = true;
+                if (dy === -1 && cur.walls[0]) blocked = true;
+                if (!blocked) { player.x = nx; player.y = ny; render(); if (nx === goal.x && ny === goal.y) win(); }
+            }
+        }
+
+        function startTimer() {
             startTime = Date.now();
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                let d = new Date(Date.now() - startTime);
-                timerElement.innerText = d.toISOString().substr(14, 7);
+                const time = (Date.now() - startTime) / 1000;
+                timerElement.innerText = time.toFixed(1) + "s";
             }, 100);
         }
 
-        initGame();
-        window.addEventListener('resize', initGame);
+        function win() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            document.getElementById('victory').style.display = 'block';
+            document.getElementById('final-time').innerText = "Clear Time: " + timerElement.innerText;
+        }
+
+        window.onload = initGame;
+        window.onresize = initGame;
     </script>
 </body>
 </html>
