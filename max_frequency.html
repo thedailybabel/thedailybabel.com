@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Max Frequency Hearing Test</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@200;400;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060810;
+    --surface: #0d1220;
+    --panel: #111827;
+    --accent: #00e5ff;
+    --accent2: #ff3d71;
+    --accent3: #a259ff;
+    --text: #e0f0ff;
+    --muted: #4a5a7a;
+    --glow: rgba(0,229,255,0.18);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+    padding: 12px 0;
+  }
+
+  /* Animated background grid */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+    animation: gridPulse 8s ease-in-out infinite;
+  }
+
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* Radial glow center */
+  .radial-glow {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 60% at 50% 60%, rgba(0,229,255,0.07) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: min(480px, 96vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 0 16px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .header .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+  .header h1 {
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e0f0ff 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  /* Main panel */
+  .panel {
+    background: var(--panel);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 20px;
+    padding: 16px 20px 16px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(0,229,255,0.05), 0 20px 40px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Frequency display */
+  .freq-display {
+    width: 100%;
+    text-align: center;
+    position: relative;
+  }
+  .freq-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .freq-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(28px, 8vw, 44px);
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+    transition: color 0.3s;
+    text-shadow: 0 0 30px rgba(0,229,255,0.5);
+    letter-spacing: -0.02em;
+  }
+  .freq-value.result-freq {
+    color: var(--accent2);
+    text-shadow: 0 0 30px rgba(255,61,113,0.5);
+  }
+  .freq-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    margin-top: 2px;
+  }
+
+  /* Waveform visualizer */
+  .waveform-wrap {
+    width: 100%;
+    height: 36px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.25);
+  }
+  .waveform-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .progress-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .progress-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid rgba(0,229,255,0.1);
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+    border-radius: 99px;
+    transition: width 0.25s linear;
+    box-shadow: 0 0 10px rgba(0,229,255,0.5);
+  }
+
+  /* Spectrum bar row */
+  .spectrum-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    height: 20px;
+    gap: 2px;
+    padding: 0 2px;
+  }
+  .spec-bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    background: rgba(0,229,255,0.15);
+    min-height: 3px;
+    transition: height 0.08s linear, background 0.3s;
+  }
+
+  /* Instruction box */
+  .instruction {
+    width: 100%;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: rgba(224,240,255,0.75);
+    line-height: 1.5;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+  .instruction strong {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Result box */
+  .result-box {
+    width: 100%;
+    background: rgba(255,61,113,0.07);
+    border: 1px solid rgba(255,61,113,0.22);
+    border-radius: 14px;
+    padding: 10px 14px;
+    text-align: center;
+    display: none;
+  }
+  .result-box.visible { display: block; }
+  .result-title {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+  .result-main {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 900;
+    color: #fff;
+  }
+  .result-sub {
+    font-size: 12px;
+    color: rgba(224,240,255,0.5);
+    margin-top: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .result-rating {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 14px;
+    border-radius: 99px;
+    background: rgba(255,61,113,0.15);
+    border: 1px solid rgba(255,61,113,0.3);
+    font-size: 12px;
+    color: var(--accent2);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  /* Big hold button */
+  .btn-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .hold-btn {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 35% 35%, rgba(0,229,255,0.22) 0%, rgba(0,229,255,0.07) 60%, transparent 100%),
+                var(--surface);
+    box-shadow:
+      0 0 0 2px rgba(0,229,255,0.18),
+      0 0 0 10px rgba(0,229,255,0.05),
+      0 0 60px rgba(0,229,255,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: box-shadow 0.2s, transform 0.12s;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .hold-btn:active, .hold-btn.pressed {
+    transform: scale(0.96);
+    box-shadow:
+      0 0 0 2px rgba(0,229,255,0.5),
+      0 0 0 16px rgba(0,229,255,0.08),
+      0 0 80px rgba(0,229,255,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .hold-btn .btn-icon {
+    font-size: 30px;
+    line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(0,229,255,0.6));
+  }
+  .hold-btn .btn-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  /* Pulse ring animation when active */
+  .pulse-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,229,255,0.3);
+    animation: none;
+    opacity: 0;
+  }
+  .hold-btn.pressed .pulse-ring {
+    animation: ringPulse 1.2s ease-out infinite;
+    opacity: 1;
+  }
+  @keyframes ringPulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  /* Try again button */
+  .try-btn {
+    display: none;
+    padding: 13px 36px;
+    border-radius: 99px;
+    border: 1px solid rgba(0,229,255,0.3);
+    background: rgba(0,229,255,0.08);
+    color: var(--accent);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    text-transform: uppercase;
+  }
+  .try-btn.visible { display: inline-block; }
+  .try-btn:active { transform: scale(0.97); }
+  .try-btn:hover {
+    background: rgba(0,229,255,0.15);
+    box-shadow: 0 0 20px rgba(0,229,255,0.2);
+  }
+
+  /* Screen states */
+  .screen { width: 100%; }
+  .screen-idle .result-box,
+  .screen-idle .try-btn { display: none !important; }
+  .screen-running .result-box,
+  .screen-running .try-btn { display: none !important; }
+  .screen-done .hold-btn { opacity: 0.3; pointer-events: none; }
+
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="radial-glow"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="label">Audiometric</div>
+    <h1>Max Frequency<br>Hearing Test</h1>
+  </div>
+
+  <div class="panel screen screen-idle" id="panel">
+
+    <!-- Frequency display -->
+    <div class="freq-display">
+      <div class="freq-label">Current Frequency</div>
+      <div class="freq-value" id="freqValue">20</div>
+      <div class="freq-unit">Hz</div>
+    </div>
+
+    <!-- Waveform canvas -->
+    <div class="waveform-wrap">
+      <canvas class="waveform-canvas" id="waveCanvas"></canvas>
+    </div>
+
+    <!-- Spectrum bars -->
+    <div class="spectrum-row" id="spectrumRow"></div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span class="progress-label">Progress</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <!-- Instruction -->
+    <div class="instruction" id="instruction">
+      <strong>Hold</strong> the button below — you'll hear a tone rising from low to high.<br>
+      <strong>Lift your finger</strong> when you can no longer hear the sound.
+    </div>
+
+    <!-- Result box -->
+    <div class="result-box" id="resultBox">
+      <div class="result-title">Max Frequency Heard</div>
+      <div class="result-main" id="resultMain">—</div>
+      <div class="result-sub" id="resultSub"></div>
+      <div class="result-rating" id="resultRating"></div>
+    </div>
+
+    <!-- Button -->
+    <div class="btn-wrap">
+      <button class="hold-btn" id="holdBtn" aria-label="Hold to start test">
+        <div class="pulse-ring"></div>
+        <span class="btn-icon">👂</span>
+        <span class="btn-text" id="btnLabel">Hold to Start</span>
+      </button>
+      <button class="try-btn" id="tryBtn">↺ Try Again</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+
+  // ── DOM refs ────────────────────────────────────────────────
+  const panel        = document.getElementById('panel');
+  const holdBtn      = document.getElementById('holdBtn');
+  const btnLabel     = document.getElementById('btnLabel');
+  const freqValue    = document.getElementById('freqValue');
+  const progressBar  = document.getElementById('progressBar');
+  const progressPct  = document.getElementById('progressPct');
+  const resultBox    = document.getElementById('resultBox');
+  const resultMain   = document.getElementById('resultMain');
+  const resultSub    = document.getElementById('resultSub');
+  const resultRating = document.getElementById('resultRating');
+  const tryBtn       = document.getElementById('tryBtn');
+  const instruction  = document.getElementById('instruction');
+  const waveCanvas   = document.getElementById('waveCanvas');
+  const spectrumRow  = document.getElementById('spectrumRow');
+
+  // ── Config ──────────────────────────────────────────────────
+  const FREQ_MIN   = 20;
+  const FREQ_MAX   = 22000;
+  const TEST_DUR   = 60;     // seconds
+  const SPEC_BARS  = 28;
+
+  // ── State ───────────────────────────────────────────────────
+  let audioCtx    = null;
+  let oscillator  = null;
+  let gainNode    = null;
+  let analyser    = null;
+  let startTime   = null;
+  let rafId       = null;
+  let isRunning   = false;
+  let isDone      = false;
+  let specBars    = [];
+
+  // ── Build spectrum bars ─────────────────────────────────────
+  for (let i = 0; i < SPEC_BARS; i++) {
+    const b = document.createElement('div');
+    b.className = 'spec-bar';
+    b.style.height = '4px';
+    spectrumRow.appendChild(b);
+    specBars.push(b);
+  }
+
+  // ── Canvas setup ────────────────────────────────────────────
+  const ctx2d = waveCanvas.getContext('2d');
+  function resizeCanvas() {
+    waveCanvas.width  = waveCanvas.offsetWidth  * window.devicePixelRatio;
+    waveCanvas.height = waveCanvas.offsetHeight * window.devicePixelRatio;
+    ctx2d.scale(window.devicePixelRatio, window.devicePixelRatio);
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // ── Frequency → Hz (logarithmic) ───────────────────────────
+  function getFrequency(progress) {
+    // Logarithmic sweep: feels natural to human hearing
+    const logMin = Math.log10(FREQ_MIN);
+    const logMax = Math.log10(FREQ_MAX);
+    return Math.pow(10, logMin + (logMax - logMin) * progress);
+  }
+
+  // ── Format Hz display ────────────────────────────────────────
+  function formatFreq(hz) {
+    if (hz >= 1000) return (hz / 1000).toFixed(hz >= 10000 ? 1 : 2) + ' kHz';
+    return Math.round(hz) + ' Hz';
+  }
+
+  // ── Hearing rating ───────────────────────────────────────────
+  function getRating(hz) {
+    if (hz >= 18000) return { label: 'Exceptional', sub: 'Near-perfect high-frequency hearing' };
+    if (hz >= 15000) return { label: 'Excellent',   sub: 'Above average hearing range' };
+    if (hz >= 12000) return { label: 'Good',         sub: 'Healthy adult hearing range' };
+    if (hz >= 8000)  return { label: 'Average',      sub: 'Typical for age 40–60' };
+    if (hz >= 4000)  return { label: 'Below avg',    sub: 'Some high-frequency loss' };
+    return                   { label: 'Reduced',     sub: 'Consider an audiologist visit' };
+  }
+
+  // ── Init audio ───────────────────────────────────────────────
+  function initAudio() {
+    if (audioCtx && audioCtx.state === 'running') return true;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return true;
+    } catch(e) { return false; }
+  }
+
+  function startTone(freq) {
+    analyser   = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+
+    gainNode   = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.08);
+
+    oscillator = audioCtx.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    oscillator.connect(gainNode);
+    gainNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    oscillator.start();
+  }
+
+  function stopTone(fade) {
+    if (!gainNode || !oscillator) return;
+    const t = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(t);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, t);
+    gainNode.gain.linearRampToValueAtTime(0, t + (fade || 0.1));
+    const osc = oscillator;
+    setTimeout(() => { try { osc.stop(); osc.disconnect(); } catch(e){} }, (fade || 0.1) * 1000 + 50);
+    oscillator = null;
+    gainNode   = null;
+  }
+
+  // ── Draw waveform ─────────────────────────────────────────────
+  let waveOffset = 0;
+  function drawWave(progress) {
+    const W = waveCanvas.offsetWidth;
+    const H = waveCanvas.offsetHeight;
+    ctx2d.clearRect(0, 0, W, H);
+
+    if (!isRunning) {
+      // idle flatline
+      ctx2d.strokeStyle = 'rgba(0,229,255,0.15)';
+      ctx2d.lineWidth = 1.5;
+      ctx2d.beginPath();
+      ctx2d.moveTo(0, H/2);
+      ctx2d.lineTo(W, H/2);
+      ctx2d.stroke();
+      return;
+    }
+
+    // Animated sine wave — frequency increases with progress
+    const cycles  = 2 + progress * 14;
+    const amp     = H * 0.35;
+    waveOffset   += 0.06 + progress * 0.12;
+
+    // Gradient stroke
+    const grad = ctx2d.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0,   'rgba(162,89,255,0.8)');
+    grad.addColorStop(0.5, 'rgba(0,229,255,1)');
+    grad.addColorStop(1,   'rgba(0,229,255,0.4)');
+    ctx2d.strokeStyle = grad;
+    ctx2d.lineWidth = 2;
+    ctx2d.shadowColor = 'rgba(0,229,255,0.6)';
+    ctx2d.shadowBlur  = 8;
+
+    ctx2d.beginPath();
+    for (let x = 0; x <= W; x++) {
+      const t = (x / W) * Math.PI * 2 * cycles + waveOffset;
+      const y = H/2 + Math.sin(t) * amp * (0.6 + 0.4 * Math.sin(t * 0.3));
+      x === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+    }
+    ctx2d.stroke();
+    ctx2d.shadowBlur = 0;
+  }
+
+  // ── Draw spectrum bars ────────────────────────────────────────
+  function drawSpectrum(progress) {
+    specBars.forEach((bar, i) => {
+      const active = i / SPEC_BARS <= progress;
+      const seed   = Math.sin(i * 2.3 + Date.now() * 0.003 * (1 + progress * 3)) * 0.5 + 0.5;
+      const h      = active ? (8 + seed * 20) : 3;
+      bar.style.height = h + 'px';
+
+      if (active) {
+        const hue = 180 + (i / SPEC_BARS) * 100;
+        bar.style.background = `hsla(${hue},100%,65%,0.85)`;
+        bar.style.boxShadow  = `0 0 6px hsla(${hue},100%,65%,0.5)`;
+      } else {
+        bar.style.background = 'rgba(0,229,255,0.08)';
+        bar.style.boxShadow  = 'none';
+      }
+    });
+  }
+
+  // ── Main animation loop ───────────────────────────────────────
+  function animate() {
+    if (!isRunning) return;
+
+    const elapsed  = (Date.now() - startTime) / 1000;
+    const progress = Math.min(elapsed / TEST_DUR, 1);
+    const freq     = getFrequency(progress);
+
+    // Update oscillator frequency
+    if (oscillator) {
+      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    }
+
+    // Update UI
+    freqValue.textContent = formatFreq(freq);
+    progressBar.style.width = (progress * 100) + '%';
+    progressPct.textContent  = Math.round(progress * 100) + '%';
+
+    drawWave(progress);
+    drawSpectrum(progress);
+
+    if (progress >= 1) {
+      // Completed full sweep — heard everything!
+      endTest(freq, true);
+      return;
+    }
+
+    rafId = requestAnimationFrame(animate);
+  }
+
+  // ── End test ──────────────────────────────────────────────────
+  function endTest(freq, completed) {
+    isRunning = false;
+    isDone    = true;
+    cancelAnimationFrame(rafId);
+    stopTone(0.2);
+
+    holdBtn.classList.remove('pressed');
+    drawWave(0);
+
+    const rating = getRating(freq);
+    resultMain.textContent = formatFreq(freq);
+    resultSub.textContent  = completed
+      ? 'You heard the full range — amazing!'
+      : 'Highest frequency you could hear';
+    resultRating.textContent = rating.label + ' — ' + rating.sub;
+
+    freqValue.classList.add('result-freq');
+    freqValue.textContent = formatFreq(freq);
+
+    resultBox.classList.add('visible');
+    tryBtn.classList.add('visible');
+    btnLabel.textContent = 'Hold to Start';
+
+    panel.className = 'panel screen screen-done';
+    instruction.innerHTML = '<strong>Result recorded.</strong> Press Try Again to retest.';
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────
+  function reset() {
+    isRunning = false;
+    isDone    = false;
+    cancelAnimationFrame(rafId);
+    stopTone(0.05);
+
+    freqValue.classList.remove('result-freq');
+    freqValue.textContent = '20';
+    progressBar.style.width = '0%';
+    progressPct.textContent  = '0%';
+    resultBox.classList.remove('visible');
+    tryBtn.classList.remove('visible');
+    holdBtn.classList.remove('pressed');
+    holdBtn.style.opacity = '';
+    holdBtn.style.pointerEvents = '';
+    btnLabel.textContent = 'Hold to Start';
+    panel.className = 'panel screen screen-idle';
+    instruction.innerHTML = '<strong>Hold</strong> the button below — you\'ll hear a tone rising from low to high.<br><strong>Lift your finger</strong> when you can no longer hear the sound.';
+    drawWave(0);
+    drawSpectrum(0);
+  }
+
+  // ── Button press / release handlers ──────────────────────────
+  function onPress(e) {
+    e.preventDefault();
+    if (isDone) return;
+    if (isRunning) return;
+    if (!initAudio()) return;
+
+    // Resume AudioContext (required on iOS after user gesture)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().then(beginTest);
+    } else {
+      beginTest();
+    }
+  }
+
+  function beginTest() {
+    isRunning = true;
+    startTime = Date.now();
+    holdBtn.classList.add('pressed');
+    btnLabel.textContent = 'Listening…';
+    panel.className = 'panel screen screen-running';
+    startTone(FREQ_MIN);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function onRelease(e) {
+    e.preventDefault();
+    if (!isRunning) return;
+    const elapsed  = (Date.now() - startTime) / 1000;
+    const progress = Math.min(elapsed / TEST_DUR, 1);
+    const freq     = getFrequency(progress);
+    endTest(freq, false);
+  }
+
+  // Pointer events (works on all platforms)
+  holdBtn.addEventListener('pointerdown',  onPress,   { passive: false });
+  holdBtn.addEventListener('pointerup',    onRelease, { passive: false });
+  holdBtn.addEventListener('pointerleave', onRelease, { passive: false });
+  holdBtn.addEventListener('pointercancel',onRelease, { passive: false });
+
+  // Touch fallback for older iOS
+  holdBtn.addEventListener('touchstart', onPress,   { passive: false });
+  holdBtn.addEventListener('touchend',   onRelease, { passive: false });
+  holdBtn.addEventListener('touchcancel',onRelease, { passive: false });
+
+  // Try again
+  tryBtn.addEventListener('click', reset);
+  tryBtn.addEventListener('touchstart', function(e){ e.preventDefault(); reset(); }, { passive: false });
+
+  // Initial render
+  drawWave(0);
+  drawSpectrum(0);
+
+})();
+</script>
+</body>
+</html>
