@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>13‑Key Piano</title>
+<style>
+  body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #222;
+    font-family: sans-serif;
+  }
+  .piano {
+    display: flex;
+    border: 2px solid #000;
+    background: #000;
+    padding: 4px;
+  }
+  .key {
+    width: 50px;
+    height: 200px;
+    margin: 0 2px;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background 0.05s, transform 0.05s;
+  }
+  .key span {
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #333;
+  }
+  .key:active,
+  .key.playing {
+    background: #ddd;
+    transform: translateY(2px);
+  }
+</style>
+</head>
+<body>
+
+<div class="piano">
+  <!-- 13 white keys, C4–C5 as example -->
+  <div class="key" data-note="261.63"><span>C</span></div>
+  <div class="key" data-note="277.18"><span>C#</span></div>
+  <div class="key" data-note="293.66"><span>D</span></div>
+  <div class="key" data-note="311.13"><span>D#</span></div>
+  <div class="key" data-note="329.63"><span>E</span></div>
+  <div class="key" data-note="349.23"><span>F</span></div>
+  <div class="key" data-note="369.99"><span>F#</span></div>
+  <div class="key" data-note="392.00"><span>G</span></div>
+  <div class="key" data-note="415.30"><span>G#</span></div>
+  <div class="key" data-note="440.00"><span>A</span></div>
+  <div class="key" data-note="466.16"><span>A#</span></div>
+  <div class="key" data-note="493.88"><span>B</span></div>
+  <div class="key" data-note="523.25"><span>C</span></div>
+</div>
+
+<script>
+  // Simple tone generator using Web Audio API
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playFreq(freq, duration = 0.3) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  document.querySelectorAll('.key').forEach(key => {
+    key.addEventListener('mousedown', () => {
+      const freq = parseFloat(key.dataset.note);
+      key.classList.add('playing');
+      playFreq(freq);
+    });
+    key.addEventListener('mouseup', () => key.classList.remove('playing'));
+    key.addEventListener('mouseleave', () => key.classList.remove('playing'));
+    key.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const freq = parseFloat(key.dataset.note);
+      key.classList.add('playing');
+      playFreq(freq);
+    }, { passive: false });
+    key.addEventListener('touchend', () => key.classList.remove('playing'));
+  });
+</script>
+
+</body>
+</html>
+

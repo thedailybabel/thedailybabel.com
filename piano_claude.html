@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #1a1410;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(180,140,80,0.12) 0%, transparent 70%),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px);
+    pointer-events: none;
+  }
+
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    color: #c8a96e;
+    letter-spacing: 0.18em;
+    margin-bottom: 2.5rem;
+    text-shadow: 0 2px 20px rgba(200,169,110,0.3);
+    opacity: 0;
+    animation: fadeDown 1s ease 0.3s forwards;
+  }
+
+  .piano-wrap {
+    position: relative;
+    opacity: 0;
+    animation: fadeUp 1s ease 0.5s forwards;
+  }
+
+  /* Lid / body */
+  .piano-body {
+    background: linear-gradient(180deg, #1c1008 0%, #110c06 100%);
+    border-radius: 14px 14px 8px 8px;
+    padding: 28px 36px 0;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.8),
+      0 2px 0 rgba(255,255,255,0.06) inset,
+      0 -2px 0 rgba(0,0,0,0.6) inset;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .brand {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    color: rgba(200,169,110,0.5);
+    font-size: 0.65rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  /* Keys container */
+  .keys {
+    display: flex;
+    position: relative;
+    height: 200px;
+    background: #0d0906;
+    border-radius: 4px 4px 0 0;
+    padding: 0 2px;
+    gap: 0;
+  }
+
+  /* White keys */
+  .key {
+    position: relative;
+    width: 58px;
+    height: 200px;
+    background: linear-gradient(180deg, #f8f5ee 0%, #fffff8 30%, #f0ede4 100%);
+    border: 1px solid #c8c2b4;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.06s ease, box-shadow 0.06s ease, transform 0.06s ease;
+    box-shadow:
+      2px 0 0 rgba(0,0,0,0.08),
+      0 6px 12px rgba(0,0,0,0.3),
+      0 2px 0 #a09880 inset,
+      inset 0 -4px 8px rgba(0,0,0,0.08);
+    user-select: none;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 14px;
+    z-index: 1;
+  }
+
+  .key:first-child { border-radius: 0 0 8px 5px; }
+  .key:last-child  { border-radius: 0 0 5px 8px; }
+
+  .key-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.7rem;
+    color: #8a7f6e;
+    letter-spacing: 0.05em;
+    pointer-events: none;
+    opacity: 0.8;
+    transition: opacity 0.1s;
+  }
+
+  .key:hover {
+    background: linear-gradient(180deg, #f5f0e6 0%, #faf8f0 30%, #ede8dd 100%);
+    box-shadow:
+      2px 0 0 rgba(0,0,0,0.08),
+      0 4px 8px rgba(0,0,0,0.25),
+      0 2px 0 #a09880 inset,
+      inset 0 -4px 8px rgba(0,0,0,0.06);
+  }
+
+  .key.active, .key:active {
+    background: linear-gradient(180deg, #e8e3d8 0%, #f0ede4 100%);
+    transform: translateY(3px);
+    box-shadow:
+      1px 0 0 rgba(0,0,0,0.08),
+      0 2px 4px rgba(0,0,0,0.2),
+      0 1px 0 #a09880 inset;
+  }
+
+  .key.active .key-label { opacity: 1; color: #c8a96e; }
+
+  /* Black keys */
+  .key.black {
+    position: absolute;
+    width: 36px;
+    height: 124px;
+    background: linear-gradient(180deg, #2a2520 0%, #1a1410 40%, #0d0a08 100%);
+    border: none;
+    border-radius: 0 0 5px 5px;
+    z-index: 3;
+    top: 0;
+    box-shadow:
+      0 8px 16px rgba(0,0,0,0.7),
+      0 1px 0 rgba(255,255,255,0.1) inset,
+      2px 0 0 rgba(255,255,255,0.04) inset;
+    padding-bottom: 10px;
+    border: 1px solid rgba(0,0,0,0.9);
+    border-top: none;
+    align-items: flex-end;
+  }
+
+  .key.black .key-label { color: rgba(200,169,110,0.4); font-size: 0.6rem; }
+
+  .key.black:hover {
+    background: linear-gradient(180deg, #342f28 0%, #221e18 40%, #111009 100%);
+    box-shadow:
+      0 6px 12px rgba(0,0,0,0.6),
+      0 1px 0 rgba(255,255,255,0.12) inset,
+      2px 0 0 rgba(255,255,255,0.05) inset;
+  }
+
+  .key.black.active, .key.black:active {
+    background: linear-gradient(180deg, #3d3830 0%, #2a2520 100%);
+    transform: translateY(3px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+  }
+
+  /* Fallboard bottom */
+  .piano-foot {
+    height: 28px;
+    background: linear-gradient(180deg, #1c1008 0%, #0e0905 100%);
+    border-radius: 0 0 12px 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-top: 2px solid #0d0906;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+
+  /* Note ripple */
+  .ripple {
+    position: fixed;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,169,110,0.4) 0%, transparent 70%);
+    pointer-events: none;
+    transform: scale(0);
+    animation: rippleOut 0.6s ease-out forwards;
+  }
+
+  @keyframes rippleOut {
+    to { transform: scale(4); opacity: 0; }
+  }
+
+  /* Visualizer */
+  .visualizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+    margin-bottom: 1.5rem;
+  }
+
+  .vis-bar {
+    width: 4px;
+    background: linear-gradient(180deg, #c8a96e, rgba(200,169,110,0.3));
+    border-radius: 2px 2px 0 0;
+    height: 2px;
+    transition: height 0.1s ease;
+  }
+
+  .hint {
+    margin-top: 1.8rem;
+    font-size: 0.72rem;
+    color: rgba(200,169,110,0.3);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 1s ease 1s forwards;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<p class="title">Grand Piano</p>
+
+<div class="visualizer" id="visualizer">
+  <!-- bars filled by JS -->
+</div>
+
+<div class="piano-wrap">
+  <div class="piano-body">
+    <div class="brand">Steinfeld & Co. · Est. 1887</div>
+    <div class="keys" id="keys"></div>
+  </div>
+  <div class="piano-foot"></div>
+</div>
+
+<p class="hint">Click keys or use keyboard A–L, W E T Y U</p>
+
+<script>
+// 13 keys: C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5 A5
+// Black keys at positions: C#, D#, F#, G#, A# (×2 octaves minus last)
+const noteData = [
+  { note:'C4',  freq:261.63, label:'C',  black:false, kb:'a' },
+  { note:'C#4', freq:277.18, label:'C♯', black:true,  kb:'w' },
+  { note:'D4',  freq:293.66, label:'D',  black:false, kb:'s' },
+  { note:'D#4', freq:311.13, label:'D♯', black:true,  kb:'e' },
+  { note:'E4',  freq:329.63, label:'E',  black:false, kb:'d' },
+  { note:'F4',  freq:349.23, label:'F',  black:false, kb:'f' },
+  { note:'F#4', freq:369.99, label:'F♯', black:true,  kb:'t' },
+  { note:'G4',  freq:392.00, label:'G',  black:false, kb:'g' },
+  { note:'G#4', freq:415.30, label:'G♯', black:true,  kb:'y' },
+  { note:'A4',  freq:440.00, label:'A',  black:false, kb:'h' },
+  { note:'A#4', freq:466.16, label:'A♯', black:true,  kb:'u' },
+  { note:'B4',  freq:493.88, label:'B',  black:false, kb:'j' },
+  { note:'C5',  freq:523.25, label:'C',  black:false, kb:'k' },
+  { note:'D5',  freq:587.33, label:'D',  black:false, kb:'l' },
+];
+
+// AudioContext
+let ctx;
+function getCtx() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function playNote(freq) {
+  const ac = getCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  const osc2 = ac.createOscillator();
+  const gain2 = ac.createGain();
+
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, ac.currentTime);
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq * 2, ac.currentTime);
+
+  gain.gain.setValueAtTime(0, ac.currentTime);
+  gain.gain.linearRampToValueAtTime(0.35, ac.currentTime + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.8);
+
+  gain2.gain.setValueAtTime(0, ac.currentTime);
+  gain2.gain.linearRampToValueAtTime(0.12, ac.currentTime + 0.005);
+  gain2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.2);
+
+  osc.connect(gain); gain.connect(ac.destination);
+  osc2.connect(gain2); gain2.connect(ac.destination);
+  osc.start(); osc2.start();
+  osc.stop(ac.currentTime + 1.9);
+  osc2.stop(ac.currentTime + 1.3);
+
+  pulseVis();
+}
+
+// Build keys
+const container = document.getElementById('keys');
+const whiteKeys = noteData.filter(n => !n.black);
+const keyWidth = 58; // px per white key
+const keyMap = {};
+
+// Render white keys
+whiteKeys.forEach((nd, i) => {
+  const el = document.createElement('div');
+  el.className = 'key';
+  el.dataset.freq = nd.freq;
+  el.dataset.note = nd.note;
+  el.innerHTML = `<span class="key-label">${nd.label}</span>`;
+  container.appendChild(el);
+  keyMap[nd.kb] = el;
+});
+
+// Compute white key index for positioning black keys
+function whiteIndex(note) {
+  const whites = noteData.filter(n => !n.black);
+  // find the white key just before this black key
+  const idx = noteData.indexOf(note);
+  let wi = 0;
+  for (let i = 0; i < idx; i++) {
+    if (!noteData[i].black) wi++;
+  }
+  return wi;
+}
+
+// Render black keys as absolutely positioned
+noteData.forEach((nd, i) => {
+  if (!nd.black) return;
+  const el = document.createElement('div');
+  el.className = 'key black';
+  el.dataset.freq = nd.freq;
+  el.dataset.note = nd.note;
+  el.innerHTML = `<span class="key-label">${nd.label}</span>`;
+
+  // position: between two white keys
+  const prevWhiteCount = noteData.slice(0, i).filter(n => !n.black).length;
+  const left = prevWhiteCount * keyWidth - 18 + 2; // center over gap
+  el.style.left = left + 'px';
+  container.appendChild(el);
+  keyMap[nd.kb] = el;
+});
+
+// Interaction
+function trigger(el) {
+  if (!el) return;
+  el.classList.add('active');
+  playNote(parseFloat(el.dataset.freq));
+  createRipple(el);
+}
+function release(el) {
+  if (!el) return;
+  el.classList.remove('active');
+}
+
+container.addEventListener('mousedown', e => {
+  const key = e.target.closest('.key');
+  if (key) { e.preventDefault(); trigger(key); }
+});
+window.addEventListener('mouseup', e => {
+  document.querySelectorAll('.key.active').forEach(k => {
+    if (!k.classList.contains('kb-held')) release(k);
+  });
+});
+
+// Touch
+container.addEventListener('touchstart', e => {
+  [...e.changedTouches].forEach(t => {
+    const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('.key');
+    if (el) { e.preventDefault(); trigger(el); }
+  });
+}, { passive: false });
+container.addEventListener('touchend', e => {
+  [...e.changedTouches].forEach(t => {
+    const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('.key');
+    if (el) release(el);
+  });
+});
+
+// Keyboard
+const held = new Set();
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const el = keyMap[e.key.toLowerCase()];
+  if (el) { held.add(e.key); el.classList.add('kb-held'); trigger(el); }
+});
+window.addEventListener('keyup', e => {
+  const el = keyMap[e.key.toLowerCase()];
+  if (el) { held.delete(e.key); el.classList.remove('kb-held'); release(el); }
+});
+
+// Ripple
+function createRipple(el) {
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const sz = 60;
+  r.style.cssText = `width:${sz}px;height:${sz}px;left:${rect.left+rect.width/2-sz/2}px;top:${rect.top+rect.height/2-sz/2}px`;
+  document.body.appendChild(r);
+  r.addEventListener('animationend', () => r.remove());
+}
+
+// Visualizer
+const vis = document.getElementById('visualizer');
+const BARS = 24;
+for (let i = 0; i < BARS; i++) {
+  const b = document.createElement('div');
+  b.className = 'vis-bar';
+  vis.appendChild(b);
+}
+const bars = vis.querySelectorAll('.vis-bar');
+let visActive = false;
+
+function pulseVis() {
+  if (visActive) return;
+  visActive = true;
+  let frame = 0;
+  (function animate() {
+    frame++;
+    bars.forEach((b, i) => {
+      const h = Math.max(2, Math.random() * 36 * Math.exp(-frame / 18));
+      b.style.height = h + 'px';
+    });
+    if (frame < 35) requestAnimationFrame(animate);
+    else {
+      bars.forEach(b => b.style.height = '2px');
+      visActive = false;
+    }
+  })();
+}
+</script>
+</body>
+</html>
