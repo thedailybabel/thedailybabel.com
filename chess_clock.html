@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solid B&W Chess Clock</title>
+    <style>
+        :root {
+            --white-bg: #ffffff;
+            --black-bg: #1a1a1a;
+            --active-glow: #2ecc71;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Setup Screen */
+        #setup {
+            position: absolute; z-index: 100; inset: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white;
+        }
+
+        input {
+            font-size: 2rem; width: 100px; padding: 10px; margin: 20px;
+            text-align: center; border-radius: 8px; border: none;
+        }
+
+        .start-btn {
+            background: var(--active-glow); color: white; border: none;
+            padding: 15px 40px; font-size: 1.5rem; border-radius: 50px; cursor: pointer;
+        }
+
+        /* Layout */
+        .clock-container { flex: 1; display: flex; flex-direction: column; }
+
+        .player-side {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        /* Black Side - Rotated */
+        #blackSide { background: var(--black-bg); color: #fff; transform: rotate(180deg); }
+        /* White Side */
+        #whiteSide { background: var(--white-bg); color: #000; }
+
+        /* Timer Styling */
+        .timer {
+            font-size: 6rem; font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            margin: 10px 0;
+            transition: transform 0.2s ease;
+        }
+
+        /* ACTIVE STATE: High contrast glow and slight scale */
+        .active .timer {
+            color: var(--active-glow) !important;
+            text-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+            transform: scale(1.1);
+        }
+
+        /* Solid Pawn Icons */
+        .pawn { width: 80px; height: 80px; margin-bottom: 10px; }
+
+        .controls {
+            height: 60px; background: #000; border-top: 2px solid #333;
+            border-bottom: 2px solid #333; display: flex;
+            justify-content: space-around; align-items: center; z-index: 50;
+        }
+
+        .btn {
+            background: #333; color: white; border: none;
+            padding: 8px 20px; border-radius: 4px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup">
+        <h1>Chess Clock</h1>
+        <input type="number" id="minutesInput" value="10" min="1" max="99">
+        <button class="start-btn" onclick="initClock()">START</button>
+    </div>
+
+    <div class="clock-container">
+        <div id="blackSide" class="player-side" onclick="handleTap('black')">
+            <svg class="pawn" viewBox="0 0 100 100">
+                <path d="M50 15a12 12 0 1 0 0 24 12 12 0 1 0 0-24zM35 75c0-15 10-20 15-25 5 5 15 10 15 25h10v10H25V75h10z" fill="white"/>
+            </svg>
+            <div id="timerBlack" class="timer">10:00</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="togglePause()" id="pauseBtn">PAUSE</button>
+            <button class="btn" onclick="resetGame()">RESET</button>
+        </div>
+
+        <div id="whiteSide" class="player-side" onclick="handleTap('white')">
+            <svg class="pawn" viewBox="0 0 100 100">
+                <path d="M50 15a12 12 0 1 0 0 24 12 12 0 1 0 0-24zM35 75c0-15 10-20 15-25 5 5 15 10 15 25h10v10H25V75h10z" fill="black"/>
+            </svg>
+            <div id="timerWhite" class="timer">10:00</div>
+        </div>
+    </div>
+
+    <script>
+        let timeWhite, timeBlack, activePlayer = null, interval = null, isPaused = false;
+
+        function initClock() {
+            const mins = document.getElementById('minutesInput').value;
+            timeWhite = timeBlack = mins * 60;
+            updateDisplay();
+            document.getElementById('setup').style.display = 'none';
+        }
+
+        function updateDisplay() {
+            document.getElementById('timerWhite').textContent = formatTime(timeWhite);
+            document.getElementById('timerBlack').textContent = formatTime(timeBlack);
+            if (timeWhite <= 0) alert("Black Wins!");
+            if (timeBlack <= 0) alert("White Wins!");
+            if (timeWhite <= 0 || timeBlack <= 0) resetGame();
+        }
+
+        function formatTime(s) {
+            return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+        }
+
+        function handleTap(side) {
+            if (isPaused) return;
+            if (activePlayer === null) {
+                activePlayer = (side === 'white') ? 'black' : 'white';
+                startInterval();
+            } else if (side === activePlayer) {
+                activePlayer = (activePlayer === 'white') ? 'black' : 'white';
+            }
+            updateVisuals();
+        }
+
+        function updateVisuals() {
+            document.getElementById('whiteSide').className = 'player-side' + (activePlayer === 'white' ? ' active' : '');
+            document.getElementById('blackSide').className = 'player-side' + (activePlayer === 'black' ? ' active' : '');
+        }
+
+        function startInterval() {
+            if (interval) clearInterval(interval);
+            interval = setInterval(() => {
+                if (activePlayer === 'white') timeWhite--;
+                else timeBlack--;
+                updateDisplay();
+            }, 1000);
+        }
+
+        function togglePause() {
+            if (!activePlayer) return;
+            isPaused = !isPaused;
+            if (isPaused) clearInterval(interval); else startInterval();
+            document.getElementById('pauseBtn').textContent = isPaused ? 'RESUME' : 'PAUSE';
+        }
+
+        function resetGame() {
+            clearInterval(interval);
+            activePlayer = null; isPaused = false;
+            document.getElementById('setup').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
