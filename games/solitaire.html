@@ -31,8 +31,9 @@
     min-height: 100dvh;
     font-family: 'Cinzel', serif;
     overflow-x: hidden;
+    overflow-y: auto;
     user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
   }
 
   /* ── FELT TEXTURE ── */
@@ -92,6 +93,7 @@
   #game {
     position: relative; z-index: 5;
     padding: clamp(8px,1.5vw,14px) clamp(6px,1.5vw,14px);
+    padding-bottom: 32px;
     min-height: calc(100dvh - 60px);
   }
 
@@ -152,6 +154,7 @@
     overflow: hidden;
     background: var(--cream);
     will-change: transform;
+    touch-action: none;
   }
   .card.dragging {
     box-shadow: 4px 8px 24px rgba(0,0,0,0.7);
@@ -403,6 +406,27 @@
     :root { --card-w: clamp(42px,12.5vw,56px); --fan-offset: 18px; --stack-offset: 15px; }
     #header h1 span { display: none; }
     .stat-label { display: none; }
+  }
+
+  /* Landscape phone — smaller cards, compact header, page scrolls vertically */
+  @media (max-height: 500px) and (orientation: landscape) {
+    :root {
+      --card-w: clamp(38px, 9.5vw, 58px);
+      --fan-offset: clamp(16px, 2.8vw, 22px);
+      --stack-offset: clamp(12px, 2vw, 18px);
+    }
+    #header {
+      padding: 4px clamp(6px,1.5vw,14px);
+    }
+    #header h1 { font-size: clamp(14px, 3vw, 22px); }
+    #header h1 span { display: none; }
+    .stat-label { display: none; }
+    .stat-val { font-size: clamp(11px, 2vw, 16px); }
+    #stats { gap: clamp(6px,1.5vw,14px); }
+    #game {
+      padding: 6px clamp(4px,1vw,10px) 24px;
+    }
+    #top-row { margin-bottom: 6px; }
   }
 </style>
 </head>
