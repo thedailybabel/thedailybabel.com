@@ -218,7 +218,7 @@
   <h1>🍀 Magic<br>Shamrock<br>Hunt!</h1>
   <p>Tap the <strong style="color:#FFD700">🍀 four-leaf shamrocks</strong> for <strong style="color:#FFD700">+50 pts</strong>!</p>
   <p>Avoid the <strong style="color:#ef9a9a">☘️ three-leaf ones</strong> — they cost <strong style="color:#ef9a9a">25 pts</strong>!</p>
-  <p style="font-size:13px;color:#81c784">Reach <strong style="color:#FFD700">5,000 points</strong> to win! 🏆</p>
+  <p style="font-size:13px;color:#81c784">Reach <strong style="color:#FFD700">2,000 points</strong> to win! 🏆</p>
   <button class="btn" onclick="startGame()">Let's Go! 🍀</button>
 </div>
 
@@ -299,7 +299,7 @@ let running = false;
 let animFrame = null;
 let threeLeafClicked = 0;
 
-const WIN_SCORE     = 5000;
+const WIN_SCORE     = 2000;
 const EGG_THRESHOLD = 100;
 const SZ            = 56;   // shamrock element size in px
 
@@ -473,7 +473,7 @@ function triggerWin(reason) {
   document.getElementById('win-message').textContent =
     reason === 'Easter'
       ? '🥚 Secret Easter Egg Unlocked! You cleared 100 three-leaf clovers — a true Irish legend!'
-      : '🍀 You collected enough luck to fill a pot of gold!';
+      : '🍀 You will have good luck for the rest of the day!';
   document.getElementById('final-score').textContent = score;
   document.getElementById('win-screen').style.display = 'flex';
 }
@@ -503,15 +503,24 @@ function resetGame() { startGame(); }
 //  CONFETTI
 // ═══════════════════════════════════════════════════════
 function spawnConfetti() {
-  const cols = ['#FFD700','#00e676','#f44336','#42a5f5','#ab47bc','#ff7043','#fff','#69f0ae'];
-  for (let i = 0; i < 90; i++) {
+  const cols = ['#00e676','#69f0ae','#00c853','#b9f6ca','#1b5e20','#43a047','#a5d6a7','#FFD700','#fff9c4','#f9fbe7'];
+  for (let i = 0; i < 120; i++) {
     const c = document.createElement('div');
     c.className = 'confetti';
     c.style.left             = Math.random() * 100 + 'vw';
-    c.style.background       = cols[Math.floor(Math.random() * cols.length)];
-    c.style.width            = (Math.random() * 9 + 5) + 'px';
-    c.style.height           = (Math.random() * 9 + 5) + 'px';
-    c.style.borderRadius     = Math.random() > 0.5 ? '50%' : '2px';
+    // Every ~6th piece is a tiny shamrock emoji for extra flair
+    if (i % 6 === 0) {
+      c.textContent        = Math.random() < 0.5 ? '🍀' : '☘️';
+      c.style.fontSize     = (Math.random() * 14 + 14) + 'px';
+      c.style.background   = 'transparent';
+      c.style.width        = 'auto';
+      c.style.height       = 'auto';
+    } else {
+      c.style.background   = cols[Math.floor(Math.random() * cols.length)];
+      c.style.width        = (Math.random() * 10 + 5) + 'px';
+      c.style.height       = (Math.random() * 10 + 5) + 'px';
+      c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    }
     c.style.animationDuration= (Math.random() * 3 + 2.5) + 's';
     c.style.animationDelay   = (Math.random() * 1.8) + 's';
     document.body.appendChild(c);
