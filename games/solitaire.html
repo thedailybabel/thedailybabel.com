@@ -154,7 +154,6 @@
     overflow: hidden;
     background: var(--cream);
     will-change: transform;
-    touch-action: none;
   }
   .card.dragging {
     box-shadow: 4px 8px 24px rgba(0,0,0,0.7);
@@ -781,8 +780,8 @@ function addDragListeners(el, type, col, idx) {
   el.addEventListener('dragstart', e=>onDragStart(e, type, col, idx));
   el.addEventListener('dragend', onDragEnd);
 
-  // Touch
-  el.addEventListener('touchstart', e=>onTouchStart(e, type, col, idx), {passive:false});
+  // Touch — use passive:true on touchstart so scroll isn't blocked immediately
+  el.addEventListener('touchstart', e=>onTouchStart(e, type, col, idx), {passive:true});
   el.addEventListener('touchmove', onTouchMove, {passive:false});
   el.addEventListener('touchend', onTouchEnd, {passive:false});
 }
@@ -835,25 +834,43 @@ function onDropFoundation(e, fIdx) {
 let touchDragData = null;
 let touchGhost = null;
 let touchOrigin = null;
+let touchPending = null;   // touch has started but drag not yet confirmed
+let touchLongPress = null; // long-press timer
+
+const DRAG_THRESHOLD = 8;  // px movement before drag activates
 
 function onTouchStart(e, type, col, idx) {
   const cards = getDragCards(type, col, idx);
   if (!cards.length) return;
-  touchDragData = {type, col, idx, cards};
   const t = e.touches[0];
   touchOrigin = {x: t.clientX, y: t.clientY};
-  // Build ghost
+  touchPending = {type, col, idx, cards};
+  touchDragData = null;
+
+  // Long-press: activate drag after 300ms even without movement
+  touchLongPress = setTimeout(() => {
+    if (touchPending) activateTouchDrag(touchPending, touchOrigin.x, touchOrigin.y);
+  }, 300);
+}
+
+function activateTouchDrag(pending, x, y) {
+  touchDragData = pending;
+  touchPending = null;
+
   const ghost = document.getElementById('drag-ghost');
   ghost.innerHTML = '';
   ghost.style.display = 'block';
-  ghost.style.width = getComputedStyle(document.documentElement).getPropertyValue('--card-w');
 
+  const cardWStr = getComputedStyle(document.documentElement).getPropertyValue('--card-w').trim();
+  const cardW = parseFloat(cardWStr);
   const stackOff = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fan-offset')) || 28;
+  const cardH = cardW * 1.45;
+
+  ghost.style.width = cardWStr;
   const wrap = document.createElement('div');
   wrap.style.position = 'relative';
-  const cardH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) * 1.45;
-  wrap.style.height = (cards.length * stackOff + cardH) + 'px';
-  cards.forEach((card, i) => {
+  wrap.style.height = (pending.cards.length * stackOff + cardH) + 'px';
+  pending.cards.forEach((card, i) => {
     const el = makeCardEl(card, 'ghost', i);
     el.style.position = 'absolute';
     el.style.top = (i * stackOff) + 'px';
@@ -861,61 +878,91 @@ function onTouchStart(e, type, col, idx) {
     wrap.appendChild(el);
   });
   ghost.appendChild(wrap);
-  ghost.style.left = (t.clientX - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'))/2) + 'px';
-  ghost.style.top = (t.clientY - 20) + 'px';
+  ghost.style.left = (x - cardW / 2) + 'px';
+  ghost.style.top = (y - 20) + 'px';
   ghost.style.opacity = '0.85';
 
-  // Dim source
-  if (type === 'tab') {
-    const pile = document.getElementById('tableau').children[col];
-    for (let i = idx; i < state.tableau[col].length; i++) {
-      const c = pile.querySelector(`[data-pile="tab-${col}"][data-idx="${i}"]`);
+  // Dim source cards
+  if (pending.type === 'tab') {
+    const pile = document.getElementById('tableau').children[pending.col];
+    for (let i = pending.idx; i < state.tableau[pending.col].length; i++) {
+      const c = pile.querySelector(`[data-pile="tab-${pending.col}"][data-idx="${i}"]`);
       if (c) c.style.opacity = '0.3';
     }
-  } else if (type === 'waste') {
+  } else if (pending.type === 'waste') {
     const wc = document.getElementById('waste-inner').querySelector('.card');
     if (wc) wc.style.opacity = '0.3';
   }
-  e.preventDefault();
 }
 
 function onTouchMove(e) {
-  if (!touchDragData) return;
+  if (!touchPending && !touchDragData) return;
+
   const t = e.touches[0];
-  const ghost = document.getElementById('drag-ghost');
-  ghost.style.left = (t.clientX - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'))/2) + 'px';
-  ghost.style.top = (t.clientY - 20) + 'px';
-  e.preventDefault();
+
+  // Check if we should activate drag from pending state
+  if (touchPending && !touchDragData) {
+    const dx = Math.abs(t.clientX - touchOrigin.x);
+    const dy = Math.abs(t.clientY - touchOrigin.y);
+
+    if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+      // Not moved enough — let scroll happen naturally
+      return;
+    }
+
+    if (dy > dx) {
+      // Predominantly vertical — treat as scroll, cancel drag
+      clearTimeout(touchLongPress);
+      touchPending = null;
+      return;
+    }
+
+    // Predominantly horizontal or diagonal — activate drag
+    clearTimeout(touchLongPress);
+    activateTouchDrag(touchPending, t.clientX, t.clientY);
+  }
+
+  if (touchDragData) {
+    e.preventDefault(); // now safe to block scroll since we're dragging
+    const cardW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'));
+    const ghost = document.getElementById('drag-ghost');
+    ghost.style.left = (t.clientX - cardW / 2) + 'px';
+    ghost.style.top = (t.clientY - 20) + 'px';
+  }
 }
 
 function onTouchEnd(e) {
-  if (!touchDragData) return;
+  clearTimeout(touchLongPress);
+
+  if (!touchDragData) {
+    // Was a tap, not a drag — handle as click
+    touchPending = null;
+    return;
+  }
+
   const ghost = document.getElementById('drag-ghost');
   ghost.style.display = 'none';
-  // Restore opacity
   document.querySelectorAll('.card').forEach(c=>c.style.opacity='');
 
   const t = e.changedTouches[0];
-  // Hide ghost to find element underneath
   ghost.style.visibility = 'hidden';
   const el = document.elementFromPoint(t.clientX, t.clientY);
   ghost.style.visibility = 'visible';
 
   if (el) {
-    // Check foundations
     const fEl = el.closest('[data-foundation]');
     if (fEl) {
       tryMove(touchDragData, 'foundation', parseInt(fEl.dataset.foundation));
-      touchDragData = null; return;
+      touchDragData = null; touchPending = null; return;
     }
-    // Check tableau cols
     const colEl = el.closest('.tableau-col');
     if (colEl) {
       tryMove(touchDragData, 'tab', parseInt(colEl.dataset.col));
-      touchDragData = null; return;
+      touchDragData = null; touchPending = null; return;
     }
   }
   touchDragData = null;
+  touchPending = null;
 }
 
 // ═══════════════════════════════════════════════
