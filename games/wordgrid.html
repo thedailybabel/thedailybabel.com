@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WordGrid</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:#f0f0f0;
+}
+
+#topbar{
+padding:10px;
+background:#333;
+color:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+#game{
+display:flex;
+flex-wrap:wrap;
+height:calc(100vh - 50px);
+overflow:auto;
+}
+
+#wordlist{
+width:250px;
+background:white;
+border-right:2px solid #ccc;
+padding:10px;
+overflow-y:auto;
+}
+
+.word{
+background:#4caf50;
+color:white;
+padding:6px;
+margin:5px 0;
+text-align:center;
+border-radius:4px;
+cursor:grab;
+user-select:none;
+}
+
+#boardWrapper{
+flex:1;
+padding:10px;
+overflow:auto;
+}
+
+#board{
+display:grid;
+grid-template-columns:repeat(24,36px);
+grid-template-rows:repeat(24,36px);
+gap:1px;
+background:#444;
+width:max-content;
+}
+
+.cell{
+width:36px;
+height:36px;
+background:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+font-size:16px;
+}
+
+.cell.filled{
+background:#fff9c4;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topbar">
+<div>
+<b>WordGrid</b>
+<button onclick="newGame()">New Game</button>
+<span id="score"></span>
+</div>
+<div>Double-click word to rotate</div>
+</div>
+
+<div id="game">
+<div id="wordlist"></div>
+<div id="boardWrapper"><div id="board"></div></div>
+</div>
+
+<script>
+
+const SIZE=24
+const LIST_SIZE=20
+
+let board=[]
+let draggedWord=null
+let placedWords=0
+let activeWords=new Set()
+
+/* balanced length distribution */
+
+const LENGTH_BUCKETS={
+short:{min:3,max:4,count:5},
+medium:{min:5,max:6,count:7},
+long:{min:7,max:8,count:5},
+xlong:{min:9,max:10,count:3}
+}
+
+/* 1500+ real words (3–10 letters) */
+
+const DICTIONARY=`able about above actor acute admit adopt adult agent agree ahead alarm album alert alike alive allow alone alter amber among ample angle angry apart apple apply arena argue arise armor array arrow asset audio audit avoid award aware bacon badge baker basic basis beach beast begin bench berry birth black blade blame blank blast blind block blood board boost bound brain brand brave bread brick bring broad brush build buyer cable camel candy carry carve cause cedar chain chair chalk charm chart chase cheap check cheer chess chest chief child choir civil claim class clean clear clerk clock close coach coast color coral count court cover craft crash cream crime cross crowd crown cycle daily dairy dance death delay depth devil diner draft drama dream dress drill drink drive eager eagle early earth ebony elect elite empty enemy enjoy enter entry equal error event exact exist extra faith false fancy fatal fiber field flame flash fleet floor fluid focus force forge frame fresh front frost fruit giant globe glory grace grain grand grape graph grasp great green group guard guest guide habit happy harbor harsh heart heavy hedge honor horse hotel house human humor ideal image imply index inner input issue ivory jelly joint judge juice knight labor laser layer learn lease legal lemon level light limit local logic lunar magic major maker maple march match medal mercy metal meter micro minor model money motor mount mouse movie music naval nerve night noble noise north novel nurse ocean offer olive orbit order organ other ounce outer owner panel paper party peace pearl pedal phase phone photo piano piece pilot pitch pixel plain plane plant plate point polar power press price pride prime print prior prize proof proud queen quick quiet radar radio raise range rapid ratio reach react ready realm relay renew reply reset retro ridge rifle rival river robot rough round route royal ruler rumor rural scale scene scope score scout screw seal search serve shade shaft shake shame shape share shark shear sheet shelf shell shift shine shock shore short sight sigma skill sleep slice slide slope small smart smile smoke solid solve sound south space spare spark speak speed spend spice spike split sport staff stage stand start state steam steel stick still stock stone storm story strip style sugar super sweet table taste teach tempo thank theme thick thing think third those thread throw tiger title token topic torch total touch tower track trade train treat trend trial tribe trick truck truth tutor twist under union unity upper upset urban usage usual valid value vapor vault video vital vocal voice waste watch water wheel where which while white whole woman world worry worth wound write wrong yield young youth zebra zone baker banker basket battle beacon beauty beyond border bottle branch breath bridge bright broken budget buffer builder bullet bunker burden butter buyer cable camera candle canyon carbon career carpet castle casual center chance change charge chart cheese cherry circle citizen classic client climate clinic coffee column combat comfort comic common concert conduct confirm connect control convert copper corner correct cotton county cousin create custom damage danger dealer debate decade decide demand depend desert design detail device differ dinner direct doctor domain double driver editor effect effort eight either elder elect eleven emerge empire employ enable energy engine ensure enter entire equal escape estate ethics ethnic event evolve exact expand expect expert export extend fabric factor failed fairly family famous farmer father fellow female figure filter finger finish flight flower follow forest formal format former foster founder frame friend future garden gather gender gentle global golden ground growth handle happen harbor hardly health height hidden holder honest impact import income indeed injury inside install instant intent invest island itself junior kernel labor launch lawyer leader learn leave lesson letter library likely listen living locate lovely manage manner manual margin marine market master matter medium member memory mental method middle modern moment mother motion moving muscle mutual myself narrow nation native nearby nearly nervous normal notice number object office offset online option orange origin output owner palace parent partly partner party people period permit person phrase planet player plenty pocket policy polish popular portion prefer pretty price pride primary prince prison private prize proper protect protein prove public pursue random rather reader ready reason recall recent record reduce reflect reform regard region relate relief remain remove render repair repeat report rescue resort result return reveal review reward rhythm riding rising robust routine runner safety salary sample saving scheme school science screen search season secret sector secure select senior series server settle severe shadow shelter shift signal silent silver simple single sister slight smooth social source speech spirit spring square stable station steady strain stream street strong studio submit sudden suffer supply support suppose survey switch symbol system target teacher tenant tender theory thirty though threat ticket timely tissue toward travel treat trial tribe trouble truly trust trying tunnel union unique united unless update useful valley value vendor versus vessel victim vision visual volume walker wealth weekly weight window winner winter wisdom worker writer yellow youth zebra zone`
+.toUpperCase().split(/\s+/)
+
+function randomWord(bucket){
+
+let attempts=0
+let w
+
+do{
+w=DICTIONARY[Math.floor(Math.random()*DICTIONARY.length)]
+attempts++
+}while(
+(activeWords.has(w) ||
+w.length<LENGTH_BUCKETS[bucket].min ||
+w.length>LENGTH_BUCKETS[bucket].max)
+&& attempts<500)
+
+return w
+}
+
+function buildBoard(){
+
+board=[]
+const boardDiv=document.getElementById("board")
+boardDiv.innerHTML=""
+
+for(let r=0;r<SIZE;r++){
+
+let row=[]
+
+for(let c=0;c<SIZE;c++){
+
+let cell=document.createElement("div")
+cell.className="cell"
+cell.dataset.r=r
+cell.dataset.c=c
+
+cell.addEventListener("dragover",e=>e.preventDefault())
+cell.addEventListener("drop",dropWord)
+
+boardDiv.appendChild(cell)
+
+row.push("")
+}
+
+board.push(row)
+}
+}
+
+function populateList(){
+
+activeWords.clear()
+const list=document.getElementById("wordlist")
+list.innerHTML=""
+
+for(let bucket in LENGTH_BUCKETS){
+for(let i=0;i<LENGTH_BUCKETS[bucket].count;i++){
+addWordToList(bucket)
+}
+}
+}
+
+function addWordToList(bucket){
+
+let w=randomWord(bucket)
+activeWords.add(w)
+
+const list=document.getElementById("wordlist")
+
+let div=document.createElement("div")
+div.className="word"
+div.textContent=w
+div.draggable=true
+
+div.dataset.word=w
+div.dataset.bucket=bucket
+div.dataset.dir="H"
+
+div.ondragstart=()=>draggedWord=div
+
+div.ondblclick=()=>{
+div.dataset.dir=div.dataset.dir==="H"?"V":"H"
+div.style.background=div.dataset.dir==="H"?"#4caf50":"#2196f3"
+}
+
+list.appendChild(div)
+}
+
+function dropWord(e){
+
+e.preventDefault()
+if(!draggedWord) return
+
+const word=draggedWord.dataset.word
+const dir=draggedWord.dataset.dir
+const bucket=draggedWord.dataset.bucket
+
+const r=parseInt(this.dataset.r)
+const c=parseInt(this.dataset.c)
+
+if(!canPlace(word,r,c,dir)) return
+
+placeWord(word,r,c,dir)
+
+activeWords.delete(word)
+draggedWord.remove()
+addWordToList(bucket)
+
+draggedWord=null
+
+updateScore()
+}
+
+function isLetter(r,c){
+if(r<0||c<0||r>=SIZE||c>=SIZE) return false
+return board[r][c]!=""
+}
+
+function canPlace(word,r,c,dir){
+
+let intersects=false
+
+for(let i=0;i<word.length;i++){
+
+let rr=r+(dir==="V"?i:0)
+let cc=c+(dir==="H"?i:0)
+
+if(rr>=SIZE||cc>=SIZE) return false
+
+let boardLetter=board[rr][cc]
+
+if(boardLetter!=="" && boardLetter!==word[i]) return false
+
+if(boardLetter===word[i]) intersects=true
+
+if(dir==="H"){
+if(boardLetter===""){
+if(isLetter(rr-1,cc)||isLetter(rr+1,cc)) return false
+}
+}else{
+if(boardLetter===""){
+if(isLetter(rr,cc-1)||isLetter(rr,cc+1)) return false
+}
+}
+
+}
+
+if(dir==="H"){
+if(isLetter(r,c-1)||isLetter(r,c+word.length)) return false
+}else{
+if(isLetter(r-1,c)||isLetter(r+word.length,c)) return false
+}
+
+if(placedWords>0 && !intersects) return false
+
+return true
+}
+
+function placeWord(word,r,c,dir){
+
+for(let i=0;i<word.length;i++){
+
+let rr=r+(dir==="V"?i:0)
+let cc=c+(dir==="H"?i:0)
+
+board[rr][cc]=word[i]
+
+let cell=document.querySelector(`[data-r='${rr}'][data-c='${cc}']`)
+cell.textContent=word[i]
+cell.classList.add("filled")
+}
+
+placedWords++
+}
+
+function updateScore(){
+
+let filled=0
+
+for(let r=0;r<SIZE;r++)
+for(let c=0;c<SIZE;c++)
+if(board[r][c]!="") filled++
+
+let percent=(filled/(SIZE*SIZE))*100
+
+document.getElementById("score").textContent=`Score: ${percent.toFixed(1)}% filled`
+}
+
+function newGame(){
+
+placedWords=0
+buildBoard()
+populateList()
+updateScore()
+}
+
+newGame()
+
+</script>
+
+</body>
+</html>
