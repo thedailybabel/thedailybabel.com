@@ -3,218 +3,553 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe: Man vs. Machine</title>
+    <title>Tic-Tac-Toe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0d0d0d;
+            --panel: #161616;
+            --border: #2a2a2a;
+            --accent-x: #e8f44d;
+            --accent-o: #f4724d;
+            --text: #f0ede6;
+            --muted: #555;
+            --cell-bg: #1c1c1c;
+            --cell-hover: #232323;
+            --win-glow-x: rgba(232, 244, 77, 0.18);
+            --win-glow-o: rgba(244, 114, 77, 0.18);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'DM Mono', monospace;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 48px 48px;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
+            gap: 28px;
+            z-index: 1;
         }
 
-        h1 { color: #333; margin-bottom: 10px; }
+        header {
+            text-align: center;
+        }
 
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.6rem;
+            letter-spacing: 0.12em;
+            line-height: 1;
+            color: var(--text);
+        }
+
+        h1 span.x-color { color: var(--accent-x); }
+        h1 span.o-color { color: var(--accent-o); }
+
+        .subtitle {
+            font-size: 0.7rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Scoreboard */
+        .scoreboard {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .score-item {
+            padding: 10px 28px;
+            text-align: center;
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+            min-width: 80px;
+        }
+
+        .score-item:last-child { border-right: none; }
+
+        .score-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .score-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            line-height: 1;
+        }
+
+        .score-item.player .score-value { color: var(--accent-x); }
+        .score-item.computer .score-value { color: var(--accent-o); }
+        .score-item.draws .score-value { color: var(--muted); }
+
+        /* Status bar */
         #status {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            font-weight: bold;
-            color: #555;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            height: 18px;
+            transition: color 0.3s;
+        }
+
+        #status.your-turn { color: var(--accent-x); }
+        #status.computer-turn { color: var(--accent-o); }
+        #status.win { color: var(--accent-x); }
+        #status.lose { color: var(--accent-o); }
+        #status.draw { color: var(--text); }
+
+        /* Board */
+        .board-wrap {
+            position: relative;
         }
 
         .board {
             display: grid;
-            grid-template-columns: repeat(3, 100px);
-            grid-template-rows: repeat(3, 100px);
-            gap: 10px;
-            background-color: #333;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            grid-template-columns: repeat(3, 110px);
+            grid-template-rows: repeat(3, 110px);
+            gap: 6px;
         }
 
         .cell {
-            width: 100px;
-            height: 100px;
-            background-color: #fff;
+            width: 110px;
+            height: 110px;
+            background-color: var(--cell-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
-            font-weight: bold;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.2rem;
             cursor: pointer;
-            transition: background-color 0.2s;
-            border-radius: 4px;
+            transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
         }
 
-        .cell:hover { background-color: #e9ecef; }
-        .cell.taken { cursor: not-allowed; }
-        .cell.x { color: #007bff; }
-        .cell.o { color: #dc3545; }
+        .cell:hover:not(.taken) {
+            background-color: var(--cell-hover);
+            border-color: #3a3a3a;
+        }
 
-        button {
-            margin-top: 30px;
-            padding: 10px 20px;
-            font-size: 1rem;
-            cursor: pointer;
-            background-color: #333;
-            color: white;
+        .cell:active:not(.taken) {
+            transform: scale(0.95);
+        }
+
+        .cell.taken { cursor: default; }
+
+        .cell.x {
+            color: var(--accent-x);
+            border-color: rgba(232, 244, 77, 0.2);
+        }
+
+        .cell.o {
+            color: var(--accent-o);
+            border-color: rgba(244, 114, 77, 0.2);
+        }
+
+        .cell.winning-x {
+            background-color: var(--win-glow-x);
+            border-color: rgba(232, 244, 77, 0.5);
+            animation: pulse-x 1.2s ease-in-out infinite;
+        }
+
+        .cell.winning-o {
+            background-color: var(--win-glow-o);
+            border-color: rgba(244, 114, 77, 0.5);
+            animation: pulse-o 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-x {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(232, 244, 77, 0); }
+            50% { box-shadow: 0 0 14px 2px rgba(232, 244, 77, 0.25); }
+        }
+
+        @keyframes pulse-o {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(244, 114, 77, 0); }
+            50% { box-shadow: 0 0 14px 2px rgba(244, 114, 77, 0.25); }
+        }
+
+        /* Pop animation for marks */
+        @keyframes pop-in {
+            0% { transform: scale(0.4); opacity: 0; }
+            70% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .cell-mark {
+            display: inline-block;
+            animation: pop-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Difficulty selector */
+        .difficulty {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .diff-btn {
+            padding: 7px 18px;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: var(--panel);
+            color: var(--muted);
             border: none;
-            border-radius: 5px;
-            transition: transform 0.1s;
+            border-right: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
         }
 
-        button:active { transform: scale(0.95); }
+        .diff-btn:last-child { border-right: none; }
+
+        .diff-btn:hover { background: #1f1f1f; color: var(--text); }
+
+        .diff-btn.active-easy { background: #1a2200; color: #a0d400; }
+        .diff-btn.active-hard { background: #220800; color: var(--accent-o); }
+        .diff-btn.active-unbeatable { background: #1a0022; color: #c97eff; }
+
+        /* Reset button */
+        .reset-btn {
+            padding: 10px 36px;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+
+        .reset-btn:hover {
+            color: var(--text);
+            border-color: #444;
+            background: var(--panel);
+        }
+
+        .reset-btn:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
+<div class="container">
+    <header>
+        <h1><span class="x-color">X</span> VS <span class="o-color">O</span></h1>
+        <p class="subtitle">Man vs. Machine</p>
+    </header>
 
-    <h1>Tic-Tac-Toe</h1>
-    <div id="status">Your turn (X)</div>
-    
-    <div class="board" id="board">
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
+    <div class="scoreboard">
+        <div class="score-item player">
+            <div class="score-label">You (X)</div>
+            <div class="score-value" id="score-player">0</div>
+        </div>
+        <div class="score-item draws">
+            <div class="score-label">Draws</div>
+            <div class="score-value" id="score-draws">0</div>
+        </div>
+        <div class="score-item computer">
+            <div class="score-label">CPU (O)</div>
+            <div class="score-value" id="score-cpu">0</div>
+        </div>
     </div>
 
-    <button onclick="resetGame()">Reset Game</button>
+    <div id="status" class="your-turn">Your turn</div>
 
-    <script>
-        const boardElement = document.getElementById('board');
-        const statusElement = document.getElementById('status');
-        const cells = document.querySelectorAll('.cell');
-        
-        let board = ["", "", "", "", "", "", "", "", ""];
-        let gameActive = true;
+    <div class="board-wrap">
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+    </div>
 
-        // Sound Effects (Base64)
-        const winSound = new Audio("data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQYAAACAgICAgICAgICA"); // Mock "Ta-Da" beep
-        const loseSound = new Audio("data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQYAAACAgP/A/8CAgICA"); // Mock "Sad" beep
+    <div class="difficulty">
+        <button class="diff-btn" data-level="easy" onclick="setDifficulty('easy')">Easy</button>
+        <button class="diff-btn active-hard" data-level="hard" onclick="setDifficulty('hard')">Hard</button>
+        <button class="diff-btn" data-level="unbeatable" onclick="setDifficulty('unbeatable')">Unbeatable</button>
+    </div>
 
-        // Note: Replacing generic beeps with more distinct synthetic sounds for the browser
-        function playWin() {
-            const context = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = context.createOscillator();
-            const gain = context.createGain();
-            osc.connect(gain);
-            gain.connect(context.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(523.25, context.currentTime); // C5
-            osc.frequency.setValueAtTime(659.25, context.currentTime + 0.1); // E5
-            osc.frequency.setValueAtTime(783.99, context.currentTime + 0.2); // G5
-            gain.gain.setValueAtTime(0.1, context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
-            osc.start();
-            osc.stop(context.currentTime + 0.5);
+    <button class="reset-btn" onclick="resetGame()">New Game</button>
+</div>
+
+<script>
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const cells = document.querySelectorAll('.cell');
+    const scorePlayer = document.getElementById('score-player');
+    const scoreCPU = document.getElementById('score-cpu');
+    const scoreDraws = document.getElementById('score-draws');
+
+    let board = Array(9).fill('');
+    let gameActive = true;
+    let difficulty = 'hard';
+    let scores = { player: 0, cpu: 0, draws: 0 };
+
+    const WIN_CONDITIONS = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    function setDifficulty(level) {
+        difficulty = level;
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.className = 'diff-btn';
+            if (btn.dataset.level === level) btn.classList.add(`active-${level}`);
+        });
+        resetGame();
+    }
+
+    function checkWinner(b) {
+        for (const [a, x, c] of WIN_CONDITIONS) {
+            if (b[a] && b[a] === b[x] && b[a] === b[c]) return b[a];
         }
+        if (!b.includes('')) return 'draw';
+        return null;
+    }
 
-        function playLose() {
-            const context = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = context.createOscillator();
-            const gain = context.createGain();
-            osc.connect(gain);
-            gain.connect(context.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200, context.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, context.currentTime + 0.5);
-            gain.gain.setValueAtTime(0.1, context.currentTime);
-            gain.gain.linearRampToValueAtTime(0, context.currentTime + 0.5);
-            osc.start();
-            osc.stop(context.currentTime + 0.5);
+    function getWinningLine(b) {
+        for (const line of WIN_CONDITIONS) {
+            const [a, x, c] = line;
+            if (b[a] && b[a] === b[x] && b[a] === b[c]) return line;
         }
+        return null;
+    }
 
-        const winConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
+    // Minimax with alpha-beta pruning
+    function minimax(b, depth, isMax, alpha, beta) {
+        const result = checkWinner(b);
+        if (result === 'O') return 10 - depth;
+        if (result === 'X') return depth - 10;
+        if (result === 'draw') return 0;
 
-        function handleCellClick(e) {
-            const clickedCell = e.target;
-            const index = parseInt(clickedCell.getAttribute('data-index'));
-
-            if (board[index] !== "" || !gameActive) return;
-
-            makeMove(index, "X");
-
-            if (gameActive) {
-                statusElement.innerText = "Computer is thinking...";
-                setTimeout(computerMove, 500);
-            }
-        }
-
-        function makeMove(index, player) {
-            board[index] = player;
-            cells[index].innerText = player;
-            cells[index].classList.add(player.toLowerCase(), 'taken');
-            checkResult();
-        }
-
-        function computerMove() {
-            if (!gameActive) return;
-            
-            // Simple AI: Pick a random empty spot
-            let availableCells = board.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
-            if (availableCells.length > 0) {
-                const randomIndex = availableCells[Math.floor(Math.random() * availableCells.length)];
-                makeMove(randomIndex, "O");
-                if (gameActive) statusElement.innerText = "Your turn (X)";
-            }
-        }
-
-        function checkResult() {
-            let roundWon = false;
-            let winner = "";
-
-            for (let condition of winConditions) {
-                const [a, b, c] = condition;
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    roundWon = true;
-                    winner = board[a];
-                    break;
+        if (isMax) {
+            let best = -Infinity;
+            for (let i = 0; i < 9; i++) {
+                if (!b[i]) {
+                    b[i] = 'O';
+                    best = Math.max(best, minimax(b, depth + 1, false, alpha, beta));
+                    b[i] = '';
+                    alpha = Math.max(alpha, best);
+                    if (beta <= alpha) break;
                 }
             }
+            return best;
+        } else {
+            let best = Infinity;
+            for (let i = 0; i < 9; i++) {
+                if (!b[i]) {
+                    b[i] = 'X';
+                    best = Math.min(best, minimax(b, depth + 1, true, alpha, beta));
+                    b[i] = '';
+                    beta = Math.min(beta, best);
+                    if (beta <= alpha) break;
+                }
+            }
+            return best;
+        }
+    }
 
-            if (roundWon) {
-                gameActive = false;
-                if (winner === "X") {
-                    statusElement.innerText = "You Win! 🎉";
+    function getBestMove(b) {
+        let bestVal = -Infinity, bestMove = -1;
+        for (let i = 0; i < 9; i++) {
+            if (!b[i]) {
+                b[i] = 'O';
+                const val = minimax(b, 0, false, -Infinity, Infinity);
+                b[i] = '';
+                if (val > bestVal) { bestVal = val; bestMove = i; }
+            }
+        }
+        return bestMove;
+    }
+
+    function getHardMove(b) {
+        // Win if possible
+        for (let i = 0; i < 9; i++) {
+            if (!b[i]) {
+                b[i] = 'O';
+                if (checkWinner(b) === 'O') { b[i] = ''; return i; }
+                b[i] = '';
+            }
+        }
+        // Block player win
+        for (let i = 0; i < 9; i++) {
+            if (!b[i]) {
+                b[i] = 'X';
+                if (checkWinner(b) === 'X') { b[i] = ''; return i; }
+                b[i] = '';
+            }
+        }
+        // Take center or random
+        const pref = [4, 0, 2, 6, 8, 1, 3, 5, 7];
+        for (const p of pref) if (!b[p]) return p;
+    }
+
+    function getEasyMove(b) {
+        // 40% chance to play smart, else random
+        if (Math.random() < 0.4) return getHardMove(b);
+        const empty = b.map((v, i) => !v ? i : null).filter(v => v !== null);
+        return empty[Math.floor(Math.random() * empty.length)];
+    }
+
+    function computerMove() {
+        if (!gameActive) return;
+        let move;
+        if (difficulty === 'easy') move = getEasyMove([...board]);
+        else if (difficulty === 'hard') move = getHardMove([...board]);
+        else move = getBestMove([...board]);
+
+        if (move !== undefined && move !== null && move !== -1) {
+            placeMove(move, 'O');
+            const result = checkWinner(board);
+            if (!result && gameActive) setStatus('your-turn', 'Your turn');
+        }
+    }
+
+    function placeMove(index, player) {
+        board[index] = player;
+        const cell = cells[index];
+        cell.innerHTML = `<span class="cell-mark">${player}</span>`;
+        cell.classList.add(player.toLowerCase(), 'taken');
+
+        const result = checkWinner(board);
+        if (result) {
+            gameActive = false;
+            if (result === 'draw') {
+                setStatus('draw', 'Draw');
+                scores.draws++;
+                scoreDraws.textContent = scores.draws;
+                playDraw();
+            } else {
+                const line = getWinningLine(board);
+                if (line) line.forEach(i => cells[i].classList.add(result === 'X' ? 'winning-x' : 'winning-o'));
+
+                if (result === 'X') {
+                    setStatus('win', 'You win!');
+                    scores.player++;
+                    scorePlayer.textContent = scores.player;
                     playWin();
                 } else {
-                    statusElement.innerText = "Computer Wins! 🤖";
+                    setStatus('lose', 'CPU wins');
+                    scores.cpu++;
+                    scoreCPU.textContent = scores.cpu;
                     playLose();
                 }
-                return;
-            }
-
-            if (!board.includes("")) {
-                statusElement.innerText = "It's a Draw! 😐";
-                gameActive = false;
-                playLose(); // Drawing is not winning, so play the mocking sound
             }
         }
+    }
 
-        function resetGame() {
-            board = ["", "", "", "", "", "", "", "", ""];
-            gameActive = true;
-            statusElement.innerText = "Your turn (X)";
-            cells.forEach(cell => {
-                cell.innerText = "";
-                cell.classList.remove('x', 'o', 'taken');
-            });
+    function handleClick(e) {
+        const cell = e.currentTarget;
+        const index = parseInt(cell.dataset.index);
+        if (board[index] || !gameActive) return;
+
+        placeMove(index, 'X');
+        if (gameActive) {
+            setStatus('computer-turn', 'Thinking...');
+            setTimeout(computerMove, 380);
         }
+    }
 
-        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-    </script>
+    function setStatus(cls, text) {
+        statusEl.className = cls;
+        statusEl.textContent = text;
+    }
+
+    function resetGame() {
+        board = Array(9).fill('');
+        gameActive = true;
+        setStatus('your-turn', 'Your turn');
+        cells.forEach(cell => {
+            cell.innerHTML = '';
+            cell.className = 'cell';
+        });
+    }
+
+    // Audio
+    function playWin() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [[523.25, 0], [659.25, 0.12], [783.99, 0.24], [1046.5, 0.38]].forEach(([freq, t]) => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'square'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.07, ctx.currentTime + t);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+            o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2);
+        });
+    }
+
+    function playLose() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(220, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.5);
+        g.gain.setValueAtTime(0.08, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+        o.start(); o.stop(ctx.currentTime + 0.5);
+    }
+
+    function playDraw() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [440, 392].forEach((freq, i) => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.06, ctx.currentTime + i * 0.15);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.25);
+            o.start(ctx.currentTime + i * 0.15); o.stop(ctx.currentTime + i * 0.15 + 0.3);
+        });
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', handleClick));
+</script>
 </body>
 </html>
