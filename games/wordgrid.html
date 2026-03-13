@@ -6,74 +6,77 @@
 
 <style>
 body{
-margin:0;
-font-family:Arial, Helvetica, sans-serif;
-background:#f0f0f0;
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f0f0f0;
+    overscroll-behavior-y: contain; 
 }
 
 #topbar{
-padding:10px;
-background:#333;
-color:white;
-display:flex;
-justify-content:space-between;
-align-items:center;
+    padding:10px;
+    background:#333;
+    color:white;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
 #game{
-display:flex;
-flex-wrap:wrap;
-height:calc(100vh - 50px);
-overflow:auto;
+    display:flex;
+    flex-wrap:wrap;
+    height:calc(100vh - 50px);
+    overflow:auto;
 }
 
 #wordlist{
-width:250px;
-background:white;
-border-right:2px solid #ccc;
-padding:10px;
-overflow-y:auto;
+    width:250px;
+    background:white;
+    border-right:2px solid #ccc;
+    padding:10px;
+    overflow-y:auto;
 }
 
 .word{
-background:#4caf50;
-color:white;
-padding:6px;
-margin:5px 0;
-text-align:center;
-border-radius:4px;
-cursor:grab;
-user-select:none;
+    background:#4caf50;
+    color:white;
+    padding:6px;
+    margin:5px 0;
+    text-align:center;
+    border-radius:4px;
+    cursor:grab;
+    user-select:none;
+    -webkit-user-select: none;
+    touch-action: none; 
 }
 
 #boardWrapper{
-flex:1;
-padding:10px;
-overflow:auto;
+    flex:1;
+    padding:10px;
+    overflow:auto;
 }
 
 #board{
-display:grid;
-grid-template-columns:repeat(24,36px);
-grid-template-rows:repeat(24,36px);
-gap:1px;
-background:#444;
-width:max-content;
+    display:grid;
+    grid-template-columns:repeat(24,36px);
+    grid-template-rows:repeat(24,36px);
+    gap:1px;
+    background:#444;
+    width:max-content;
 }
 
 .cell{
-width:36px;
-height:36px;
-background:white;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-font-size:16px;
+    width:36px;
+    height:36px;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:16px;
 }
 
 .cell.filled{
-background:#fff9c4;
+    background:#fff9c4;
 }
 </style>
 </head>
@@ -81,238 +84,210 @@ background:#fff9c4;
 <body>
 
 <div id="topbar">
-<div>
-<b>WordGrid</b>
-<button onclick="newGame()">New Game</button>
-<span id="score"></span>
-</div>
-<div>Double-click word to rotate</div>
+    <div>
+        <b>WordGrid</b>
+        <button onclick="newGame()">New Game</button>
+        <span id="score"></span>
+    </div>
+    <div>Double-tap/click to rotate</div>
 </div>
 
 <div id="game">
-<div id="wordlist"></div>
-<div id="boardWrapper"><div id="board"></div></div>
+    <div id="wordlist"></div>
+    <div id="boardWrapper"><div id="board"></div></div>
 </div>
 
 <script>
+const SIZE=24;
+let board=[];
+let draggedWord=null;
+let placedWords=0;
+let activeWords=new Set();
+let lastTap = 0; 
 
-const SIZE=24
-const LIST_SIZE=20
-
-let board=[]
-let draggedWord=null
-let placedWords=0
-let activeWords=new Set()
-
-/* balanced length distribution */
-
+// The length distribution constraints
 const LENGTH_BUCKETS={
-short:{min:3,max:4,count:5},
-medium:{min:5,max:6,count:7},
-long:{min:7,max:8,count:5},
-xlong:{min:9,max:10,count:3}
-}
+    short:{min:3,max:4,count:5},
+    medium:{min:5,max:6,count:7},
+    long:{min:7,max:8,count:5},
+    xlong:{min:9,max:10,count:3}
+};
 
-/* 1500+ real words (3–10 letters) */
-
-const DICTIONARY=`able about above actor acute admit adopt adult agent agree ahead alarm album alert alike alive allow alone alter amber among ample angle angry apart apple apply arena argue arise armor array arrow asset audio audit avoid award aware bacon badge baker basic basis beach beast begin bench berry birth black blade blame blank blast blind block blood board boost bound brain brand brave bread brick bring broad brush build buyer cable camel candy carry carve cause cedar chain chair chalk charm chart chase cheap check cheer chess chest chief child choir civil claim class clean clear clerk clock close coach coast color coral count court cover craft crash cream crime cross crowd crown cycle daily dairy dance death delay depth devil diner draft drama dream dress drill drink drive eager eagle early earth ebony elect elite empty enemy enjoy enter entry equal error event exact exist extra faith false fancy fatal fiber field flame flash fleet floor fluid focus force forge frame fresh front frost fruit giant globe glory grace grain grand grape graph grasp great green group guard guest guide habit happy harbor harsh heart heavy hedge honor horse hotel house human humor ideal image imply index inner input issue ivory jelly joint judge juice knight labor laser layer learn lease legal lemon level light limit local logic lunar magic major maker maple march match medal mercy metal meter micro minor model money motor mount mouse movie music naval nerve night noble noise north novel nurse ocean offer olive orbit order organ other ounce outer owner panel paper party peace pearl pedal phase phone photo piano piece pilot pitch pixel plain plane plant plate point polar power press price pride prime print prior prize proof proud queen quick quiet radar radio raise range rapid ratio reach react ready realm relay renew reply reset retro ridge rifle rival river robot rough round route royal ruler rumor rural scale scene scope score scout screw seal search serve shade shaft shake shame shape share shark shear sheet shelf shell shift shine shock shore short sight sigma skill sleep slice slide slope small smart smile smoke solid solve sound south space spare spark speak speed spend spice spike split sport staff stage stand start state steam steel stick still stock stone storm story strip style sugar super sweet table taste teach tempo thank theme thick thing think third those thread throw tiger title token topic torch total touch tower track trade train treat trend trial tribe trick truck truth tutor twist under union unity upper upset urban usage usual valid value vapor vault video vital vocal voice waste watch water wheel where which while white whole woman world worry worth wound write wrong yield young youth zebra zone baker banker basket battle beacon beauty beyond border bottle branch breath bridge bright broken budget buffer builder bullet bunker burden butter buyer cable camera candle canyon carbon career carpet castle casual center chance change charge chart cheese cherry circle citizen classic client climate clinic coffee column combat comfort comic common concert conduct confirm connect control convert copper corner correct cotton county cousin create custom damage danger dealer debate decade decide demand depend desert design detail device differ dinner direct doctor domain double driver editor effect effort eight either elder elect eleven emerge empire employ enable energy engine ensure enter entire equal escape estate ethics ethnic event evolve exact expand expect expert export extend fabric factor failed fairly family famous farmer father fellow female figure filter finger finish flight flower follow forest formal format former foster founder frame friend future garden gather gender gentle global golden ground growth handle happen harbor hardly health height hidden holder honest impact import income indeed injury inside install instant intent invest island itself junior kernel labor launch lawyer leader learn leave lesson letter library likely listen living locate lovely manage manner manual margin marine market master matter medium member memory mental method middle modern moment mother motion moving muscle mutual myself narrow nation native nearby nearly nervous normal notice number object office offset online option orange origin output owner palace parent partly partner party people period permit person phrase planet player plenty pocket policy polish popular portion prefer pretty price pride primary prince prison private prize proper protect protein prove public pursue random rather reader ready reason recall recent record reduce reflect reform regard region relate relief remain remove render repair repeat report rescue resort result return reveal review reward rhythm riding rising robust routine runner safety salary sample saving scheme school science screen search season secret sector secure select senior series server settle severe shadow shelter shift signal silent silver simple single sister slight smooth social source speech spirit spring square stable station steady strain stream street strong studio submit sudden suffer supply support suppose survey switch symbol system target teacher tenant tender theory thirty though threat ticket timely tissue toward travel treat trial tribe trouble truly trust trying tunnel union unique united unless update useful valley value vendor versus vessel victim vision visual volume walker wealth weekly weight window winner winter wisdom worker writer yellow youth zebra zone`
-.toUpperCase().split(/\s+/)
+const DICTIONARY=`ABLE ABOUT ABOVE ACTOR ACUTE ADMIT ADOPT ADULT AGENT AGREE AHEAD ALARM ALBUM ALERT ALIKE ALIVE ALLOW ALONE ALTER AMBER AMONG AMPLE ANGLE ANGRY APART APPLE APPLY ARENA ARGUE ARISE ARMOR ARRAY ARROW ASSET AUDIO AUDIT AVOID AWARD AWARE BACON BADGE BAKER BASIC BASIS BEACH BEAST BEGIN BENCH BERRY BIRTH BLACK BLADE BLAME BLANK BLAST BLIND BLOCK BLOOD BOARD BOOST BOUND BRAIN BRAND BRAVE BREAD BRICK BRING BROAD BRUSH BUILD BUYER CABLE CAMEL CANDY CARRY CARVE CAUSE CEDAR CHAIN CHAIR CHALK CHARM CHART CHASE CHEAP CHECK CHEER CHESS CHEST CHIEF CHILD CHOIR CIVIL CLAIM CLASS CLEAN CLEAR CLERK CLOCK CLOSE COACH COAST COLOR CORAL COUNT COURT COVER CRAFT CRASH CREAM CRIME CROSS CROWD CROWN CYCLE DAILY DAIRY DANCE DEATH DELAY DEPTH DEVIL DINER DRAFT DRAMA DREAM DRESS DRILL DRINK DRIVE EAGER EAGLE EARLY EARTH EBONY ELECT ELITE EMPTY ENEMY ENJOY ENTER ENTRY EQUAL ERROR EVENT EXACT EXIST EXTRA FAITH FALSE FANCY FATAL FIBER FIELD FLAME FLASH FLEET FLOOR FLUID FOCUS FORCE FORGE FRAME FRESH FRONT FROST FRUIT GIANT GLOBE GLORY GRACE GRAIN GRAND GRAPE GRAPH GRASP GREAT GREEN GROUP GUARD GUEST GUIDE HABIT HAPPY HARBOR HARSH HEART HEAVY HEDGE HONOR HORSE HOTEL HOUSE HUMAN HUMOR IDEAL IMAGE IMPLY INDEX INNER INPUT ISSUE IVORY JELLY JOINT JUDGE JUICE KNIGHT LABOR LASER LAYER LEARN LEASE LEGAL LEMON LEVEL LIGHT LIMIT LOCAL LOGIC LUNAR MAGIC MAJOR MAKER MAPLE MARCH MATCH MEDAL MERCY METAL METER MICRO MINOR MODEL MONEY MOTOR MOUNT MOUSE MOVIE MUSIC NAVAL NERVE NIGHT NOBLE NOISE NORTH NOVEL NURSE OCEAN OFFER OLIVE ORBIT ORDER ORGAN OTHER OUNCE OUTER OWNER PANEL PAPER PARTY PEACE PEARL PEDAL PHASE PHONE PHOTO PIANO PIECE PILOT PITCH PIXEL PLAIN PLANE PLANT PLATE POINT POLAR POWER PRESS PRICE PRIDE PRIME PRINT PRIOR PRIZE PROOF PROUD QUEEN QUICK QUIET RADAR RADIO RAISE RANGE RAPID RATIO REACH REACT READY REALM RELAY RENEW REPLY RESET RETRO RIDGE RIFLE RIVAL RIVER ROBOT ROUGH ROUND ROUTE ROYAL RULER RUMOR RURAL SCALE SCENE SCOPE SCORE SCOUT SCREW SEAL SEARCH SERVE SHADE SHAFT SHAKE SHAME SHAPE SHARE SHARK SHEAR SHEET SHELF SHELL SHIFT SHINE SHOCK SHORE SHORT SIGHT SIGMA SKILL SLEEP SLICE SLIDE SLOPE SMALL SMART SMILE SMOKE SOLID SOLVE SOUND SOUTH SPACE SPARE SPARK SPEAK SPEED SPEND SPICE SPIKE SPLIT SPORT STAFF STAGE STAND START STATE STEAM STEEL STICK STILL STOCK STONE STORM STORY STRIP STYLE SUGAR SUPER SWEET TABLE TASTE TEACH TEMPO THANK THEME THICK THING THINK THIRD THOSE THREAD THROW TIGER TITLE TOKEN TOPIC TORCH TOTAL TOUCH TOWER TRACK TRADE TRAIN TREAT TREND TRIAL TRIBE TRICK TRUCK TRUTH TUTOR TWIST UNDER UNION UNITY UPPER UPSET URBAN USAGE USUAL VALID VALUE VAPOR VAULT VIDEO VITAL VOCAL VOICE WASTE WATCH WATER WHEEL WHERE WHICH WHILE WHITE WHOLE WOMAN WORLD WORRY WORTH WOUND WRITE WRONG YIELD YOUNG YOUTH ZEBRA ZONE BAKER BANKER BASKET BATTLE BEACON BEAUTY BEYOND BORDER BOTTLE BRANCH BREATH BRIDGE BRIGHT BROKEN BUDGET BUFFER BUILDER BULLET BUNKER BURDEN BUTTER BUYER CABLE CAMERA CANDLE CANYON CARBON CAREER CARPET CASTLE CASUAL CENTER CHANCE CHANGE CHARGE CHART CHEESE CHERRY CIRCLE CITIZEN CLASSIC CLIENT CLIMATE CLINIC COFFEE COLUMN COMBAT COMFORT COMIC COMMON CONCERT CONDUCT CONFIRM CONNECT CONTROL CONVERT COPPER CORNER CORRECT COTTON COUNTY COUSIN CREATE CUSTOM DAMAGE DANGER DEALER DEBATE DECADE DECIDE DEMAND DEPEND DESERT DESIGN DETAIL DEVICE DIFFER DINNER DIRECT DOCTOR DOMAIN DOUBLE DRIVER EDITOR EFFECT EFFORT EIGHT EITHER ELDER ELECT ELEVEN EMERGE EMPIRE EMPLOY ENABLE ENERGY ENGINE ENSURE ENTER ENTIRE EQUAL ESCAPE ESTATE ETHICS ETHNIC EVENT EVOLVE EXACT EXPAND EXPECT EXPERT EXPORT EXTEND FABRIC FACTOR FAILED FAIRLY FAMILY FAMOUS FARMER FATHER FELLOW FEMALE FIGURE FILTER FINGER FINISH FLIGHT FLOWER FOLLOW FOREST FORMAL FORMAT FORMER FOSTER FOUNDER FRAME FRIEND FUTURE GARDEN GATHER GENDER GENTLE GLOBAL GOLDEN GROUND GROWTH HANDLE HAPPEN HARBOR HARDLY HEALTH HEIGHT HIDDEN HOLDER HONEST IMPACT IMPORT INCOME INDEED INJURY INSIDE INSTALL INSTANT INTENT INVEST ISLAND ITSELF JUNIOR KERNEL LABOR LAUNCH LAWYER LEADER LEARN LEAVE LESSON LETTER LIBRARY LIKELY LISTEN LIVING LOCATE LOVELY MANAGE MANNER MANUAL MARGIN MARINE MARKET MASTER MATTER MEDIUM MEMBER MEMORY MENTAL METHOD MIDDLE MODERN MOMENT MOTHER MOTION MOVING MUSCLE MUTUAL MYSELF NARROW NATION NATIVE NEARBY NEARLY NERVOUS NORMAL NOTICE NUMBER OBJECT OFFICE OFFSET ONLINE OPTION ORANGE ORIGIN OUTPUT OWNER PALACE PARENT PARTLY PARTNER PARTY PEOPLE PERIOD PERMIT PERSON PHRASE PLANET PLAYER PLENTY POCKET POLICY POLISH POPULAR PORTION PREFER PRETTY PRICE PRIDE PRIMARY PRINCE PRISON PRIVATE PRIZE PROPER PROTECT PROTEIN PROVE PUBLIC PURSUE RANDOM RATHER READER READY REASON RECALL RECENT RECORD REDUCE REFLECT REFORM REGARD REGION RELATE RELIEF REMAIN REMOVE RENDER REPAIR REPEAT REPORT RESCUE RESORT RESULT RETURN REVEAL REVIEW REWARD RHYTHM RIDING RISING ROBUST ROUTINE RUNNER SAFETY SALARY SAMPLE SAVING SCHEME SCHOOL SCIENCE SCREEN SEARCH SEASON SECRET SECTOR SECURE SELECT SENIOR SERIES SERVER SETTLE SEVERE SHADOW SHELTER SHIFT SIGNAL SILENT SILVER SIMPLE SINGLE SISTER SLIGHT SMOOTH SOCIAL SOURCE SPEECH SPIRIT SPRING SQUARE STABLE STATION STEADY STRAIN STREAM STREET STRONG STUDIO SUBMIT SUDDEN SUFFER SUPPLY SUPPORT SUPPOSE SURVEY SWITCH SYMBOL SYSTEM TARGET TEACHER TENANT TENDER THEORY THIRTY THOUGH THREAT TICKET TIMELY TISSUE TOWARD TRAVEL TREAT TRIAL TRIBE TROUBLE TRULY TRUST TRYING TUNNEL UNION UNIQUE UNITED UNLESS UPDATE USEFUL VALLEY VALUE VENDOR VERSUS VESSEL VICTIM VISION VISUAL VOLUME WALKER WEALTH WEEKLY WEIGHT WINDOW WINNER WINTER WISDOM WORKER WRITER YELLOW YOUTH ZEBRA ZONE`
+.toUpperCase().split(/\s+/);
 
 function randomWord(bucket){
-
-let attempts=0
-let w
-
-do{
-w=DICTIONARY[Math.floor(Math.random()*DICTIONARY.length)]
-attempts++
-}while(
-(activeWords.has(w) ||
-w.length<LENGTH_BUCKETS[bucket].min ||
-w.length>LENGTH_BUCKETS[bucket].max)
-&& attempts<500)
-
-return w
+    let attempts=0;
+    let w;
+    do{
+        w=DICTIONARY[Math.floor(Math.random()*DICTIONARY.length)];
+        attempts++;
+    }while((activeWords.has(w) || 
+            w.length < LENGTH_BUCKETS[bucket].min || 
+            w.length > LENGTH_BUCKETS[bucket].max) && attempts < 1000);
+    return w;
 }
 
 function buildBoard(){
-
-board=[]
-const boardDiv=document.getElementById("board")
-boardDiv.innerHTML=""
-
-for(let r=0;r<SIZE;r++){
-
-let row=[]
-
-for(let c=0;c<SIZE;c++){
-
-let cell=document.createElement("div")
-cell.className="cell"
-cell.dataset.r=r
-cell.dataset.c=c
-
-cell.addEventListener("dragover",e=>e.preventDefault())
-cell.addEventListener("drop",dropWord)
-
-boardDiv.appendChild(cell)
-
-row.push("")
-}
-
-board.push(row)
-}
+    board=[];
+    const boardDiv=document.getElementById("board");
+    boardDiv.innerHTML="";
+    for(let r=0;r<SIZE;r++){
+        let row=[];
+        for(let c=0;c<SIZE;c++){
+            let cell=document.createElement("div");
+            cell.className="cell";
+            cell.dataset.r=r;
+            cell.dataset.c=c;
+            cell.addEventListener("dragover",e=>e.preventDefault());
+            cell.addEventListener("drop",dropWord);
+            boardDiv.appendChild(cell);
+            row.push("");
+        }
+        board.push(row);
+    }
 }
 
 function populateList(){
-
-activeWords.clear()
-const list=document.getElementById("wordlist")
-list.innerHTML=""
-
-for(let bucket in LENGTH_BUCKETS){
-for(let i=0;i<LENGTH_BUCKETS[bucket].count;i++){
-addWordToList(bucket)
+    activeWords.clear();
+    const list=document.getElementById("wordlist");
+    list.innerHTML="";
+    for(let bucket in LENGTH_BUCKETS){
+        for(let i=0;i<LENGTH_BUCKETS[bucket].count;i++){
+            addWordToList(bucket);
+        }
+    }
 }
-}
+
+function toggleRotation(div) {
+    div.dataset.dir = div.dataset.dir === "H" ? "V" : "H";
+    div.style.background = div.dataset.dir === "H" ? "#4caf50" : "#2196f3";
 }
 
 function addWordToList(bucket){
+    let w=randomWord(bucket);
+    activeWords.add(w);
+    const list=document.getElementById("wordlist");
+    let div=document.createElement("div");
+    div.className="word";
+    div.textContent=w;
+    div.draggable=true;
+    div.dataset.word=w;
+    div.dataset.bucket=bucket;
+    div.dataset.dir="H";
 
-let w=randomWord(bucket)
-activeWords.add(w)
+    div.ondragstart=()=>draggedWord=div;
+    div.ondblclick=() => toggleRotation(div);
 
-const list=document.getElementById("wordlist")
+    div.addEventListener('touchstart', function(e) {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            e.preventDefault();
+            toggleRotation(div);
+        }
+        lastTap = now;
+        draggedWord = div;
+    }, {passive: false});
 
-let div=document.createElement("div")
-div.className="word"
-div.textContent=w
-div.draggable=true
+    div.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
 
-div.dataset.word=w
-div.dataset.bucket=bucket
-div.dataset.dir="H"
+    div.addEventListener('touchend', function(e) {
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.classList.contains('cell')) {
+            handlePlacement(el);
+        }
+        draggedWord = null;
+    });
 
-div.ondragstart=()=>draggedWord=div
-
-div.ondblclick=()=>{
-div.dataset.dir=div.dataset.dir==="H"?"V":"H"
-div.style.background=div.dataset.dir==="H"?"#4caf50":"#2196f3"
-}
-
-list.appendChild(div)
+    list.appendChild(div);
 }
 
 function dropWord(e){
+    e.preventDefault();
+    handlePlacement(this);
+}
 
-e.preventDefault()
-if(!draggedWord) return
+function handlePlacement(cellEl) {
+    if(!draggedWord) return;
+    const word=draggedWord.dataset.word;
+    const dir=draggedWord.dataset.dir;
+    const bucket=draggedWord.dataset.bucket;
+    const r=parseInt(cellEl.dataset.r);
+    const c=parseInt(cellEl.dataset.c);
 
-const word=draggedWord.dataset.word
-const dir=draggedWord.dataset.dir
-const bucket=draggedWord.dataset.bucket
+    if(!canPlace(word,r,c,dir)) return;
 
-const r=parseInt(this.dataset.r)
-const c=parseInt(this.dataset.c)
-
-if(!canPlace(word,r,c,dir)) return
-
-placeWord(word,r,c,dir)
-
-activeWords.delete(word)
-draggedWord.remove()
-addWordToList(bucket)
-
-draggedWord=null
-
-updateScore()
+    placeWord(word,r,c,dir);
+    activeWords.delete(word);
+    draggedWord.remove();
+    addWordToList(bucket);
+    draggedWord=null;
+    updateScore();
 }
 
 function isLetter(r,c){
-if(r<0||c<0||r>=SIZE||c>=SIZE) return false
-return board[r][c]!=""
+    if(r<0||c<0||r>=SIZE||c>=SIZE) return false;
+    return board[r][c]!="";
 }
 
 function canPlace(word,r,c,dir){
-
-let intersects=false
-
-for(let i=0;i<word.length;i++){
-
-let rr=r+(dir==="V"?i:0)
-let cc=c+(dir==="H"?i:0)
-
-if(rr>=SIZE||cc>=SIZE) return false
-
-let boardLetter=board[rr][cc]
-
-if(boardLetter!=="" && boardLetter!==word[i]) return false
-
-if(boardLetter===word[i]) intersects=true
-
-if(dir==="H"){
-if(boardLetter===""){
-if(isLetter(rr-1,cc)||isLetter(rr+1,cc)) return false
-}
-}else{
-if(boardLetter===""){
-if(isLetter(rr,cc-1)||isLetter(rr,cc+1)) return false
-}
-}
-
-}
-
-if(dir==="H"){
-if(isLetter(r,c-1)||isLetter(r,c+word.length)) return false
-}else{
-if(isLetter(r-1,c)||isLetter(r+word.length,c)) return false
-}
-
-if(placedWords>0 && !intersects) return false
-
-return true
+    let intersects=false;
+    for(let i=0;i<word.length;i++){
+        let rr=r+(dir==="V"?i:0);
+        let cc=c+(dir==="H"?i:0);
+        if(rr>=SIZE||cc>=SIZE) return false;
+        let boardLetter=board[rr][cc];
+        if(boardLetter!=="" && boardLetter!==word[i]) return false;
+        if(boardLetter===word[i]) intersects=true;
+        if(dir==="H"){
+            if(boardLetter===""){
+                if(isLetter(rr-1,cc)||isLetter(rr+1,cc)) return false;
+            }
+        }else{
+            if(boardLetter===""){
+                if(isLetter(rr,cc-1)||isLetter(rr,cc+1)) return false;
+            }
+        }
+    }
+    if(dir==="H"){
+        if(isLetter(r,c-1)||isLetter(r,c+word.length)) return false;
+    }else{
+        if(isLetter(r-1,c)||isLetter(r+word.length,c)) return false;
+    }
+    if(placedWords>0 && !intersects) return false;
+    return true;
 }
 
 function placeWord(word,r,c,dir){
-
-for(let i=0;i<word.length;i++){
-
-let rr=r+(dir==="V"?i:0)
-let cc=c+(dir==="H"?i:0)
-
-board[rr][cc]=word[i]
-
-let cell=document.querySelector(`[data-r='${rr}'][data-c='${cc}']`)
-cell.textContent=word[i]
-cell.classList.add("filled")
-}
-
-placedWords++
+    for(let i=0;i<word.length;i++){
+        let rr=r+(dir==="V"?i:0);
+        let cc=c+(dir==="H"?i:0);
+        board[rr][cc]=word[i];
+        let cell=document.querySelector(`[data-r='${rr}'][data-c='${cc}']`);
+        cell.textContent=word[i];
+        cell.classList.add("filled");
+    }
+    placedWords++;
 }
 
 function updateScore(){
-
-let filled=0
-
-for(let r=0;r<SIZE;r++)
-for(let c=0;c<SIZE;c++)
-if(board[r][c]!="") filled++
-
-let percent=(filled/(SIZE*SIZE))*100
-
-document.getElementById("score").textContent=`Score: ${percent.toFixed(1)}% filled`
+    let filled=0;
+    for(let r=0;r<SIZE;r++)
+        for(let c=0;c<SIZE;c++)
+            if(board[r][c]!="") filled++;
+    let percent=(filled/(SIZE*SIZE))*100;
+    document.getElementById("score").textContent=`Score: ${percent.toFixed(1)}% filled`;
 }
 
 function newGame(){
-
-placedWords=0
-buildBoard()
-populateList()
-updateScore()
+    placedWords=0;
+    buildBoard();
+    populateList();
+    updateScore();
 }
 
-newGame()
-
+newGame();
 </script>
 
 </body>
