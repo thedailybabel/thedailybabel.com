@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Shot Games — Cheat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #060a0e;
+    --surface:  #0d1117;
+    --surface2: #111c26;
+    --border:   rgba(255,184,0,0.15);
+    --amber:    #ffb800;
+    --amber2:   #ffd060;
+    --amber-dim:#7a5800;
+    --amber-glow: rgba(255,184,0,0.12);
+    --cyan:     #00e5ff;
+    --cyan-glow:rgba(0,229,255,0.1);
+    --green:    #39ff14;
+    --green-glow:rgba(57,255,20,0.1);
+    --magenta:  #ff00aa;
+    --red:      #ff3050;
+    --text:     #c8d8e8;
+    --text-dim: #4a6070;
+    --text-mid: #8899aa;
+    --code-bg:  #0a1520;
+    --scan: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 4px
+    );
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* CRT overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999;
+    pointer-events: none;
+    background: var(--scan);
+    opacity: 0.45;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 9998;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%);
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,184,0,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+    animation: drift 30s linear infinite;
+  }
+
+  @keyframes drift {
+    from { background-position: 0 0; }
+    to   { background-position: 44px 44px; }
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    position: relative; z-index: 10;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    margin-bottom: 3.5rem;
+  }
+
+  .header-eyebrow {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .header-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 7vw, 4.5rem);
+    color: var(--amber);
+    text-shadow: 0 0 20px rgba(255,184,0,0.35), 0 0 80px rgba(255,184,0,0.12);
+    letter-spacing: 0.04em;
+    line-height: 1.05;
+    animation: flicker 12s infinite;
+  }
+
+  @keyframes flicker {
+    0%,93%,95%,97%,100% { opacity: 1; }
+    94%,96% { opacity: 0.85; }
+  }
+
+  .header-sub {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    color: var(--text-mid);
+    letter-spacing: 0.06em;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .header-line {
+    margin-top: 1.5rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--amber), rgba(255,184,0,0.08), transparent);
+    box-shadow: 0 0 10px rgba(255,184,0,0.25);
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section {
+    margin-bottom: 3rem;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section:nth-child(1)  { animation-delay: 0.05s; }
+  .section:nth-child(2)  { animation-delay: 0.10s; }
+  .section:nth-child(3)  { animation-delay: 0.15s; }
+  .section:nth-child(4)  { animation-delay: 0.20s; }
+  .section:nth-child(5)  { animation-delay: 0.25s; }
+  .section:nth-child(6)  { animation-delay: 0.30s; }
+  .section:nth-child(7)  { animation-delay: 0.35s; }
+  .section:nth-child(8)  { animation-delay: 0.40s; }
+  .section:nth-child(9)  { animation-delay: 0.45s; }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    padding: 0.65rem 1.2rem;
+    background: linear-gradient(90deg, var(--surface2), transparent);
+    border-left: 3px solid var(--amber);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  }
+
+  .section-icon { font-size: 1.1rem; }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .section-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-left: auto;
+  }
+
+  /* ── THREE RULES ── */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .rule-card {
+    padding: 1.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .rule-card:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 20px var(--amber-glow);
+  }
+
+  .rule-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--amber-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .rule-card:hover::before { opacity: 1; }
+
+  .rule-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 900;
+    color: rgba(255,184,0,0.12);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .rule-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--amber);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.08em;
+  }
+
+  .rule-desc {
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    line-height: 1.6;
+    position: relative;
+  }
+
+  /* ── TWO COL ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.2rem 1.4rem;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,184,0,0.1);
+  }
+
+  .panel ul { list-style: none; }
+
+  .panel li {
+    font-size: 0.8rem;
+    color: var(--text);
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255,184,0,0.05);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    line-height: 1.5;
+  }
+
+  .panel li:last-child { border-bottom: none; }
+
+  .panel li::before {
+    content: '›';
+    color: var(--amber);
+    flex-shrink: 0;
+    margin-top: 0.05em;
+  }
+
+  /* ── STEPS ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.8rem 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: border-color 0.25s, background 0.25s;
+  }
+
+  .step:hover {
+    border-color: rgba(255,184,0,0.35);
+    background: var(--surface2);
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--amber);
+    min-width: 1.6rem;
+    text-align: right;
+    flex-shrink: 0;
+    line-height: 1.5;
+  }
+
+  .step-body { flex: 1; }
+
+  .step-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-bottom: 0.15rem;
+  }
+
+  .step-detail {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-left: 3px solid var(--cyan);
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .code-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    opacity: 0.7;
+  }
+
+  .code-block pre {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .code-block pre .ph  { color: var(--amber);  font-style: italic; } /* placeholder */
+  .code-block pre .kw  { color: var(--cyan);   } /* keyword */
+  .code-block pre .cm  { color: var(--text-dim); font-style: italic; } /* comment */
+  .code-block pre .st  { color: var(--green);  } /* string */
+  .code-block pre .hl  { color: var(--amber2); font-weight: bold; } /* highlight */
+
+  /* ── COMMANDS TABLE ── */
+  .cmd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .cmd-table thead tr {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--amber);
+  }
+
+  .cmd-table thead th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--amber);
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .cmd-table tbody tr {
+    border-bottom: 1px solid rgba(255,184,0,0.06);
+    transition: background 0.2s;
+  }
+
+  .cmd-table tbody tr:hover { background: var(--surface2); }
+
+  .cmd-table td {
+    padding: 0.65rem 1rem;
+    vertical-align: top;
+  }
+
+  .cmd-table td:first-child {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    width: 40%;
+  }
+
+  .cmd-table td:last-child {
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  /* ── DEBUG TABLE ── */
+  .debug-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .debug-table thead tr { background: var(--surface2); border-bottom: 1px solid var(--red); }
+
+  .debug-table thead th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .debug-table tbody tr {
+    border-bottom: 1px solid rgba(255,48,80,0.06);
+    transition: background 0.2s;
+  }
+
+  .debug-table tbody tr:hover { background: rgba(255,48,80,0.04); }
+
+  .debug-table td { padding: 0.7rem 1rem; vertical-align: top; }
+
+  .debug-table td:first-child {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--red);
+    font-size: 0.75rem;
+    width: 30%;
+    line-height: 1.5;
+  }
+
+  .debug-table td:last-child { color: var(--text-mid); line-height: 1.6; }
+
+  /* ── WORKFLOW STEPS ── */
+  .workflow {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .wf-step {
+    padding: 1rem 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .wf-step:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px var(--amber-glow);
+  }
+
+  .wf-n {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: rgba(255,184,0,0.2);
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .wf-text {
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .wf-mono {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--cyan);
+    margin-top: 0.3rem;
+  }
+
+  /* ── FOLDER STRUCTURE ── */
+  .file-tree {
+    background: var(--code-bg);
+    border: 1px solid rgba(57,255,20,0.15);
+    border-left: 3px solid var(--green);
+    padding: 1rem 1.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 2;
+  }
+
+  .ft-dir  { color: var(--amber); }
+  .ft-file { color: var(--text); }
+  .ft-note { color: var(--text-dim); }
+  .ft-good { color: var(--green); }
+  .ft-bad  { color: var(--red); }
+
+  /* ── GENRE TAGS ── */
+  .tag-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    padding: 0.3rem 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    border: 1px solid;
+    letter-spacing: 0.08em;
+    cursor: default;
+    transition: background 0.2s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  }
+
+  .tag-green { color: var(--green); border-color: rgba(57,255,20,0.3); }
+  .tag-green:hover { background: rgba(57,255,20,0.08); box-shadow: 0 0 8px rgba(57,255,20,0.2); }
+  .tag-red   { color: var(--red);   border-color: rgba(255,48,80,0.3); }
+  .tag-red:hover { background: rgba(255,48,80,0.08); }
+
+  /* ── DESIGN TIPS ── */
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .tip-card {
+    padding: 0.9rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    transition: border-color 0.25s;
+  }
+
+  .tip-card:hover { border-color: rgba(255,184,0,0.3); }
+
+  .tip-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber);
+    flex-shrink: 0;
+    margin-top: 0.55em;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .tip-text { font-size: 0.8rem; color: var(--text-mid); line-height: 1.6; }
+  .tip-text strong { color: var(--text); font-weight: 500; }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,184,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 0.85em;
+    background: var(--amber);
+    box-shadow: 0 0 5px var(--amber);
+    animation: blink 1.2s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body::before, body::after, .grid-bg { display: none; }
+    .section { opacity: 1; transform: none; animation: none; }
+    body { background: #fff; color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-eyebrow">// Quick Reference — Build &amp; Deploy</div>
+    <h1 class="header-title">ONE SHOT<br>GAMES</h1>
+    <p class="header-sub">Claude + GitHub Pages &nbsp;·&nbsp; Single-file arcade &nbsp;·&nbsp; Free hosting forever</p>
+    <div class="header-line"></div>
+  </header>
+
+  <!-- 1. THE THREE RULES -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">📋</span>
+      <span class="section-title">The Three Rules</span>
+      <span class="section-subtitle">What makes a game "one shot"</span>
+    </div>
+    <div class="rules-grid">
+      <div class="rule-card">
+        <div class="rule-num">01</div>
+        <div class="rule-title">ONE FILE</div>
+        <div class="rule-desc">All HTML, CSS, and JavaScript are inline in a single <code style="color:var(--amber);font-family:'Share Tech Mono',monospace">.html</code> file. No build step. Open it in any browser — offline, emailed, hosted — it just works.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-num">02</div>
+        <div class="rule-title">NO SAVES</div>
+        <div class="rule-desc">When the tab closes, the game ends. No localStorage persistence between sessions. This is a design feature — every session is its own story. Live with your choices.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-num">03</div>
+        <div class="rule-title">SELF-CONTAINED</div>
+        <div class="rule-desc">No auth, no backend API calls, no databases. Google Fonts CDN is fine. The game must run with WiFi off. If it needs a server, it's not a one-shot game.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ONE-TIME SETUP -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">⚙️</span>
+      <span class="section-title">One-Time Setup</span>
+      <span class="section-subtitle">Do this once, use forever</span>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-label">Create GitHub repo</div>
+          <div class="step-detail">github.com → New Repository → Public → check "Add a README" → Create</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-label">Enable GitHub Pages</div>
+          <div class="step-detail">Settings → Pages → Source: Deploy from branch → main / (root) → Save · Your URL: <span style="color:var(--cyan);font-family:'Share Tech Mono',monospace">yourusername.github.io/repo-name</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-label">Clone locally</div>
+          <div class="step-detail" style="font-family:'Share Tech Mono',monospace;color:var(--cyan)">git clone https://github.com/yourusername/my-arcade.git &amp;&amp; cd my-arcade</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. FOLDER STRUCTURE -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">📁</span>
+      <span class="section-title">Folder Structure</span>
+      <span class="section-subtitle">Keep everything at root level</span>
+    </div>
+    <div class="file-tree">
+<span class="ft-dir">my-arcade/</span>
+├── <span class="ft-file">index.html</span>          <span class="ft-note">← Your lobby page (required name)</span>
+├── <span class="ft-file">lunar-lander.html</span>   <span class="ft-note">← Game 1</span>
+├── <span class="ft-file">castle.html</span>         <span class="ft-note">← Game 2</span>
+└── <span class="ft-file">README.md</span>           <span class="ft-note">← Auto-created by GitHub</span>
+    </div>
+    <div style="margin-top:0.8rem;display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+      <div class="code-block" style="margin-bottom:0;border-color:rgba(57,255,20,0.2);border-left-color:var(--green)">
+        <div class="code-label" style="color:var(--green)">✓ correct link</div>
+        <pre>&lt;a href="<span style="color:var(--green)">lunar-lander.html</span>"&gt;Play&lt;/a&gt;</pre>
+      </div>
+      <div class="code-block" style="margin-bottom:0;border-color:rgba(255,48,80,0.2);border-left-color:var(--red)">
+        <div class="code-label" style="color:var(--red)">✗ wrong — breaks on pages</div>
+        <pre>&lt;a href="<span style="color:var(--red)">/my-arcade/lunar-lander.html</span>"&gt;</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. DEPLOY COMMANDS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">🚀</span>
+      <span class="section-title">Deploy Commands</span>
+      <span class="section-subtitle">Run after every new game</span>
+    </div>
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>What it does</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>git add .</td><td>Stage all new and changed files</td></tr>
+        <tr><td>git commit -m "Add lunar lander"</td><td>Commit with a short description</td></tr>
+        <tr><td>git push origin main</td><td>Push to GitHub — triggers auto-deploy (~60s)</td></tr>
+        <tr><td>git add . &amp;&amp; git commit -m "msg" &amp;&amp; git push</td><td>One-liner — chain all three together</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. PROMPT TEMPLATES -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">🤖</span>
+      <span class="section-title">Claude Prompt Templates</span>
+      <span class="section-subtitle">Copy, fill brackets, send</span>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">Base game prompt</div>
+      <pre><span class="hl">Build me a one-shot browser game called</span> <span class="ph">[GAME NAME]</span><span class="hl">.</span>
+
+<span class="kw">Rules:</span>
+<span class="cm">- Single HTML file. All CSS and JavaScript inline.</span>
+<span class="cm">  No external deps except Google Fonts.</span>
+<span class="cm">- No save states, no localStorage between sessions.</span>
+<span class="cm">- Game ends when player wins or loses. No continues.</span>
+
+<span class="kw">Game concept:</span> <span class="ph">[what player does, win condition, lose condition — 2-3 sentences]</span>
+
+<span class="kw">Visual style:</span> <span class="ph">[colors, fonts, vibe — e.g. CRT terminal, dark bg, neon amber]</span>
+
+<span class="hl">When complete, output the full HTML file content only.</span></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">Lobby / index page prompt</div>
+      <pre><span class="hl">Build me an arcade lobby page in a single HTML file.</span>
+
+<span class="kw">Games to include:</span>
+<span class="cm">- lunar-lander.html — Lunar Lander 🚀: land on the moon</span>
+<span class="ph">[add more entries in same format]</span>
+
+<span class="kw">Visual style:</span> <span class="ph">[your aesthetic]</span>
+
+<span class="kw">Requirements:</span>
+<span class="cm">- Title and subtitle at top</span>
+<span class="cm">- CSS grid of clickable game cards with hover effects</span>
+<span class="cm">- Footer with GitHub link</span>
+<span class="cm">- All game links RELATIVE (filename only, no path prefix)</span>
+
+<span class="hl">Output the full HTML only.</span></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">Fix / iterate prompt</div>
+      <pre><span class="kw">Here is the current version of my game HTML:</span> <span class="ph">[paste full file]</span>
+
+<span class="kw">Issue:</span> <span class="ph">[describe the specific problem clearly]</span>
+
+<span class="hl">Fix only this issue. Output the complete updated HTML file.</span></pre>
+    </div>
+  </div>
+
+  <!-- 6. DEBUGGING -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">🐛</span>
+      <span class="section-title">Debugging Reference</span>
+      <span class="section-subtitle">Common issues and fixes</span>
+    </div>
+    <table class="debug-table">
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fonts look wrong</td>
+          <td>Check &lt;head&gt; for Google Fonts &lt;link&gt; tag — Claude sometimes forgets it on long outputs</td>
+        </tr>
+        <tr>
+          <td>Works locally, breaks on GitHub Pages</td>
+          <td>All hrefs must be relative filenames only — no leading <code style="color:var(--red);font-family:'Share Tech Mono',monospace">/</code>, no full URLs</td>
+        </tr>
+        <tr>
+          <td>Game too easy / too hard</td>
+          <td>Tell Claude: "Increase difficulty by 30% — [specific mechanic to change]"</td>
+        </tr>
+        <tr>
+          <td>Doesn't work on mobile</td>
+          <td>Add to your prompt: "Include touch controls alongside keyboard controls"</td>
+        </tr>
+        <tr>
+          <td>Claude output is garbled / looping</td>
+          <td>Start a fresh conversation — paste clean requirements and game concept again</td>
+        </tr>
+        <tr>
+          <td>File is huge / slow to load</td>
+          <td>Ask Claude to remove base64 assets and use CSS shapes or SVG instead</td>
+        </tr>
+        <tr>
+          <td>Collision detection is wrong</td>
+          <td>Paste the specific JS function and ask Claude to debug it alone, not the whole file</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 7. GENRES + AVOID -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">💡</span>
+      <span class="section-title">Game Ideas by Genre</span>
+      <span class="section-subtitle">What works and what doesn't</span>
+    </div>
+    <div class="two-col">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.3em;color:var(--green);text-transform:uppercase;margin-bottom:0.7rem;">✓ Great for one-shot</div>
+        <div class="tag-grid">
+          <span class="tag tag-green">Physics games</span>
+          <span class="tag tag-green">Lunar lander</span>
+          <span class="tag tag-green">Blackjack / cards</span>
+          <span class="tag tag-green">Dice games</span>
+          <span class="tag tag-green">Space invaders</span>
+          <span class="tag tag-green">Breakout</span>
+          <span class="tag tag-green">Text adventure</span>
+          <span class="tag tag-green">Puzzle / sudoku</span>
+          <span class="tag tag-green">Tower defense lite</span>
+          <span class="tag tag-green">Slot machines</span>
+          <span class="tag tag-green">Stealth / infiltration</span>
+          <span class="tag tag-green">Endless runner</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.3em;color:var(--red);text-transform:uppercase;margin-bottom:0.7rem;">✗ Avoid these</div>
+        <div class="tag-grid">
+          <span class="tag tag-red">Multiplayer</span>
+          <span class="tag tag-red">User accounts</span>
+          <span class="tag tag-red">Large sprite sheets</span>
+          <span class="tag tag-red">Persistent leaderboards</span>
+          <span class="tag tag-red">Build tools required</span>
+          <span class="tag tag-red">Backend API calls</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. DESIGN TIPS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">🎨</span>
+      <span class="section-title">Design Tips</span>
+      <span class="section-subtitle">Make your arcade look like a real product</span>
+    </div>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>Define a style brief once.</strong> Paste it into every game prompt. Consistency is free and makes the arcade feel cohesive.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>Pick 2–3 accent colors.</strong> Commit. Amber + cyan + green reads "terminal arcade." Stick to it across every file.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>Name your arcade.</strong> "My Arcade" is temporary. A real name makes it a portfolio piece. Own it.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>Write your own card descriptions.</strong> Claude's defaults are generic. One sentence of real voice goes a long way.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>CRT scanline trick.</strong> Fixed pseudo-element with <code style="color:var(--amber);font-family:'Share Tech Mono',monospace">repeating-linear-gradient</code> at low opacity. Free atmosphere, every page.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-dot"></div>
+        <div class="tip-text"><strong>Lean into the constraint.</strong> Tell Claude "design for one-shot — the no-save rule should feel intentional, not like a missing feature."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. FULL WORKFLOW -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-icon">✅</span>
+      <span class="section-title">Full Workflow</span>
+      <span class="section-subtitle">The complete loop for every new game</span>
+    </div>
+    <div class="workflow">
+      <div class="wf-step">
+        <div class="wf-n">1</div>
+        <div class="wf-text">Open Claude — start a <strong>new conversation</strong> for each game</div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">2</div>
+        <div class="wf-text">Fill in the Base Game Prompt and send it</div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">3</div>
+        <div class="wf-text">Save output as <span class="wf-mono">game-name.html</span> in your repo folder</div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">4</div>
+        <div class="wf-text">Open in browser and test — same Claude conversation to iterate</div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">5</div>
+        <div class="wf-text">Add a card for the game in <span class="wf-mono">index.html</span></div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">6</div>
+        <div class="wf-text">Push to deploy<span class="wf-mono">git add . &amp;&amp; git commit &amp;&amp; git push</span></div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">7</div>
+        <div class="wf-text">Wait ~60 seconds — game is live on GitHub Pages</div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-n">8</div>
+        <div class="wf-text">Repeat. Add a new game every week. Build the arcade.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <div style="display:flex;align-items:center;gap:0.5em">
+      <span style="color:var(--amber)">oneshot@babel:~$</span>
+      <span class="cursor"></span>
+    </div>
+    <div>One Shot Games Cheat Sheet &nbsp;·&nbsp; Claude + GitHub Pages &nbsp;·&nbsp; Free forever</div>
+  </footer>
+
+</div>
+</body>
+</html>
