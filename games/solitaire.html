@@ -780,10 +780,8 @@ function addDragListeners(el, type, col, idx) {
   el.addEventListener('dragstart', e=>onDragStart(e, type, col, idx));
   el.addEventListener('dragend', onDragEnd);
 
-  // Touch — use passive:true on touchstart so scroll isn't blocked immediately
+  // Only touchstart per-card; move/end handled at document level
   el.addEventListener('touchstart', e=>onTouchStart(e, type, col, idx), {passive:true});
-  el.addEventListener('touchmove', onTouchMove, {passive:false});
-  el.addEventListener('touchend', onTouchEnd, {passive:false});
 }
 
 function getDragCards(type, col, idx) {
@@ -831,138 +829,190 @@ function onDropFoundation(e, fIdx) {
 }
 
 // ─── TOUCH DRAG ───
+// ─── TOUCH DRAG STATE ───
 let touchDragData = null;
-let touchGhost = null;
 let touchOrigin = null;
-let touchPending = null;   // touch has started but drag not yet confirmed
-let touchLongPress = null; // long-press timer
+let touchOffset = null;    // finger position relative to ghost top-left
+let touchPending = null;
+let touchLongPress = null;
+let touchIsDragging = false;
 
-const DRAG_THRESHOLD = 8;  // px movement before drag activates
+const DRAG_THRESHOLD = 10; // px before drag commits
 
-function onTouchStart(e, type, col, idx) {
-  const cards = getDragCards(type, col, idx);
-  if (!cards.length) return;
-  const t = e.touches[0];
-  touchOrigin = {x: t.clientX, y: t.clientY};
-  touchPending = {type, col, idx, cards};
-  touchDragData = null;
-
-  // Long-press: activate drag after 300ms even without movement
-  touchLongPress = setTimeout(() => {
-    if (touchPending) activateTouchDrag(touchPending, touchOrigin.x, touchOrigin.y);
-  }, 300);
+function getCardPx() {
+  // Read computed card-w (handles vw/clamp correctly)
+  const el = document.querySelector('.card') || document.documentElement;
+  const cw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'));
+  return isNaN(cw) ? 60 : cw;
 }
 
-function activateTouchDrag(pending, x, y) {
-  touchDragData = pending;
-  touchPending = null;
+function getFanOffPx() {
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fan-offset'));
+  return isNaN(v) ? 26 : v;
+}
 
+function buildGhost(pending, fingerX, fingerY) {
   const ghost = document.getElementById('drag-ghost');
   ghost.innerHTML = '';
-  ghost.style.display = 'block';
 
-  const cardWStr = getComputedStyle(document.documentElement).getPropertyValue('--card-w').trim();
-  const cardW = parseFloat(cardWStr);
-  const stackOff = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fan-offset')) || 28;
+  const cardW = getCardPx();
   const cardH = cardW * 1.45;
+  const stackOff = getFanOffPx();
+  const totalH = (pending.cards.length - 1) * stackOff + cardH;
 
-  ghost.style.width = cardWStr;
-  const wrap = document.createElement('div');
-  wrap.style.position = 'relative';
-  wrap.style.height = (pending.cards.length * stackOff + cardH) + 'px';
+  ghost.style.width  = cardW + 'px';
+  ghost.style.height = totalH + 'px';
+  ghost.style.position = 'fixed';
+  ghost.style.pointerEvents = 'none';
+  ghost.style.zIndex = '99999';
+  ghost.style.opacity = '0.92';
+
   pending.cards.forEach((card, i) => {
     const el = makeCardEl(card, 'ghost', i);
     el.style.position = 'absolute';
-    el.style.top = (i * stackOff) + 'px';
-    el.style.zIndex = i;
-    wrap.appendChild(el);
+    el.style.top  = (i * stackOff) + 'px';
+    el.style.left = '0';
+    el.style.zIndex = i + 1;
+    ghost.appendChild(el);
   });
-  ghost.appendChild(wrap);
-  ghost.style.left = (x - cardW / 2) + 'px';
-  ghost.style.top = (y - 20) + 'px';
-  ghost.style.opacity = '0.85';
 
-  // Dim source cards
+  // Offset: keep finger at the spot it touched — clamp so ghost stays on screen
+  touchOffset = {
+    x: Math.min(Math.max(fingerX - ghost.getBoundingClientRect().left, 10), cardW - 10),
+    y: Math.min(Math.max(fingerY - ghost.getBoundingClientRect().top,  10), cardH - 10)
+  };
+  // Before we have a real rect (ghost not yet visible), use centre
+  touchOffset = { x: cardW * 0.4, y: cardH * 0.2 };
+
+  positionGhost(fingerX, fingerY);
+  ghost.style.display = 'block';
+}
+
+function positionGhost(x, y) {
+  const ghost = document.getElementById('drag-ghost');
+  const cardW = getCardPx();
+  ghost.style.left = (x - touchOffset.x) + 'px';
+  ghost.style.top  = (y - touchOffset.y) + 'px';
+}
+
+function dimSource(pending) {
   if (pending.type === 'tab') {
     const pile = document.getElementById('tableau').children[pending.col];
     for (let i = pending.idx; i < state.tableau[pending.col].length; i++) {
       const c = pile.querySelector(`[data-pile="tab-${pending.col}"][data-idx="${i}"]`);
-      if (c) c.style.opacity = '0.3';
+      if (c) c.style.opacity = '0.25';
     }
   } else if (pending.type === 'waste') {
-    const wc = document.getElementById('waste-inner').querySelector('.card');
-    if (wc) wc.style.opacity = '0.3';
+    const cards = document.getElementById('waste-inner').querySelectorAll('.card');
+    if (cards.length) cards[cards.length - 1].style.opacity = '0.25';
   }
 }
 
-function onTouchMove(e) {
-  if (!touchPending && !touchDragData) return;
+function activateTouchDrag(pending, fingerX, fingerY) {
+  touchDragData = pending;
+  touchPending  = null;
+  touchIsDragging = true;
+  buildGhost(pending, fingerX, fingerY);
+  dimSource(pending);
+}
+
+function onTouchStart(e, type, col, idx) {
+  const cards = getDragCards(type, col, idx);
+  if (!cards.length) return;
+
+  // Cancel any leftover state
+  clearTimeout(touchLongPress);
+  touchDragData   = null;
+  touchIsDragging = false;
 
   const t = e.touches[0];
+  touchOrigin  = { x: t.clientX, y: t.clientY };
+  touchPending = { type, col, idx, cards };
 
-  // Check if we should activate drag from pending state
-  if (touchPending && !touchDragData) {
-    const dx = Math.abs(t.clientX - touchOrigin.x);
-    const dy = Math.abs(t.clientY - touchOrigin.y);
-
-    if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
-      // Not moved enough — let scroll happen naturally
-      return;
+  // Long-press activates drag without movement
+  touchLongPress = setTimeout(() => {
+    if (touchPending) {
+      activateTouchDrag(touchPending, touchOrigin.x, touchOrigin.y);
     }
+  }, 250);
+}
 
-    if (dy > dx) {
-      // Predominantly vertical — treat as scroll, cancel drag
+function onTouchMove(e) {
+  if (!touchPending && !touchIsDragging) return;
+
+  const t = e.touches[0];
+  const dx = t.clientX - touchOrigin.x;
+  const dy = t.clientY - touchOrigin.y;
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+
+  if (touchPending && !touchIsDragging) {
+    if (adx < DRAG_THRESHOLD && ady < DRAG_THRESHOLD) return; // wait
+
+    if (ady > adx * 1.5) {
+      // Clearly scrolling — abort
       clearTimeout(touchLongPress);
       touchPending = null;
       return;
     }
 
-    // Predominantly horizontal or diagonal — activate drag
+    // Commit to drag
     clearTimeout(touchLongPress);
     activateTouchDrag(touchPending, t.clientX, t.clientY);
+    return;
   }
 
-  if (touchDragData) {
-    e.preventDefault(); // now safe to block scroll since we're dragging
-    const cardW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'));
-    const ghost = document.getElementById('drag-ghost');
-    ghost.style.left = (t.clientX - cardW / 2) + 'px';
-    ghost.style.top = (t.clientY - 20) + 'px';
+  // Actively dragging
+  if (touchIsDragging) {
+    e.preventDefault();
+    positionGhost(t.clientX, t.clientY);
   }
 }
 
 function onTouchEnd(e) {
   clearTimeout(touchLongPress);
 
-  if (!touchDragData) {
-    // Was a tap, not a drag — handle as click
-    touchPending = null;
+  if (!touchIsDragging || !touchDragData) {
+    // Plain tap — let click handlers fire naturally
+    touchPending    = null;
+    touchDragData   = null;
+    touchIsDragging = false;
     return;
   }
 
+  // Hide ghost, restore cards
   const ghost = document.getElementById('drag-ghost');
   ghost.style.display = 'none';
-  document.querySelectorAll('.card').forEach(c=>c.style.opacity='');
+  ghost.innerHTML = '';
+  document.querySelectorAll('.card').forEach(c => c.style.opacity = '');
 
   const t = e.changedTouches[0];
-  ghost.style.visibility = 'hidden';
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  ghost.style.visibility = 'visible';
 
-  if (el) {
-    const fEl = el.closest('[data-foundation]');
-    if (fEl) {
-      tryMove(touchDragData, 'foundation', parseInt(fEl.dataset.foundation));
-      touchDragData = null; touchPending = null; return;
-    }
-    const colEl = el.closest('.tableau-col');
-    if (colEl) {
-      tryMove(touchDragData, 'tab', parseInt(colEl.dataset.col));
-      touchDragData = null; touchPending = null; return;
+  // Find drop target — scan multiple points around the finger for robustness
+  const offsets = [[0,0],[0,-20],[0,20],[-15,0],[15,0]];
+  let destEl = null;
+  for (const [ox, oy] of offsets) {
+    const el = document.elementFromPoint(t.clientX + ox, t.clientY + oy);
+    if (el) {
+      const fEl  = el.closest('[data-foundation]');
+      const cEl  = el.closest('.tableau-col');
+      if (fEl || cEl) { destEl = el; break; }
     }
   }
-  touchDragData = null;
-  touchPending = null;
+
+  if (destEl) {
+    const fEl = destEl.closest('[data-foundation]');
+    if (fEl) {
+      tryMove(touchDragData, 'foundation', parseInt(fEl.dataset.foundation));
+    } else {
+      const cEl = destEl.closest('.tableau-col');
+      if (cEl) tryMove(touchDragData, 'tab', parseInt(cEl.dataset.col));
+    }
+  }
+
+  touchDragData   = null;
+  touchPending    = null;
+  touchIsDragging = false;
 }
 
 // ═══════════════════════════════════════════════
@@ -1453,8 +1503,6 @@ function applyOptions() {
 //  RESPONSIVE RESIZE
 // ═══════════════════════════════════════════════
 function handleResize() {
-  const w = window.innerWidth;
-  // Recalculate card width from CSS then re-render
   requestAnimationFrame(()=>{ if(state) renderAll(); });
 }
 window.addEventListener('resize', handleResize);
@@ -1470,8 +1518,30 @@ document.getElementById('opt-btn').addEventListener('click', openModal);
 document.getElementById('auto-btn').addEventListener('click', autoComplete);
 
 // ═══════════════════════════════════════════════
-//  FIX: close modal on background click
+//  DOCUMENT-LEVEL TOUCH — keeps ghost tracking even when
+//  finger slides off the source card element
 // ═══════════════════════════════════════════════
+document.addEventListener('touchmove', e => {
+  if (touchIsDragging) {
+    e.preventDefault();
+    const t = e.touches[0];
+    positionGhost(t.clientX, t.clientY);
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  if (touchIsDragging) onTouchEnd(e);
+}, { passive: false });
+
+document.addEventListener('touchcancel', () => {
+  clearTimeout(touchLongPress);
+  const ghost = document.getElementById('drag-ghost');
+  ghost.style.display = 'none';
+  ghost.innerHTML = '';
+  document.querySelectorAll('.card').forEach(c => c.style.opacity = '');
+  touchDragData = null; touchPending = null; touchIsDragging = false;
+});
+
 document.addEventListener('keydown', e=>{
   if (e.key==='z'&&(e.ctrlKey||e.metaKey)) undo();
   if (e.key==='n'&&(e.ctrlKey||e.metaKey)) { e.preventDefault(); newGame(); }
