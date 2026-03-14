@@ -114,7 +114,7 @@ body{
         <button onclick="newGame()">New Game</button>
         <span id="score"></span>
     </div>
-    <div>To rotate: Hold (Mobile) / Double-click (PC)</div>
+    <div>Double-tap to rotate</div>
 </div>
 
 <div id="drag-ghost"></div>
@@ -129,6 +129,7 @@ let board=[];
 let draggedWord=null;
 let placedWords=0;
 let activeWords=new Set();
+let lastTapTime=0;       // module-scope so double-tap works across word elements
 
 const LENGTH_BUCKETS={
     short:{min:3,max:4,count:5},
@@ -199,12 +200,10 @@ function addWordToList(bucket){
     div.dataset.bucket=bucket;
     div.dataset.dir="H";
 
-    let pressTimer;
-    let touchStartX, touchStartY;
-    // How many px finger must move before we commit to a drag (not a long-press)
-    const DRAG_THRESHOLD = 8;
-    // How long finger must be still before we treat it as a rotation long-press
-    const LONG_PRESS_MS = 650;
+    let touchStartX = 0, touchStartY = 0;
+    let touchEndX = 0, touchEndY = 0;
+    const DRAG_THRESHOLD = 20;  // px — must move this far to count as a drag (not a tap)
+    const DOUBLE_TAP_MS  = 500; // max ms between two taps to count as double-tap
 
     const ghost = document.getElementById('drag-ghost');
 
@@ -212,71 +211,77 @@ function addWordToList(bucket){
         ghost.textContent = div.textContent;
         ghost.style.background = div.dataset.dir === 'H' ? '#4caf50' : '#2196f3';
         ghost.style.left = x + 'px';
-        ghost.style.top = y + 'px';
+        ghost.style.top  = y + 'px';
         ghost.style.display = 'block';
     }
-    function hideGhost() {
-        ghost.style.display = 'none';
-    }
+    function hideGhost() { ghost.style.display = 'none'; }
+
+    // Suppress Android long-press context menu
+    div.addEventListener('contextmenu', e => e.preventDefault(), {passive: false});
 
     // Desktop
-    div.draggable=true;
+    div.draggable = true;
     div.ondragstart = () => { draggedWord = div; };
-    div.ondblclick = () => toggleRotation(div);
+    div.ondblclick  = () => toggleRotation(div);
 
-    // Mobile — three-phase approach:
-    //  Phase 1 (touchstart): record start position, start long-press timer. Do NOT set draggedWord yet.
-    //  Phase 2 (touchmove):  if finger moved past threshold, cancel long-press and commit to drag.
-    //  Phase 3 (touchend):   if dragging, attempt placement; otherwise cancel.
+    // Mobile touch flow — two completely separate intents:
+    //   TAP/DOUBLE-TAP: finger travels < DRAG_THRESHOLD px total → check double-tap → rotate
+    //   DRAG: finger travels >= DRAG_THRESHOLD px → treat as drag → place on board
+    // isDragging is NEVER checked in the tap branch — the two paths are decided purely by distance.
 
     div.addEventListener('touchstart', function(e) {
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        // Long-press rotates and then allows immediate drag in the new direction
-        pressTimer = window.setTimeout(() => {
-            toggleRotation(div);
-            // After rotation confirm, commit to drag so user can release onto board
-            draggedWord = div;
-            showGhost(touch.clientX, touch.clientY);
-        }, LONG_PRESS_MS);
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchEndX   = t.clientX;
+        touchEndY   = t.clientY;
+        draggedWord = null;
     }, {passive: true});
 
     div.addEventListener('touchmove', function(e) {
-        const touch = e.touches[0];
-        const dx = touch.clientX - touchStartX;
-        const dy = touch.clientY - touchStartY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-
-        if (dist > DRAG_THRESHOLD) {
-            // Finger is moving — this is a drag, not a long-press
-            clearTimeout(pressTimer);
-            if (!draggedWord) {
-                draggedWord = div; // commit to drag now
-            }
-        }
-
-        if (draggedWord) {
-            e.preventDefault(); // block page scroll only once we're dragging
-            showGhost(touch.clientX, touch.clientY);
+        const t = e.touches[0];
+        touchEndX = t.clientX;
+        touchEndY = t.clientY;
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+        if (Math.sqrt(dx*dx + dy*dy) >= DRAG_THRESHOLD) {
+            draggedWord = div;
+            e.preventDefault();
+            showGhost(touchEndX, touchEndY);
         }
     }, {passive: false});
 
     div.addEventListener('touchend', function(e) {
-        clearTimeout(pressTimer);
         hideGhost();
-        const touch = e.changedTouches[0];
-        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (draggedWord && el && el.classList.contains('cell')) {
-            handlePlacement(el);
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist >= DRAG_THRESHOLD && draggedWord) {
+            // --- DRAG path ---
+            const t = e.changedTouches[0];
+            const el = document.elementFromPoint(t.clientX, t.clientY);
+            if (el && el.classList.contains('cell')) {
+                handlePlacement(el);
+            }
+            lastTapTime = 0; // drag resets tap sequence
+        } else {
+            // --- TAP path ---
+            const now = Date.now();
+            if (lastTapTime > 0 && now - lastTapTime < DOUBLE_TAP_MS) {
+                toggleRotation(div);
+                lastTapTime = 0;
+            } else {
+                lastTapTime = now;
+            }
         }
         draggedWord = null;
     }, {passive: false});
 
     div.addEventListener('touchcancel', function() {
-        clearTimeout(pressTimer);
         hideGhost();
         draggedWord = null;
+        lastTapTime = 0; // cancelled touch doesn't count as a tap in a sequence
     }, {passive: true});
 
     list.appendChild(div);
