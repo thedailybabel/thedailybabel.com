@@ -129,7 +129,8 @@ let board=[];
 let draggedWord=null;
 let placedWords=0;
 let activeWords=new Set();
-let lastTapTime=0;       // module-scope so double-tap works across word elements
+let lastTapTime=0;
+let lastRotateTime=0;
 
 const LENGTH_BUCKETS={
     short:{min:3,max:4,count:5},
@@ -203,7 +204,7 @@ function addWordToList(bucket){
     let touchStartX = 0, touchStartY = 0;
     let touchEndX = 0, touchEndY = 0;
     const DRAG_THRESHOLD = 20;  // px — must move this far to count as a drag (not a tap)
-    const DOUBLE_TAP_MS  = 500; // max ms between two taps to count as double-tap
+    const DOUBLE_TAP_MS  = 500; // max ms between two taps — Android taps naturally land 400-500ms apart
 
     const ghost = document.getElementById('drag-ghost');
 
@@ -256,23 +257,27 @@ function addWordToList(bucket){
         const dx = touchEndX - touchStartX;
         const dy = touchEndY - touchStartY;
         const dist = Math.sqrt(dx*dx + dy*dy);
+        const now = Date.now();
 
         if (dist >= DRAG_THRESHOLD && draggedWord) {
-            // --- DRAG path ---
             const t = e.changedTouches[0];
             const el = document.elementFromPoint(t.clientX, t.clientY);
             if (el && el.classList.contains('cell')) {
                 handlePlacement(el);
             }
-            lastTapTime = 0; // drag resets tap sequence
+            lastTapTime = 0;
         } else {
-            // --- TAP path ---
-            const now = Date.now();
             if (lastTapTime > 0 && now - lastTapTime < DOUBLE_TAP_MS) {
-                toggleRotation(div);
+                if (now - lastRotateTime > 600) {
+                    toggleRotation(div);
+                    lastRotateTime = now;
+                }
                 lastTapTime = 0;
             } else {
                 lastTapTime = now;
+                // Flash briefly to confirm first tap registered — tap again to rotate
+                div.style.opacity = '0.5';
+                setTimeout(() => { div.style.opacity = '1'; }, 150);
             }
         }
         draggedWord = null;
@@ -281,7 +286,6 @@ function addWordToList(bucket){
     div.addEventListener('touchcancel', function() {
         hideGhost();
         draggedWord = null;
-        lastTapTime = 0; // cancelled touch doesn't count as a tap in a sequence
     }, {passive: true});
 
     list.appendChild(div);
