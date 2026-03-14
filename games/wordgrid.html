@@ -47,11 +47,29 @@ body{
     user-select:none;
     -webkit-user-select: none;
     touch-action: none; 
-    transition: transform 0.1s;
+    transition: background 0.2s;
 }
 
 .word:active {
     transform: scale(1.05);
+}
+
+#drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    background: #4caf50;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0.85;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transform: translate(-50%, -50%);
+    display: none;
+    white-space: nowrap;
 }
 
 #boardWrapper{
@@ -96,9 +114,10 @@ body{
         <button onclick="newGame()">New Game</button>
         <span id="score"></span>
     </div>
-    <div>Hold to rotate (Mobile) / Double-click (PC)</div>
+    <div>To rotate: Hold (Mobile) / Double-click (PC)</div>
 </div>
 
+<div id="drag-ghost"></div>
 <div id="game">
     <div id="wordlist"></div>
     <div id="boardWrapper"><div id="board"></div></div>
@@ -181,35 +200,84 @@ function addWordToList(bucket){
     div.dataset.dir="H";
 
     let pressTimer;
+    let touchStartX, touchStartY;
+    // How many px finger must move before we commit to a drag (not a long-press)
+    const DRAG_THRESHOLD = 8;
+    // How long finger must be still before we treat it as a rotation long-press
+    const LONG_PRESS_MS = 650;
+
+    const ghost = document.getElementById('drag-ghost');
+
+    function showGhost(x, y) {
+        ghost.textContent = div.textContent;
+        ghost.style.background = div.dataset.dir === 'H' ? '#4caf50' : '#2196f3';
+        ghost.style.left = x + 'px';
+        ghost.style.top = y + 'px';
+        ghost.style.display = 'block';
+    }
+    function hideGhost() {
+        ghost.style.display = 'none';
+    }
 
     // Desktop
     div.draggable=true;
     div.ondragstart = () => { draggedWord = div; };
     div.ondblclick = () => toggleRotation(div);
 
-    // Mobile
+    // Mobile — three-phase approach:
+    //  Phase 1 (touchstart): record start position, start long-press timer. Do NOT set draggedWord yet.
+    //  Phase 2 (touchmove):  if finger moved past threshold, cancel long-press and commit to drag.
+    //  Phase 3 (touchend):   if dragging, attempt placement; otherwise cancel.
+
     div.addEventListener('touchstart', function(e) {
-        draggedWord = div; 
-        // Only set timer if not already dragging
-        pressTimer = window.setTimeout(() => toggleRotation(div), 500);
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        // Long-press rotates and then allows immediate drag in the new direction
+        pressTimer = window.setTimeout(() => {
+            toggleRotation(div);
+            // After rotation confirm, commit to drag so user can release onto board
+            draggedWord = div;
+            showGhost(touch.clientX, touch.clientY);
+        }, LONG_PRESS_MS);
     }, {passive: true});
 
     div.addEventListener('touchmove', function(e) {
-        clearTimeout(pressTimer);
-        // Only prevent scroll if we are definitely dragging a word
-        if(draggedWord) e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist > DRAG_THRESHOLD) {
+            // Finger is moving — this is a drag, not a long-press
+            clearTimeout(pressTimer);
+            if (!draggedWord) {
+                draggedWord = div; // commit to drag now
+            }
+        }
+
+        if (draggedWord) {
+            e.preventDefault(); // block page scroll only once we're dragging
+            showGhost(touch.clientX, touch.clientY);
+        }
     }, {passive: false});
 
     div.addEventListener('touchend', function(e) {
         clearTimeout(pressTimer);
+        hideGhost();
         const touch = e.changedTouches[0];
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (el && el.classList.contains('cell')) {
+        if (draggedWord && el && el.classList.contains('cell')) {
             handlePlacement(el);
         }
-        // Always reset draggedWord on touch release
-        draggedWord = null; 
+        draggedWord = null;
     }, {passive: false});
+
+    div.addEventListener('touchcancel', function() {
+        clearTimeout(pressTimer);
+        hideGhost();
+        draggedWord = null;
+    }, {passive: true});
 
     list.appendChild(div);
 }
