@@ -52,14 +52,12 @@ body{
 
 .word:active {
     transform: scale(1.05);
-    background: #2e7d32;
 }
 
 #boardWrapper{
     flex:1;
     padding:10px;
     overflow:auto;
-    /* Dark green, slightly lighter than word list (#2f3b35) */
     background:#3a4d43; 
 }
 
@@ -75,14 +73,12 @@ body{
 .cell{
     width:36px;
     height:36px;
-    /* Reverted to white background */
     background:white;
     display:flex;
     align-items:center;
     justify-content:center;
     font-weight:bold;
     font-size:16px;
-    /* Black letters */
     color: black;
 }
 
@@ -186,27 +182,30 @@ function addWordToList(bucket){
 
     let pressTimer;
 
-    // Desktop
+    // Desktop Drag
     div.draggable=true;
     div.ondragstart = () => { draggedWord = div; };
     div.ondblclick = () => toggleRotation(div);
 
-    // Mobile Fix
+    // Mobile Fix: Improved detection
     div.addEventListener('touchstart', function(e) {
         draggedWord = div; 
         pressTimer = window.setTimeout(() => toggleRotation(div), 500);
-    }, {passive: false});
+    }, {passive: true});
 
     div.addEventListener('touchmove', function(e) {
         clearTimeout(pressTimer);
-    }, {passive: false});
+    }, {passive: true});
 
     div.addEventListener('touchend', function(e) {
         clearTimeout(pressTimer);
         const touch = e.changedTouches[0];
+        // Use client coords to find the cell under the release point
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         if (el && el.classList.contains('cell')) {
             handlePlacement(el);
+        } else {
+            draggedWord = null; // Clean up if not dropped on a cell
         }
     });
 
@@ -236,7 +235,7 @@ function handlePlacement(cellEl) {
     activeWords.delete(word);
     draggedWord.remove();
     addWordToList(bucket);
-    draggedWord=null;
+    draggedWord=null; // Essential cleanup
     updateScore();
 }
 
