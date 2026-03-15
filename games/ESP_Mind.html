@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ESP Mind</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --red: #c0392b;
+    --red-bright: #e74c3c;
+    --gold: #c9a84c;
+    --gold-light: #e8c878;
+    --cream: #f5f0e8;
+    --muted: #7a7a7a;
+    --bg: #0d0d0d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--cream);
+  }
+
+  body { display: flex; align-items: center; justify-content: center; }
+
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(192,57,43,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(201,168,76,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 420px;
+    padding: 28px 24px;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100dvh; justify-content: center;
+  }
+
+  .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+  .screen.active { display: flex; }
+
+  /* ── INTRO ── */
+  .intro-eyebrow {
+    font-size: 11px; letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 24px;
+    opacity: 0; animation: fadeUp 0.7s 0.2s ease forwards;
+  }
+  .intro-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(56px, 15vw, 80px); font-weight: 300;
+    letter-spacing: 0.08em; line-height: 1; text-align: center;
+    opacity: 0; animation: fadeUp 0.8s 0.4s ease forwards;
+  }
+  .intro-title em { color: var(--red-bright); font-style: italic; }
+  .intro-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(15px, 4vw, 19px); font-weight: 300; font-style: italic;
+    color: var(--muted); text-align: center; margin-top: 20px; line-height: 1.6;
+    opacity: 0; animation: fadeUp 0.8s 0.6s ease forwards;
+  }
+  .divider {
+    width: 50px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 30px auto;
+    opacity: 0; animation: fadeUp 0.8s 0.8s ease forwards;
+  }
+  .begin-btn {
+    font-family: 'Rajdhani', sans-serif; font-size: 12px;
+    letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--cream); background: transparent;
+    border: 1px solid rgba(201,168,76,0.38);
+    padding: 14px 44px; cursor: pointer;
+    transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
+    opacity: 0; animation: fadeUp 0.8s 1s ease forwards;
+  }
+  .begin-btn:hover, .begin-btn:active {
+    border-color: var(--gold); color: var(--gold-light);
+    box-shadow: 0 0 20px rgba(201,168,76,0.12);
+  }
+
+  /* ── GAME ── */
+  .prog-wrap {
+    width: 100%; max-width: 340px; height: 2px;
+    background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    transition: width 0.35s ease; border-radius: 2px;
+  }
+  .round-lbl {
+    font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 30px; text-align: center;
+  }
+  .round-lbl strong { color: var(--gold); font-weight: 600; }
+
+  .prompt {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(20px, 5.5vw, 26px); font-weight: 300; font-style: italic;
+    color: var(--cream); text-align: center; margin-bottom: 36px;
+    letter-spacing: 0.02em;
+    opacity: 0; animation: fadeUp 0.4s ease forwards;
+  }
+
+  /* ── BOXES ── */
+  .boxes-row {
+    display: flex; gap: 18px; justify-content: center;
+    width: 100%; max-width: 320px;
+  }
+
+  .box {
+    flex: 1; height: 130px; border-radius: 6px;
+    cursor: pointer; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+  }
+
+  .box-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px; letter-spacing: 0.3em; text-transform: uppercase;
+    font-weight: 600; position: relative; z-index: 1;
+    transition: opacity 0.1s ease;
+  }
+
+  .box-red { background: var(--red); box-shadow: 0 4px 24px rgba(192,57,43,0.35); }
+  .box-red .box-label { color: rgba(255,255,255,0.85); }
+  .box-red:not(.locked):hover, .box-red:not(.locked):active {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 36px rgba(192,57,43,0.55);
+  }
+
+  .box-black {
+    background: #1c1c1c;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .box-black .box-label { color: rgba(255,255,255,0.7); }
+  .box-black:not(.locked):hover, .box-black:not(.locked):active {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 36px rgba(0,0,0,0.8);
+    border-color: rgba(255,255,255,0.16);
+  }
+
+  .box.locked { pointer-events: none; }
+  .box.dimmed { opacity: 0.15; transition: opacity 0.1s; }
+
+  /* ── THUMBS OVERLAY ── */
+  #thumb-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+  }
+  #thumb-overlay.show { animation: thumbPop 0.55s ease forwards; }
+
+  #thumb-emoji {
+    font-size: clamp(90px, 24vw, 130px);
+    line-height: 1;
+    filter: drop-shadow(0 0 30px rgba(0,0,0,0.8));
+  }
+
+  @keyframes thumbPop {
+    0%   { opacity: 0; transform: scale(0.5); }
+    30%  { opacity: 1; transform: scale(1.1); }
+    60%  { opacity: 1; transform: scale(1.0); }
+    100% { opacity: 0; transform: scale(0.9); }
+  }
+
+  /* ── RESULTS ── */
+  .res-title {
+    font-family: 'Cormorant Garamond', serif; font-weight: 300; font-style: italic;
+    font-size: clamp(14px, 3.5vw, 16px); letter-spacing: 0.1em;
+    color: var(--muted); text-align: center; margin-bottom: 6px;
+    opacity: 0; animation: fadeUp 0.6s 0.1s ease forwards;
+  }
+  .res-score {
+    font-family: 'Cormorant Garamond', serif; font-weight: 300;
+    font-size: clamp(70px, 19vw, 100px); line-height: 1;
+    text-align: center; letter-spacing: -0.02em;
+    opacity: 0; animation: fadeUp 0.7s 0.25s ease forwards;
+  }
+  .res-score sup { font-size: 0.42em; color: var(--gold); vertical-align: super; font-style: italic; }
+  .res-verdict {
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--gold); text-align: center; margin-top: 8px;
+    opacity: 0; animation: fadeUp 0.7s 0.4s ease forwards;
+  }
+  .res-divider {
+    width: 100%; max-width: 280px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.28), transparent);
+    margin: 24px auto;
+    opacity: 0; animation: fadeUp 0.7s 0.5s ease forwards;
+  }
+  .history-lbl {
+    font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--muted); text-align: center; margin-bottom: 14px;
+    opacity: 0; animation: fadeUp 0.7s 0.55s ease forwards;
+  }
+  .history-row {
+    display: flex; gap: 10px; justify-content: center; align-items: flex-end;
+    width: 100%; max-width: 340px;
+    opacity: 0; animation: fadeUp 0.7s 0.65s ease forwards;
+  }
+  .hist-cell {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    max-width: 60px;
+  }
+  .hist-bar-wrap {
+    width: 100%; height: 48px;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .hist-bar {
+    width: 70%; border-radius: 3px 3px 0 0;
+    background: rgba(201,168,76,0.18);
+    border: 1px solid rgba(201,168,76,0.2);
+    transition: height 0.4s ease;
+    min-height: 3px;
+  }
+  .hist-bar.current {
+    background: rgba(201,168,76,0.45);
+    border-color: rgba(201,168,76,0.7);
+  }
+  .hist-pct {
+    font-family: 'Rajdhani', sans-serif; font-size: 13px;
+    font-weight: 600; letter-spacing: 0.04em; color: var(--cream);
+  }
+  .hist-pct.current { color: var(--gold-light); }
+  .hist-lbl {
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); text-align: center;
+  }
+  .hist-lbl.current { color: rgba(201,168,76,0.7); }
+  /* Empty slot */
+  .hist-cell.empty .hist-bar { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+  .hist-cell.empty .hist-pct { color: var(--muted); }
+
+  .retry-btn {
+    margin-top: 28px; font-family: 'Rajdhani', sans-serif; font-size: 12px;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--cream); background: transparent;
+    border: 1px solid rgba(201,168,76,0.35);
+    padding: 14px 44px; cursor: pointer;
+    transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
+    opacity: 0; animation: fadeUp 0.7s 0.8s ease forwards;
+  }
+  .retry-btn:hover, .retry-btn:active {
+    border-color: var(--gold); color: var(--gold-light);
+    box-shadow: 0 0 22px rgba(201,168,76,0.14);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INTRO -->
+  <div class="screen active" id="screen-intro">
+    <div class="intro-eyebrow">Psychic Experiment No. 1</div>
+    <div class="intro-title">ESP<br><em>Mind</em></div>
+    <div class="intro-sub">Do you have ESP?<br>Can you get more than 50% right&hellip; consistently?</div>
+    <div class="divider"></div>
+    <button class="begin-btn" id="btn-begin">Click to Begin</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div class="prog-wrap">
+      <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+    <div class="round-lbl">Round <strong id="round-num">1</strong> of 50</div>
+    <div class="prompt" id="prompt">Which colour are you sensing?</div>
+    <div class="boxes-row">
+      <div class="box box-red"   id="box-red"   data-choice="red"><span class="box-label">Red</span></div>
+      <div class="box box-black" id="box-black" data-choice="black"><span class="box-label">Black</span></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="screen" id="screen-results">
+    <div class="res-title">Your accuracy score</div>
+    <div class="res-score"><span id="score-num">50.00</span><sup>%</sup></div>
+    <div class="res-verdict" id="res-verdict"></div>
+    <div class="res-divider"></div>
+    <div class="history-lbl">Session history</div>
+    <div class="history-row" id="history-row"></div>
+    <button class="retry-btn" id="btn-retry">Try Again</button>
+  </div>
+
+</div>
+
+<!-- Thumbs overlay (outside #app so it covers full screen) -->
+<div id="thumb-overlay"><span id="thumb-emoji">👍</span></div>
+
+<script>
+const TOTAL    = 50;
+const FLASH_MS = 520;
+const HISTORY_KEY = 'espmind_history'; // localStorage key
+
+let round = 0, correct = 0, answers = [], currentAnswer = null, busy = false;
+
+// ── Audio (Web Audio API, no files needed) ──
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playCorrect() {
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, t);
+    osc.frequency.linearRampToValueAtTime(880, t + 0.12);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    osc.start(t); osc.stop(t + 0.35);
+  } catch(e) {}
+}
+
+function playWrong() {
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.linearRampToValueAtTime(150, t + 0.18);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.1, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    osc.start(t); osc.stop(t + 0.3);
+  } catch(e) {}
+}
+
+// ── Session history ──
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch(e) { return []; }
+}
+function saveHistory(pct) {
+  let h = loadHistory();
+  h.push(+pct.toFixed(2));
+  if (h.length > 5) h = h.slice(-5);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch(e) {}
+  return h;
+}
+
+// ── Screens ──
+const screens = {
+  intro:   document.getElementById('screen-intro'),
+  game:    document.getElementById('screen-game'),
+  results: document.getElementById('screen-results'),
+};
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+function gen() { return Math.random() < 0.5 ? 'red' : 'black'; }
+
+function updateProgress() {
+  document.getElementById('prog-fill').style.width = (round / TOTAL * 100) + '%';
+  document.getElementById('round-num').textContent = round + 1;
+}
+
+// ── Thumb flash ──
+function showThumb(isCorrect) {
+  const overlay = document.getElementById('thumb-overlay');
+  document.getElementById('thumb-emoji').textContent = isCorrect ? '👍' : '👎';
+  overlay.classList.remove('show');
+  overlay.offsetHeight; // reflow
+  overlay.classList.add('show');
+  if (isCorrect) playCorrect(); else playWrong();
+}
+
+// ── Handle choice ──
+function handleChoice(choice) {
+  if (busy) return;
+  busy = true;
+
+  const isCorrect = (choice === currentAnswer);
+  if (isCorrect) correct++;
+  answers.push({ answer: currentAnswer, choice, isCorrect });
+
+  const chosen = document.getElementById('box-' + choice);
+  const other  = document.getElementById('box-' + (choice === 'red' ? 'black' : 'red'));
+  chosen.classList.add('locked');
+  other.classList.add('locked', 'dimmed');
+
+  showThumb(isCorrect);
+
+  setTimeout(() => {
+    chosen.classList.remove('locked');
+    other.classList.remove('locked', 'dimmed');
+    document.getElementById('thumb-overlay').classList.remove('show');
+
+    round++;
+    if (round >= TOTAL) { showResults(); return; }
+
+    updateProgress();
+    const p = document.getElementById('prompt');
+    p.style.animation = 'none'; p.offsetHeight;
+    p.style.animation = 'fadeUp 0.4s ease forwards';
+
+    currentAnswer = gen();
+    busy = false;
+  }, FLASH_MS);
+}
+
+// ── Results ──
+function showResults() {
+  const pct = correct / TOTAL * 100;
+  document.getElementById('score-num').textContent = pct.toFixed(2);
+
+  let v;
+  if      (pct >= 70) v = 'Extraordinary — strong ESP signal';
+  else if (pct >= 60) v = 'Impressive — above chance';
+  else if (pct >  50) v = 'Slightly above chance';
+  else if (pct === 50) v = 'Exactly at chance';
+  else                 v = 'Below chance — try again';
+  document.getElementById('res-verdict').textContent = v;
+
+  // Save and retrieve history (current session already included)
+  const history = saveHistory(pct); // history[-1] is current
+
+  // Build session history bar chart
+  // history = up to 5 entries, oldest first, last is current session
+  const row = document.getElementById('history-row');
+  row.innerHTML = '';
+  const maxPct = 100;
+  const barMaxH = 48; // px — matches .hist-bar-wrap height
+
+  // Pad to 5 slots
+  const slots = Array(5).fill(null);
+  history.forEach((v, i) => { slots[5 - history.length + i] = v; });
+
+  slots.forEach((val, i) => {
+    const isCurrent = (i === 4) || (val !== null && i === 5 - history.length + history.length - 1);
+    // simpler: last non-null is current
+    const isCurrentSlot = (i === slots.length - 1 && val !== null);
+    const cell = document.createElement('div');
+    cell.className = 'hist-cell' + (val === null ? ' empty' : '');
+
+    const barH = val !== null ? Math.max(4, Math.round((val / maxPct) * barMaxH)) : 4;
+    const sessionLabel = val !== null
+      ? (isCurrentSlot ? 'Now' : `S${i + 1}`)
+      : '—';
+
+    cell.innerHTML = `
+      <div class="hist-bar-wrap">
+        <div class="hist-bar${isCurrentSlot ? ' current' : ''}" style="height:${barH}px"></div>
+      </div>
+      <div class="hist-pct${isCurrentSlot ? ' current' : ''}">${val !== null ? val.toFixed(0)+'%' : ''}</div>
+      <div class="hist-lbl${isCurrentSlot ? ' current' : ''}">${sessionLabel}</div>
+    `;
+    row.appendChild(cell);
+  });
+
+  // Re-trigger animations
+  document.querySelectorAll('#screen-results .res-title, #screen-results .res-score, #screen-results .res-verdict, #screen-results .res-divider, #screen-results .history-lbl, #screen-results .history-row, #screen-results .retry-btn').forEach(el => {
+    el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  });
+
+  showScreen('results');
+}
+
+// ── Start ──
+function startGame() {
+  round = 0; correct = 0; answers = []; busy = false;
+  updateProgress();
+  currentAnswer = gen();
+  const p = document.getElementById('prompt');
+  p.style.animation = 'none'; p.offsetHeight; p.style.animation = 'fadeUp 0.4s ease forwards';
+  showScreen('game');
+}
+
+document.getElementById('btn-begin').addEventListener('click', startGame);
+document.getElementById('box-red').addEventListener('click',   () => handleChoice('red'));
+document.getElementById('box-black').addEventListener('click', () => handleChoice('black'));
+document.getElementById('btn-retry').addEventListener('click', () => {
+  showScreen('intro');
+  document.querySelectorAll('#screen-intro .intro-eyebrow, #screen-intro .intro-title, #screen-intro .intro-sub, #screen-intro .divider, #screen-intro .begin-btn').forEach(el => {
+    el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  });
+});
+</script>
+</body>
+</html>
