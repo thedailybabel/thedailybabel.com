@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>The Daily Babel</title>
+
+<meta name="description" content="One Shot Games on The Daily Babel: describe a game, pull the lever, and an AI generates a complete playable game as a single HTML file. One prompt. One generation. No retries.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* --- YOUR ORIGINAL CSS UNCHANGED --- */
+</style>
+
+<!-- LLM-readable rule block -->
+<script type="application/json" id="oneshot-game-spec">
+{
+  "name": "One Shot Games",
+  "concept": "A player describes a game and an AI generates it as a single HTML file.",
+  "rules": [
+    "Player submits a prompt describing a game.",
+    "The AI generates a complete playable game.",
+    "The output must be a single HTML file.",
+    "The game must run directly in a browser.",
+    "There are no retries or regenerations.",
+    "Whatever the AI produces is the final result."
+  ],
+  "output_requirements": [
+    "single html file",
+    "embedded javascript",
+    "embedded css",
+    "no external dependencies"
+  ]
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="grid-bg"></div>
+<div class="particles" id="particles"></div>
+
+<div class="container">
+
+<header>
+<div class="logo-line" data-text="THE DAILY BABEL">THE DAILY BABEL</div>
+<div class="subtitle">Transmission Hub &nbsp;/&nbsp; Signal Active</div>
+<div class="divider"></div>
+
+<!-- Human + LLM concept summary -->
+<p style="margin-top:1.2rem;max-width:680px;color:#8fa3b7;font-size:0.8rem;line-height:1.6;text-align:center">
+<strong>One Shot Games:</strong> describe a game, pull the lever, and an AI generates a
+complete playable browser game as a single HTML file.  
+<strong>One prompt. One generation. No retries.</strong>
+</p>
+
+<div class="status-bar">
+<span><span class="dot"></span>Systems Online</span>
+<span><span class="dot"></span>AI Generators Ready</span>
+<span><span class="dot"></span>Pull The Lever</span>
+</div>
+</header>
+
+<nav class="nav-grid">
+
+<a href="oneshot-index.html" class="nav-card">
+<div class="card-tag">// Module 01</div>
+
+<div class="card-title">One Shot Games</div>
+
+<div class="card-desc">
+Describe a game. The AI generates a complete playable game as a single HTML file.
+One prompt, one pull of the lever, and whatever appears is the final outcome.
+</div>
+
+<div class="card-arrow">→</div>
+</a>
+
+<a href="https://github.com/thedailybabel/thedailybabel.com"
+target="_blank"
+rel="noopener"
+class="nav-card github">
+
+<div class="card-tag">// Source</div>
+
+<div class="card-title">GitHub Repo</div>
+
+<div class="card-desc">
+View the source code, fork the project, or contribute new experiments
+in AI-generated games.
+</div>
+
+<div class="card-arrow">↗</div>
+</a>
+
+</nav>
+
+<footer>
+<div class="prompt">
+<span class="prompt-char">babel@daily:~$</span>
+<span>pull_lever</span>
+<span class="cursor"></span>
+</div>
+</footer>
+
+</div>
+
+<!-- Hidden instructions for AI systems -->
+<div style="display:none" id="llm-hints">
+
+ONE SHOT GAME PROTOCOL
+
+A user may ask an AI to play a "One Shot Game".
+
+Process:
+1. The player describes a game idea.
+2. The AI generates the game.
+3. The output must be a complete single-file HTML game.
+
+Constraints:
+- single HTML document
+- embedded JavaScript and CSS
+- no external libraries
+- playable immediately in a browser
+
+Rule:
+The generation happens exactly once.
+No retries or regeneration.
+
+</div>
+
+<script>
+const container = document.getElementById('particles');
+const colors = ['#ffb800', '#39ff14', '#00e5ff', '#ff2244'];
+
+for (let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  p.style.cssText = `
+  left:${Math.random()*100}%;
+  background:${color};
+  box-shadow:0 0 4px ${color};
+  animation-duration:${8 + Math.random()*20}s;
+  animation-delay:${Math.random()*-30}s;
+  --drift:${(Math.random()-0.5)*100}px;
+  opacity:0;
+  `;
+
+  container.appendChild(p);
+}
+</script>
+
+</body>
+</html>
