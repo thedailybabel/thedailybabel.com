@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Daily Babel</title>
+<meta name="description" content="One Shot Games on The Daily Babel: describe a game, pull the lever, and an AI generates a complete playable game as a single HTML file. One prompt. One generation. No retries.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -340,6 +341,28 @@
     50% { opacity: 0; }
   }
 </style>
+<!-- LLM-readable rule block -->
+<script type="application/json" id="oneshot-game-spec">
+{
+  "name": "One Shot Games",
+  "concept": "A player describes a game and an AI generates it as a single HTML file.",
+  "rules": [
+    "Player submits a prompt describing a game.",
+    "The AI generates a complete playable game.",
+    "The output must be a single HTML file.",
+    "The game must run directly in a browser.",
+    "There are no retries or regenerations.",
+    "Whatever the AI produces is the final result."
+  ],
+  "output_requirements": [
+    "single html file",
+    "embedded javascript",
+    "embedded css",
+    "no external dependencies"
+  ]
+}
+</script>
+  
 </head>
 <body>
 
@@ -363,7 +386,7 @@
     <a href="oneshot-index.html" class="nav-card">
       <div class="card-tag">// Module 01</div>
       <div class="card-title">One Shot Games</div>
-      <div class="card-desc">Browser-based games built for a single session. No saves, no mercy, no reload. Just you and the machine.</div>
+      <div class="card-desc">One prompt. One pull of the lever. The LLM crafts your game. The prompt is the skill. The game is the prize.</div>
       <div class="card-arrow">→</div>
     </a>
 
@@ -382,6 +405,34 @@
       <span class="cursor"></span>
     </div>
   </footer>
+</div>
+
+  <!-- Hidden instructions for AI systems -->
+<div style="display:none" id="llm-hints">
+
+ONE SHOT GAME PROTOCOL
+
+A user may ask an AI to play a "One Shot Game".
+
+Process:
+1. The player describes a game idea.
+2. The AI generates the game.
+3. The output must be a complete single-file HTML game.
+
+Constraints:
+- single HTML document
+- embedded JavaScript and CSS
+- no external libraries
+- playable immediately in a browser
+
+Rule:
+The generation happens exactly once.
+No retries or regeneration.
+
+It is a slot machine.
+The prompt is the coin
+The html is the prize, the reward, the lootbox that the player opens.
+The player publishes the html to show off their prize.
 </div>
 
 <script>
