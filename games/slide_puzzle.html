@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Slide Puzzle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #f0ebe2;
+  --surface: #e8e1d4;
+  --tile: #1a1814;
+  --tile-face: #f0ebe2;
+  --tile-border: #2d2926;
+  --accent: #c05a2a;
+  --accent2: #4a7c59;
+  --gold: #b8922a;
+  --muted: #8a8078;
+  --text: #1a1814;
+  --gap: 5px;
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+html, body {
+  height: 100%; width: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+}
+
+body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+
+/* ── HEADER ── */
+header {
+  width: 100%; max-width: 520px;
+  padding: 18px 20px 10px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(22px, 6vw, 30px);
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1;
+}
+.brand em { color: var(--accent); font-style: italic; }
+
+.move-counter {
+  font-size: 12px; letter-spacing: 0.12em;
+  color: var(--muted); text-align: right;
+}
+.move-counter strong { color: var(--text); font-size: 18px; display: block; letter-spacing: -0.02em; }
+
+/* ── LEVEL SELECTOR ── */
+.level-bar {
+  width: 100%; max-width: 520px;
+  padding: 0 20px 14px;
+  display: flex; gap: 8px;
+  flex-shrink: 0;
+}
+
+.lvl-btn {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  padding: 7px 2px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.3;
+}
+.lvl-btn span { display: block; font-size: 9px; color: inherit; opacity: 0.7; }
+.lvl-btn:hover { border-color: var(--muted); color: var(--text); }
+.lvl-btn.active {
+  background: var(--tile);
+  color: var(--tile-face);
+  border-color: var(--tile);
+}
+.lvl-btn.active span { opacity: 0.55; }
+
+/* ── BOARD WRAPPER ── */
+.board-outer {
+  flex: 1;
+  width: 100%; max-width: 520px;
+  padding: 0 20px 8px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  min-height: 0;
+}
+
+.board {
+  display: grid;
+  gap: var(--gap);
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: calc(100vh - 200px);
+  max-width: min(calc(100vw - 40px), calc(100vh - 200px));
+  margin: 0 auto;
+}
+
+/* ── TILES ── */
+.tile {
+  background: var(--tile);
+  color: var(--tile-face);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 2px 0 var(--tile-border), 0 3px 6px rgba(0,0,0,0.18);
+  will-change: transform;
+  /* font size set by JS */
+}
+
+.tile::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.tile:active { transform: scale(0.93); }
+
+.tile.movable { cursor: pointer; }
+.tile.movable:hover {
+  background: #2d2926;
+  box-shadow: 0 3px 0 var(--tile-border), 0 5px 12px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
+
+.tile.empty {
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  border: 2px dashed rgba(26,24,20,0.12);
+}
+.tile.empty::after { display: none; }
+.tile.empty:hover { transform: none; background: transparent; }
+
+.tile.slide-anim {
+  transition: transform 0.13s cubic-bezier(0.2, 0, 0.1, 1);
+}
+
+/* Tile number colour by value range */
+.tile.range-low  { background: #1a1814; }
+.tile.range-mid  { background: #222b1f; }  /* subtle green tint */
+.tile.range-high { background: #2a1f18; }  /* subtle warm tint */
+.tile.range-top  { background: #1f1a26; }  /* subtle cool tint */
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  width: 100%; max-width: 520px;
+  padding: 6px 20px 14px;
+  display: flex; gap: 10px; align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-new {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  background: var(--accent);
+  color: #fff;
+  border: none; border-radius: 4px;
+  padding: 11px 12px; cursor: pointer;
+  transition: background 0.18s, transform 0.1s;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+}
+.btn-new:hover { background: #b04e22; }
+.btn-new:active { transform: scale(0.97); }
+
+.btn-solve {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1.5px solid rgba(0,0,0,0.1); border-radius: 4px;
+  padding: 11px 14px; cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-solve:hover { border-color: var(--muted); color: var(--text); }
+.btn-solve:active { transform: scale(0.97); }
+
+/* ── WIN OVERLAY ── */
+#win-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(240,235,226,0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+#win-overlay.show { opacity: 1; pointer-events: all; }
+
+.win-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(42px, 12vw, 72px);
+  font-style: italic;
+  color: var(--text);
+  line-height: 1;
+  text-align: center;
+}
+.win-title em { color: var(--accent); }
+
+.win-sub {
+  font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); margin-top: 4px;
+}
+.win-moves {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(28px, 8vw, 48px);
+  color: var(--text); margin-top: 10px; text-align: center;
+}
+.win-moves span { font-size: 0.45em; font-family: 'DM Mono', monospace; color: var(--muted); display: block; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.win-btns { display: flex; gap: 10px; margin-top: 20px; }
+.win-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  border: none; border-radius: 4px;
+  padding: 12px 22px; cursor: pointer;
+  transition: transform 0.1s, background 0.18s;
+}
+.win-btn.primary { background: var(--tile); color: var(--tile-face); }
+.win-btn.primary:hover { background: #2d2926; }
+.win-btn.secondary { background: var(--surface); color: var(--text); border: 1.5px solid rgba(0,0,0,0.1); }
+.win-btn.secondary:hover { border-color: var(--muted); }
+.win-btn:active { transform: scale(0.96); }
+
+/* ── CONFETTI DOTS ── */
+.confetti-dot {
+  position: fixed; pointer-events: none; z-index: 99;
+  width: 8px; height: 8px; border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Slide<br><em>Puzzle</em></div>
+  <div class="move-counter"><strong id="move-count">0</strong>moves</div>
+</header>
+
+<div class="level-bar">
+  <button class="lvl-btn" data-size="3">3×3<span>8 tiles</span></button>
+  <button class="lvl-btn active" data-size="4">4×4<span>15 tiles</span></button>
+  <button class="lvl-btn" data-size="5">5×5<span>24 tiles</span></button>
+  <button class="lvl-btn" data-size="6">6×6<span>35 tiles</span></button>
+</div>
+
+<div class="board-outer">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-new" id="btn-new">New Game</button>
+  <button class="btn-solve" id="btn-solve">Shuffle</button>
+</div>
+
+<div id="win-overlay">
+  <div class="win-title">Puz<em>zled!</em></div>
+  <div class="win-sub">You solved it</div>
+  <div class="win-moves" id="win-moves">0 <span>moves</span></div>
+  <div class="win-btns">
+    <button class="win-btn primary" id="win-new">Play Again</button>
+    <button class="win-btn secondary" id="win-next">Next Level</button>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let SIZE = 4;
+let tiles = [];   // 1D array, 0 = empty
+let moves = 0;
+let won = false;
+
+// ── Generate solvable puzzle by walking random legal moves from solved state ──
+// This is guaranteed correct by construction — no inversion maths needed.
+function generateSolvable(size) {
+  const total = size * size;
+  // Start from solved state
+  const arr = Array.from({length: total - 1}, (_, i) => i + 1).concat(0);
+  // Number of random moves to make — more moves = better shuffle
+  const steps = size * size * 40;
+  let blankIdx = total - 1;
+  let lastBlank = -1; // prevent immediately undoing the last move
+
+  for (let s = 0; s < steps; s++) {
+    const br = Math.floor(blankIdx / size);
+    const bc = blankIdx % size;
+    const neighbours = [];
+    if (br > 0)        neighbours.push(blankIdx - size);
+    if (br < size - 1) neighbours.push(blankIdx + size);
+    if (bc > 0)        neighbours.push(blankIdx - 1);
+    if (bc < size - 1) neighbours.push(blankIdx + 1);
+
+    // Filter out the position we just came from (avoid trivial undo)
+    const choices = neighbours.filter(n => n !== lastBlank);
+    const pick = choices[Math.floor(Math.random() * choices.length)];
+    lastBlank = blankIdx;
+    arr[blankIdx] = arr[pick];
+    arr[pick] = 0;
+    blankIdx = pick;
+  }
+  return arr;
+}
+
+function isSolved(arr) {
+  for (let i = 0; i < arr.length - 1; i++)
+    if (arr[i] !== i + 1) return false;
+  return arr[arr.length - 1] === 0;
+}
+
+// ── Rendering ──
+function getFontSize(size) {
+  if (size === 3) return 'clamp(22px,6vw,32px)';
+  if (size === 4) return 'clamp(18px,4.5vw,26px)';
+  if (size === 5) return 'clamp(14px,3.5vw,20px)';
+  return 'clamp(11px,2.8vw,16px)';
+}
+
+function getTileClass(val, size) {
+  const total = size * size - 1;
+  const q = total / 4;
+  if (val <= q)          return 'range-low';
+  if (val <= q * 2)      return 'range-mid';
+  if (val <= q * 3)      return 'range-high';
+  return 'range-top';
+}
+
+function getMovable(size, tileArr) {
+  const blankIdx = tileArr.indexOf(0);
+  const br = Math.floor(blankIdx / size);
+  const bc = blankIdx % size;
+  const movable = new Set();
+  // tiles adjacent to blank can move
+  if (br > 0)        movable.add(blankIdx - size);
+  if (br < size - 1) movable.add(blankIdx + size);
+  if (bc > 0)        movable.add(blankIdx - 1);
+  if (bc < size - 1) movable.add(blankIdx + 1);
+  return movable;
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.style.gridTemplateColumns = `repeat(${SIZE}, 1fr)`;
+  board.innerHTML = '';
+
+  const movable = getMovable(SIZE, tiles);
+  const fs = getFontSize(SIZE);
+
+  tiles.forEach((val, idx) => {
+    const tile = document.createElement('div');
+    if (val === 0) {
+      tile.className = 'tile empty';
+    } else {
+      tile.className = `tile ${getTileClass(val, SIZE)}${movable.has(idx) ? ' movable' : ''}`;
+      tile.textContent = val;
+      tile.style.fontSize = fs;
+      if (movable.has(idx)) {
+        tile.addEventListener('click', () => handleMove(idx));
+        tile.addEventListener('touchend', e => { e.preventDefault(); handleMove(idx); });
+      }
+    }
+    tile.dataset.idx = idx;
+    board.appendChild(tile);
+  });
+
+  document.getElementById('move-count').textContent = moves;
+}
+
+// ── Move logic ──
+function handleMove(tileIdx) {
+  if (won) return;
+  const blankIdx = tiles.indexOf(0);
+  const tr = Math.floor(tileIdx / SIZE), tc = tileIdx % SIZE;
+  const br = Math.floor(blankIdx / SIZE), bc = blankIdx % SIZE;
+
+  // Must be same row or same column AND adjacent
+  if (tr === br && Math.abs(tc - bc) === 1) {
+    slideTile(tileIdx, blankIdx);
+  } else if (tc === bc && Math.abs(tr - br) === 1) {
+    slideTile(tileIdx, blankIdx);
+  }
+}
+
+function slideTile(tileIdx, blankIdx) {
+  // Swap
+  [tiles[tileIdx], tiles[blankIdx]] = [tiles[blankIdx], tiles[tileIdx]];
+  moves++;
+  render();
+  if (isSolved(tiles)) handleWin();
+}
+
+// ── Keyboard support ──
+document.addEventListener('keydown', e => {
+  if (won) return;
+  const blankIdx = tiles.indexOf(0);
+  const br = Math.floor(blankIdx / SIZE), bc = blankIdx % SIZE;
+  let targetIdx = -1;
+  // Arrow keys move the tile INTO the blank (arrow direction = tile moves that way)
+  if (e.key === 'ArrowUp'    && br < SIZE - 1) targetIdx = blankIdx + SIZE;
+  if (e.key === 'ArrowDown'  && br > 0)        targetIdx = blankIdx - SIZE;
+  if (e.key === 'ArrowLeft'  && bc < SIZE - 1) targetIdx = blankIdx + 1;
+  if (e.key === 'ArrowRight' && bc > 0)        targetIdx = blankIdx - 1;
+  if (targetIdx >= 0) { e.preventDefault(); slideTile(targetIdx, blankIdx); }
+});
+
+// ── Win ──
+function handleWin() {
+  won = true;
+  document.getElementById('win-moves').innerHTML = `${moves} <span>moves</span>`;
+  setTimeout(() => {
+    document.getElementById('win-overlay').classList.add('show');
+    spawnConfetti();
+  }, 180);
+}
+
+function spawnConfetti() {
+  const colors = ['#c05a2a','#4a7c59','#b8922a','#1a1814','#7a5c3c','#3a5c7a'];
+  for (let i = 0; i < 60; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'confetti-dot';
+    dot.style.left  = Math.random() * 100 + 'vw';
+    dot.style.top   = '-10px';
+    dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+    dot.style.width  = (6 + Math.random() * 6) + 'px';
+    dot.style.height = (6 + Math.random() * 6) + 'px';
+    dot.style.animationDuration = (1.2 + Math.random() * 2) + 's';
+    dot.style.animationDelay   = (Math.random() * 0.8) + 's';
+    document.body.appendChild(dot);
+    dot.addEventListener('animationend', () => dot.remove());
+  }
+}
+
+// ── New game ──
+function newGame(size) {
+  SIZE = size;
+  won = false;
+  moves = 0;
+  tiles = generateSolvable(SIZE);
+  document.getElementById('win-overlay').classList.remove('show');
+  render();
+}
+
+// ── Level buttons ──
+document.querySelectorAll('.lvl-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    newGame(parseInt(btn.dataset.size));
+  });
+});
+
+document.getElementById('btn-new').addEventListener('click', () => newGame(SIZE));
+document.getElementById('btn-solve').addEventListener('click', () => newGame(SIZE));
+
+document.getElementById('win-new').addEventListener('click', () => {
+  document.getElementById('win-overlay').classList.remove('show');
+  newGame(SIZE);
+});
+document.getElementById('win-next').addEventListener('click', () => {
+  document.getElementById('win-overlay').classList.remove('show');
+  const sizes = [3, 4, 5, 6];
+  const next = sizes[(sizes.indexOf(SIZE) + 1) % sizes.length];
+  document.querySelectorAll('.lvl-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.size) === next);
+  });
+  newGame(next);
+});
+
+// ── Touch swipe on board ──
+let touchStartX = 0, touchStartY = 0, touchTileIdx = -1;
+document.getElementById('board').addEventListener('touchstart', e => {
+  const touch = e.touches[0];
+  touchStartX = touch.clientX; touchStartY = touch.clientY;
+  const el = document.elementFromPoint(touchStartX, touchStartY);
+  if (el && el.dataset.idx !== undefined) touchTileIdx = parseInt(el.dataset.idx);
+  else touchTileIdx = -1;
+}, { passive: true });
+
+document.getElementById('board').addEventListener('touchend', e => {
+  if (touchTileIdx < 0) return;
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+  if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; // tap handled by click
+  // swipe direction → move tile in swipe direction
+  const blankIdx = tiles.indexOf(0);
+  const br = Math.floor(blankIdx / SIZE), bc = blankIdx % SIZE;
+  const tr = Math.floor(touchTileIdx / SIZE), tc = touchTileIdx % SIZE;
+  // only try if swipe aligns with blank position
+  if (Math.abs(dx) > Math.abs(dy)) {
+    const dir = dx > 0 ? 1 : -1; // swipe right = move right
+    if (tr === br && tc + dir === bc) slideTile(touchTileIdx, blankIdx);
+  } else {
+    const dir = dy > 0 ? 1 : -1;
+    if (tc === bc && tr + dir === br) slideTile(touchTileIdx, blankIdx);
+  }
+}, { passive: true });
+
+// ── Init ──
+newGame(4);
+</script>
+</body>
+</html>
