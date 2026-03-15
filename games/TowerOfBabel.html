@@ -819,9 +819,12 @@ function gameLoop(t) {
   requestAnimationFrame(gameLoop);
 }
 
-// Input handlers
+// Input handlers — listen on document so overlays don't block
 function handleTap(e) {
-  e.preventDefault();
+  // Don't fire if tapping the share button
+  if (e.target && e.target.id === 'share-btn') return;
+  if (e.cancelable) e.preventDefault();
+
   if (gameState === 'start') {
     document.getElementById('start-screen').style.display = 'none';
     startGame();
@@ -838,12 +841,13 @@ function handleTap(e) {
   }
 }
 
-gc.addEventListener('click', handleTap, { passive: false });
-gc.addEventListener('touchend', handleTap, { passive: false });
+document.addEventListener('click', handleTap);
+document.addEventListener('touchend', handleTap, { passive: false });
 document.addEventListener('keydown', e => { if (e.code === 'Space') handleTap(e); });
 
 // Share button
-document.getElementById('share-btn').addEventListener('click', e => {
+const shareBtn = document.getElementById('share-btn');
+shareBtn.addEventListener('click', e => {
   e.stopPropagation();
   const haikus = [
     `${score} blocks to heaven / The gods looked down and laughed once / Wind took the rest`,
@@ -853,6 +857,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
   const text = haikus[score % haikus.length];
   navigator.clipboard.writeText(text).then(() => showFlash('✦ COPIED ✦')).catch(() => showFlash(text));
 });
+shareBtn.addEventListener('touchend', e => { e.stopPropagation(); });
 
 // Start bg scene early
 updateBgForHeight(0);
