@@ -17,7 +17,8 @@
     --toolbar-h: 80px;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  canvas { touch-action: none; }
 
   body {
     background: var(--bg);
@@ -32,20 +33,26 @@
   /* ── HEADER ── */
   header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    height: var(--toolbar-h);
+    flex-direction: column;
     background: var(--panel);
     border-bottom: 2px solid var(--panel-border);
     flex-shrink: 0;
-    gap: 10px;
     z-index: 10;
+    touch-action: auto;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    height: 52px;
+    gap: 10px;
   }
 
   .logo {
     font-family: 'Fredoka One', cursive;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     background: linear-gradient(135deg, #ff6b9d, #ffd93d, #6bceff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -55,39 +62,56 @@
   }
 
   /* ── COLOR PALETTE ── */
+  .palette-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-top: 1px solid var(--panel-border);
+    overflow: hidden;
+  }
+
   .palette-wrap {
     display: flex;
     align-items: center;
-    gap: 6px;
-    overflow-x: auto;
+    gap: 8px;
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
     flex: 1;
-    padding: 4px 0;
+    padding: 7px 12px;
+    /* Allow horizontal scroll on touch without hijacking vertical page scroll */
+    touch-action: pan-x;
+    cursor: grab;
   }
   .palette-wrap::-webkit-scrollbar { display: none; }
+  .palette-wrap.grabbing { cursor: grabbing; }
 
   .swatch {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     border: 3px solid transparent;
     cursor: pointer;
     flex-shrink: 0;
     transition: transform .15s, border-color .15s;
-    position: relative;
+    /* Each swatch intercepts tap but NOT pan — pan belongs to parent */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-  .swatch:hover { transform: scale(1.15); }
+  .swatch:hover { transform: scale(1.12); }
   .swatch.active {
     border-color: #fff;
-    transform: scale(1.2);
-    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    transform: scale(1.18);
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
   }
 
   /* custom color picker trigger */
   .swatch-custom {
     background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #fff;
     text-shadow: 0 1px 3px #000;
   }
@@ -244,32 +268,34 @@
 <body>
 
 <header>
-  <div class="logo">👆 FingerPaint</div>
-
-  <div class="palette-wrap" id="palette">
-    <!-- swatches injected by JS -->
+  <div class="header-top">
+    <div class="logo">👆 FingerPaint</div>
+    <div class="tools">
+      <button class="btn" id="undoBtn" title="Undo last stroke">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
+        </svg>
+        Undo
+      </button>
+      <button class="btn btn-danger" id="clearBtn" title="Clear canvas">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+        Clear
+      </button>
+      <button class="btn btn-share" id="shareBtn" title="Share your artwork">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Share
+      </button>
+    </div>
   </div>
-
-  <div class="tools">
-    <button class="btn" id="undoBtn" title="Undo last stroke">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
-      </svg>
-      Undo
-    </button>
-    <button class="btn btn-danger" id="clearBtn" title="Clear canvas">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-      </svg>
-      Clear
-    </button>
-    <button class="btn btn-share" id="shareBtn" title="Share your artwork">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-      </svg>
-      Share
-    </button>
+  <div class="palette-row">
+    <div class="palette-wrap" id="palette">
+      <!-- swatches injected by JS -->
+    </div>
   </div>
 </header>
 
@@ -334,7 +360,13 @@
     s.className = 'swatch' + (c === activeColor ? ' active' : '');
     s.style.background = c;
     if (c === '#ffffff' || c === '#f5f5f5') s.style.outline = '1px solid #555';
-    s.addEventListener('pointerdown', (e) => { e.stopPropagation(); setColor(c, s); });
+    let swatchStartX;
+    s.addEventListener('touchstart', (e) => { swatchStartX = e.touches[0].clientX; }, { passive: true });
+    s.addEventListener('touchend', (e) => {
+      const dx = Math.abs(e.changedTouches[0].clientX - swatchStartX);
+      if (dx < 8) { e.stopPropagation(); setColor(c, s); }  // tap, not swipe
+    }, { passive: true });
+    s.addEventListener('click', (e) => { e.stopPropagation(); setColor(c, s); });
     paletteEl.appendChild(s);
   });
 
@@ -343,8 +375,27 @@
   customSwatch.className = 'swatch swatch-custom';
   customSwatch.title = 'Custom color';
   customSwatch.innerHTML = '+';
-  customSwatch.addEventListener('pointerdown', (e) => { e.stopPropagation(); document.getElementById('customColorInput').click(); });
+  let customStartX;
+  customSwatch.addEventListener('touchstart', (e) => { customStartX = e.touches[0].clientX; }, { passive: true });
+  customSwatch.addEventListener('touchend', (e) => {
+    const dx = Math.abs(e.changedTouches[0].clientX - customStartX);
+    if (dx < 8) { e.stopPropagation(); document.getElementById('customColorInput').click(); }
+  }, { passive: true });
+  customSwatch.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('customColorInput').click(); });
   paletteEl.appendChild(customSwatch);
+
+  // Mouse-drag scroll for palette on desktop
+  const paletteWrap = document.getElementById('palette');
+  let palDragging = false, palStartX = 0, palScrollLeft = 0;
+  paletteWrap.addEventListener('mousedown', e => {
+    palDragging = true; palStartX = e.pageX; palScrollLeft = paletteWrap.scrollLeft;
+    paletteWrap.classList.add('grabbing');
+  });
+  document.addEventListener('mousemove', e => {
+    if (!palDragging) return;
+    paletteWrap.scrollLeft = palScrollLeft - (e.pageX - palStartX);
+  });
+  document.addEventListener('mouseup', () => { palDragging = false; paletteWrap.classList.remove('grabbing'); });
 
   document.getElementById('customColorInput').addEventListener('input', (e) => {
     const c = e.target.value;
