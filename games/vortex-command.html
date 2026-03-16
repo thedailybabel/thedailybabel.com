@@ -3,90 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>VORTEX COMMAND</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#000;overflow:hidden;font-family:'Orbitron',monospace;cursor:none;touch-action:none;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Orbitron',monospace;}
+body{touch-action:none;}
 canvas{display:block;position:fixed;inset:0;}
 
+/* ── HUD ── */
 #ui{position:fixed;inset:0;pointer-events:none;z-index:10;}
-
 #hud{
   display:flex;justify-content:space-between;align-items:flex-start;
-  padding:14px 22px;font-size:13px;letter-spacing:3px;line-height:1.8;
+  padding:10px 14px;font-size:11px;letter-spacing:2px;line-height:1.8;
 }
 .h-score{color:#FFFF00;text-shadow:0 0 8px #FFFF00,0 0 20px #FFFF00;}
 .h-lives{color:#00FFFF;text-shadow:0 0 8px #00FFFF,0 0 20px #00FFFF;text-align:center;}
 .h-hi{color:#FF00FF;text-shadow:0 0 8px #FF00FF,0 0 20px #FF00FF;text-align:right;}
-.h-label{font-size:9px;letter-spacing:4px;opacity:0.7;}
-.h-val{font-size:20px;font-weight:900;}
+.h-label{font-size:8px;letter-spacing:3px;opacity:0.65;}
+.h-val{font-size:18px;font-weight:900;}
 
-#zapbar{
-  position:fixed;top:80px;left:22px;
-  color:#FFFF00;text-shadow:0 0 8px #FFFF00;
-  font-size:11px;letter-spacing:3px;
-}
-
+/* ── Banner ── */
 #banner{
-  position:fixed;bottom:55px;left:50%;transform:translateX(-50%);
-  font-size:12px;letter-spacing:8px;text-align:center;
+  position:fixed;bottom:130px;left:50%;transform:translateX(-50%);
+  font-size:11px;letter-spacing:6px;text-align:center;white-space:nowrap;
   opacity:0;transition:opacity 0.5s;pointer-events:none;
 }
 
+/* ── Overlay messages ── */
 #msg{
   position:fixed;inset:0;display:none;
   justify-content:center;align-items:center;
-  text-align:center;pointer-events:none;
+  text-align:center;pointer-events:all;z-index:30;
 }
 .msg-title{
-  font-size:clamp(36px,8vw,72px);font-weight:900;
-  letter-spacing:10px;line-height:1.1;
+  font-size:clamp(32px,9vw,72px);font-weight:900;
+  letter-spacing:8px;line-height:1.1;
 }
-.msg-sub{font-size:clamp(11px,2vw,16px);letter-spacing:5px;margin-top:8px;opacity:0.8;}
+.msg-sub{font-size:clamp(10px,2.5vw,15px);letter-spacing:4px;margin-top:8px;opacity:0.8;}
 .msg-prompt{
-  font-size:clamp(14px,2.5vw,20px);letter-spacing:5px;margin-top:28px;
+  font-size:clamp(13px,3vw,19px);letter-spacing:5px;margin-top:24px;
   animation:blink 1.1s step-end infinite;
 }
-.msg-controls{
-  font-size:11px;letter-spacing:2px;margin-top:20px;
-  opacity:0.5;line-height:2;
-}
+.msg-controls{font-size:10px;letter-spacing:2px;margin-top:16px;opacity:0.45;line-height:2.2;}
 @keyframes blink{50%{opacity:0;}}
 
-/* Combo flash */
+/* ── Combo flash ── */
 #combo{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-size:32px;font-weight:900;letter-spacing:4px;
-  pointer-events:none;opacity:0;transition:none;
-  text-shadow:0 0 20px currentColor;
+  position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);
+  font-size:clamp(22px,5vw,34px);font-weight:900;letter-spacing:4px;
+  pointer-events:none;opacity:0;transition:none;text-shadow:0 0 20px currentColor;
 }
 
-/* Touch controls */
-#touch{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  display:none;gap:16px;align-items:center;
-  pointer-events:all;z-index:20;
+/* ══════════════════════════════════════════
+   TOUCH CONTROL LAYER
+   ══════════════════════════════════════════ */
+#touch-layer{
+  position:fixed;inset:0;z-index:20;
+  display:none;
+  pointer-events:all;
 }
-@media(pointer:coarse){#touch{display:flex;}}
-.tbtn{
-  width:70px;height:70px;border-radius:50%;
-  background:rgba(0,255,255,0.08);border:2px solid rgba(0,255,255,0.4);
-  color:#0FF;font-size:22px;font-family:'Orbitron',monospace;
-  display:flex;align-items:center;justify-content:center;
+.touch-half{
+  position:absolute;top:0;bottom:0;width:50%;
+  display:flex;flex-direction:column;
+  justify-content:flex-end;align-items:center;
+  padding-bottom:20px;
+}
+#tzone-left{left:0;}
+#tzone-right{right:0;}
+
+/* Arrow indicators */
+.t-arrow{
+  font-size:clamp(28px,8vw,48px);
+  color:rgba(0,255,255,0.15);
+  text-shadow:0 0 12px rgba(0,255,255,0.2);
+  pointer-events:none;
+  transition:color .08s, text-shadow .08s;
   user-select:none;-webkit-user-select:none;
-  text-shadow:0 0 8px #0FF;
+  line-height:1;
 }
-#tbtn-fire{
-  width:90px;height:90px;
-  background:rgba(255,255,0,0.08);border-color:rgba(255,255,0,0.4);
-  color:#FF0;font-size:12px;letter-spacing:2px;
-  text-shadow:0 0 8px #FF0;
+.t-arrow.active{
+  color:rgba(0,255,255,0.8);
+  text-shadow:0 0 20px #0FF, 0 0 40px #0FF;
 }
+
+/* Thin divider line down the center */
+#center-line{
+  position:fixed;top:10%;bottom:10%;left:50%;width:1px;
+  background:linear-gradient(to bottom,transparent,rgba(0,255,255,0.12) 30%,rgba(0,255,255,0.12) 70%,transparent);
+  pointer-events:none;z-index:21;display:none;
+}
+
+/* Superzapper — bottom center */
+#tbtn-zap{
+  position:fixed;
+  bottom:18px;left:50%;transform:translateX(-50%);
+  width:clamp(60px,15vw,76px);height:clamp(60px,15vw,76px);
+  border-radius:50%;
+  background:rgba(255,200,0,0.06);
+  border:2px solid rgba(255,200,0,0.3);
+  color:#FFD700;
+  font-size:clamp(9px,2.2vw,12px);
+  font-family:'Orbitron',monospace;
+  letter-spacing:1px;
+  display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  user-select:none;-webkit-user-select:none;
+  text-shadow:0 0 8px #FFD700;
+  z-index:25;
+  pointer-events:all;
+  transition:background .1s, border-color .15s, transform .08s;
+  line-height:1.2;
+}
+#tbtn-zap .zap-icon{font-size:clamp(18px,4.5vw,24px);}
+#tbtn-zap .zap-label{font-size:clamp(7px,1.5vw,9px);opacity:0.65;letter-spacing:2px;}
+#tbtn-zap.active{background:rgba(255,200,0,0.2);border-color:rgba(255,200,0,0.9);transform:translateX(-50%) scale(0.93);}
+#tbtn-zap.depleted{border-color:rgba(80,80,80,0.3);color:#444;text-shadow:none;}
+
+/* Auto-fire indicator */
+#autofire-ind{
+  position:fixed;top:66px;left:50%;transform:translateX(-50%);
+  font-size:8px;letter-spacing:3px;color:#FF3333;
+  text-shadow:0 0 6px #FF3333;
+  pointer-events:none;z-index:11;
+  animation:blink 0.4s step-end infinite;
+  display:none;
+}
+
+/* Touch ripple */
+.ripple{
+  position:fixed;pointer-events:none;z-index:50;
+  border-radius:50%;border:1.5px solid rgba(0,255,255,0.6);
+  transform:translate(-50%,-50%) scale(0);
+  animation:ripple-out 0.45s ease-out forwards;
+  width:56px;height:56px;
+}
+@keyframes ripple-out{to{transform:translate(-50%,-50%) scale(3);opacity:0;}}
 </style>
 </head>
 <body>
 
+<!-- HUD -->
 <div id="ui">
   <div id="hud">
     <div class="h-score">
@@ -95,802 +154,546 @@ canvas{display:block;position:fixed;inset:0;}
     </div>
     <div class="h-lives">
       <div class="h-label" id="level-lbl">LEVEL 1</div>
-      <div id="lives" style="font-size:18px;letter-spacing:4px;">◆◆◆</div>
+      <div id="lives" style="font-size:16px;letter-spacing:3px;">◆◆◆</div>
     </div>
     <div class="h-hi">
       <div class="h-label">HI-SCORE</div>
       <div class="h-val" id="hi">0</div>
     </div>
   </div>
-  <div id="zapbar">⚡ <span id="zapct">2</span></div>
+  <div id="autofire-ind">■ AUTO-FIRE</div>
   <div id="banner"></div>
   <div id="combo">COMBO!</div>
   <div id="msg"><div id="msg-inner"></div></div>
 </div>
 
-<div id="touch">
-  <div class="tbtn" id="tbtn-left">◀</div>
-  <div class="tbtn" id="tbtn-fire">FIRE</div>
-  <div class="tbtn" id="tbtn-right">▶</div>
+<!-- Touch control layer -->
+<div id="touch-layer">
+  <div class="touch-half" id="tzone-left">
+    <div class="t-arrow" id="tarrow-left">◀◀</div>
+  </div>
+  <div class="touch-half" id="tzone-right">
+    <div class="t-arrow" id="tarrow-right">▶▶</div>
+  </div>
+</div>
+<div id="center-line"></div>
+<div id="tbtn-zap">
+  <span class="zap-icon">⚡</span>
+  <span id="zap-count" class="zap-label">×2</span>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════
-//  VORTEX COMMAND  ·  TEMPEST 3D REMIX
-//  Controls: ←→ move · SPACE/X fire · Z superzapper · P pause
+//  VORTEX COMMAND  ·  TEMPEST 3D REMIX  ·  MOBILE EDITION
+//
+//  TOUCH   Left half = move left  |  Right half = move right
+//          Hold for auto-repeat   |  Drag for fast sweep
+//          ⚡ centre button = Superzapper
+//          Auto-fire is always ON
+//
+//  KEYS    ←→/AD move · SPACE fire · Z superzap · P pause
+//
 //  "All your tubes are belong to us."
 // ═══════════════════════════════════════════════════════════════════
-
 'use strict';
 
-// ─── Renderer + Scene ────────────────────────────────────────────
-const W = window.innerWidth, H = window.innerHeight;
-const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-renderer.setSize(W,H);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// ─── Touch detection ─────────────────────────────────────────────
+const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+if(IS_TOUCH){
+  document.getElementById('touch-layer').style.display='block';
+  document.getElementById('center-line').style.display='block';
+  document.getElementById('tbtn-zap').style.display='flex';
+  document.getElementById('autofire-ind').style.display='block';
+}
+function vibrate(p){if(IS_TOUCH&&navigator.vibrate)navigator.vibrate(p);}
+
+// ─── Renderer ────────────────────────────────────────────────────
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setClearColor(0x000000);
 document.body.prepend(renderer.domElement);
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(54, W/H, 0.1, 300);
-camera.position.set(0, 0.4, 5.5);
-camera.lookAt(0, 0.1, -7);
-const CAM_BASE = camera.position.clone();
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(54,window.innerWidth/window.innerHeight,0.1,300);
+camera.position.set(0,0.4,5.5);
+camera.lookAt(0,0.1,-7);
+const CAM_BASE=camera.position.clone();
 
 // ─── Constants ───────────────────────────────────────────────────
-const TUBE_LEN = 18;
-const INNER_S  = 0.07;   // inner end scale factor
-const RINGS    = 18;
-const BSPEED   = 0.024;  // player bullet speed (depth/frame)
-const ESPEED   = 0.0095; // enemy bullet speed
-const SHOOT_CD = 175;    // fire rate ms
-const MOVE_CD  = 88;     // lane move cooldown ms
+const TUBE_LEN=18,INNER_S=0.07,RINGS=18;
+const BSPEED=0.024,ESPEED=0.0095,SHOOT_CD=160,MOVE_CD=IS_TOUCH?72:88;
+const SWIPE_PX=30; // px per lane change on swipe
 
-// ─── Level Shapes ────────────────────────────────────────────────
-const mkCircle = (n,r=1.85) => Array.from({length:n},(_,i)=>{
-  const a=(i/n)*Math.PI*2-Math.PI/2;
-  return [Math.cos(a)*r, Math.sin(a)*r];
-});
-const mkStar = (n,R=1.85,r=0.92) => Array.from({length:n*2},(_,i)=>{
-  const a=(i/(n*2))*Math.PI*2-Math.PI/2;
-  return [Math.cos(a)*(i%2?r:R), Math.sin(a)*(i%2?r:R)];
-});
-const mkRect = (nx,ny,w=1.7,h=1.7) => {
-  const p=[];
-  for(let i=0;i<nx;i++) p.push([-w+2*w*i/nx, h]);
-  for(let i=0;i<ny;i++) p.push([w, h-2*h*i/ny]);
-  for(let i=0;i<nx;i++) p.push([w-2*w*i/nx, -h]);
-  for(let i=0;i<ny;i++) p.push([-w, -h+2*h*i/ny]);
-  return p;
-};
-const mkPlus = (s=0.65,l=1.85) =>
-  [[-s,l],[s,l],[s,s],[l,s],[l,-s],[s,-s],[s,-l],[-s,-l],[-s,-s],[-l,-s],[-l,s],[-s,s]]
-  .map(([x,y])=>[x*.88,y*.88]);
-const mkWave = (n=16,r=1.85,amp=0.38) => Array.from({length:n},(_,i)=>{
-  const a=(i/n)*Math.PI*2-Math.PI/2;
-  return [Math.cos(a)*(r+Math.sin(i*2.6)*amp), Math.sin(a)*(r+Math.sin(i*2.6)*amp)];
-});
-const mkDiamond = (n=4,r=1.85) => Array.from({length:n},(_,i)=>{
-  const a=(i/n)*Math.PI*2-Math.PI/4;
-  return [Math.cos(a)*r, Math.sin(a)*r];
-});
-
-const LEVELS = [
-  {shape:mkCircle(16),       color:0x00FFFF, name:'VORTEX',   sm:1.00, bg:0x001820},
-  {shape:mkStar(5,1.85,.92), color:0xFF00FF, name:'PULSAR',   sm:1.15, bg:0x180018},
-  {shape:mkRect(4,4),        color:0xFFFF00, name:'GRID',     sm:1.25, bg:0x181800},
-  {shape:mkPlus(),           color:0x00FF88, name:'CROSS',    sm:1.35, bg:0x001810},
-  {shape:mkCircle(12),       color:0xFF6600, name:'CYCLONE',  sm:1.45, bg:0x180800},
-  {shape:mkStar(7,1.85,.82), color:0xFF0099, name:'NOVA',     sm:1.55, bg:0x180010},
-  {shape:mkWave(16),         color:0x44AAFF, name:'FRACTAL',  sm:1.65, bg:0x000C20},
-  {shape:mkCircle(20),       color:0x88FF00, name:'NEXUS',    sm:1.80, bg:0x081800},
-  {shape:mkDiamond(4),       color:0xFFAA00, name:'DIAMOND',  sm:2.00, bg:0x181000},
-  {shape:mkRect(6,6),        color:0xFF2244, name:'INFERNO',  sm:2.20, bg:0x180004},
+// ─── Level shapes ────────────────────────────────────────────────
+const mkCircle=(n,r=1.85)=>Array.from({length:n},(_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2;return[Math.cos(a)*r,Math.sin(a)*r];});
+const mkStar=(n,R=1.85,r=0.92)=>Array.from({length:n*2},(_,i)=>{const a=(i/(n*2))*Math.PI*2-Math.PI/2;return[Math.cos(a)*(i%2?r:R),Math.sin(a)*(i%2?r:R)];});
+const mkRect=(nx,ny,w=1.7,h=1.7)=>{const p=[];for(let i=0;i<nx;i++)p.push([-w+2*w*i/nx,h]);for(let i=0;i<ny;i++)p.push([w,h-2*h*i/ny]);for(let i=0;i<nx;i++)p.push([w-2*w*i/nx,-h]);for(let i=0;i<ny;i++)p.push([-w,-h+2*h*i/ny]);return p;};
+const mkPlus=(s=0.65,l=1.85)=>[[-s,l],[s,l],[s,s],[l,s],[l,-s],[s,-s],[s,-l],[-s,-l],[-s,-s],[-l,-s],[-l,s],[-s,s]].map(([x,y])=>[x*.88,y*.88]);
+const mkWave=(n=16,r=1.85,amp=0.38)=>Array.from({length:n},(_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2;return[Math.cos(a)*(r+Math.sin(i*2.6)*amp),Math.sin(a)*(r+Math.sin(i*2.6)*amp)];});
+const mkDiamond=(n=4,r=1.85)=>Array.from({length:n},(_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/4;return[Math.cos(a)*r,Math.sin(a)*r];});
+const LEVELS=[
+  {shape:mkCircle(16),       color:0x00FFFF,name:'VORTEX',  sm:1.00,bg:0x001820},
+  {shape:mkStar(5,1.85,.92), color:0xFF00FF,name:'PULSAR',  sm:1.15,bg:0x180018},
+  {shape:mkRect(4,4),        color:0xFFFF00,name:'GRID',    sm:1.25,bg:0x181800},
+  {shape:mkPlus(),           color:0x00FF88,name:'CROSS',   sm:1.35,bg:0x001810},
+  {shape:mkCircle(12),       color:0xFF6600,name:'CYCLONE', sm:1.45,bg:0x180800},
+  {shape:mkStar(7,1.85,.82), color:0xFF0099,name:'NOVA',    sm:1.55,bg:0x180010},
+  {shape:mkWave(16),         color:0x44AAFF,name:'FRACTAL', sm:1.65,bg:0x000C20},
+  {shape:mkCircle(20),       color:0x88FF00,name:'NEXUS',   sm:1.80,bg:0x081800},
+  {shape:mkDiamond(4),       color:0xFFAA00,name:'DIAMOND', sm:2.00,bg:0x181000},
+  {shape:mkRect(6,6),        color:0xFF2244,name:'INFERNO', sm:2.20,bg:0x180004},
 ];
 
-// ─── Geometry Helpers ────────────────────────────────────────────
-function vtx(shape, i, d) {
-  const v = shape[i % shape.length];
-  const s = 1 - d*(1-INNER_S);
-  return new THREE.Vector3(v[0]*s, v[1]*s, -d*TUBE_LEN);
+// ─── Geometry helpers ────────────────────────────────────────────
+function vtx(sh,i,d){const v=sh[i%sh.length],s=1-d*(1-INNER_S);return new THREE.Vector3(v[0]*s,v[1]*s,-d*TUBE_LEN);}
+function lc(sh,lane,d){const n=sh.length,v1=sh[lane],v2=sh[(lane+1)%n],s=1-d*(1-INNER_S);return new THREE.Vector3((v1[0]+v2[0])*.5*s,(v1[1]+v2[1])*.5*s,-d*TUBE_LEN);}
+function laneTan(sh,lane){const v1=sh[lane],v2=sh[(lane+1)%sh.length],dx=v2[0]-v1[0],dy=v2[1]-v1[1],l=Math.hypot(dx,dy);return[dx/l,dy/l];}
+
+// ─── Three groups ────────────────────────────────────────────────
+const G_TUBE=new THREE.Group(),G_PLAY=new THREE.Group(),G_BULL=new THREE.Group(),G_ENMY=new THREE.Group(),G_PART=new THREE.Group();
+scene.add(G_TUBE,G_PLAY,G_BULL,G_ENMY,G_PART);
+
+// Starfield
+(()=>{const n=500,p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=(Math.random()-.5)*80;p[i*3+1]=(Math.random()-.5)*80;p[i*3+2]=-12-Math.random()*70;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.06,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false})));})();
+
+// ─── Materials ───────────────────────────────────────────────────
+const ADD=THREE.AdditiveBlending;
+const lmat=(col,a=1)=>new THREE.LineBasicMaterial({color:new THREE.Color(col),transparent:a<1,opacity:a,blending:ADD,depthWrite:false});
+const lseg=(pts,col,a=1)=>{const g=new THREE.BufferGeometry().setFromPoints(pts);return new THREE.LineSegments(g,lmat(col,a));};
+const ptmat=(col,sz=0.1)=>new THREE.PointsMaterial({color:new THREE.Color(col),size:sz,blending:ADD,depthWrite:false,transparent:true,opacity:1});
+
+// ─── Tube ────────────────────────────────────────────────────────
+let centerGlow=null;
+function buildTube(li){
+  G_TUBE.clear();centerGlow=null;
+  const{shape:sh,color}=LEVELS[li],n=sh.length,col=new THREE.Color(color),cd=col.clone().multiplyScalar(0.35);
+  const p1=[];for(let i=0;i<n;i++){p1.push(vtx(sh,i,0));p1.push(vtx(sh,i,1));}
+  G_TUBE.add(lseg(p1,color,1));G_TUBE.add(lseg(p1,color,0.18));
+  for(let r=0;r<=RINGS;r++){const d=r/RINGS,a=d===0?1.0:Math.max(0.08,1-d*0.88),c=d===0?color:cd.getHex(),p2=[];for(let i=0;i<n;i++){p2.push(vtx(sh,i,d));p2.push(vtx(sh,(i+1)%n,d));}G_TUBE.add(lseg(p2,c,a));}
+  const sv=[];for(let i=0;i<8;i++){const a=i/8*Math.PI*2,r=0.18+Math.random()*.06;sv.push(0,0,-TUBE_LEN,Math.cos(a)*r,Math.sin(a)*r,-TUBE_LEN);}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(sv),3));G_TUBE.add(new THREE.LineSegments(sg,lmat(color,1)));
+  const cg=new THREE.Mesh(new THREE.SphereGeometry(.18,8,8),new THREE.MeshBasicMaterial({color:col.clone().multiplyScalar(3),transparent:true,opacity:.9,blending:ADD,depthWrite:false}));
+  cg.position.set(0,0,-TUBE_LEN);G_TUBE.add(cg);centerGlow=cg;
 }
-function lc(shape, lane, d) {
-  const n = shape.length;
-  const v1 = shape[lane], v2 = shape[(lane+1)%n];
-  const s = 1 - d*(1-INNER_S);
-  return new THREE.Vector3((v1[0]+v2[0])*.5*s, (v1[1]+v2[1])*.5*s, -d*TUBE_LEN);
-}
-function laneTan(shape, lane) {
-  const v1=shape[lane], v2=shape[(lane+1)%shape.length];
-  const dx=v2[0]-v1[0], dy=v2[1]-v1[1], l=Math.hypot(dx,dy);
-  return [dx/l, dy/l];
-}
-function lerpV3(a,b,t) { return a.clone().lerp(b,t); }
-
-// ─── Three.js Groups ─────────────────────────────────────────────
-const G_TUBE  = new THREE.Group();
-const G_PLAY  = new THREE.Group();
-const G_BULL  = new THREE.Group();
-const G_ENMY  = new THREE.Group();
-const G_PART  = new THREE.Group();
-scene.add(G_TUBE, G_PLAY, G_BULL, G_ENMY, G_PART);
-
-// Stars
-(function(){
-  const n=500, pos=new Float32Array(n*3);
-  for(let i=0;i<n;i++){
-    pos[i*3]=(Math.random()-.5)*80;
-    pos[i*3+1]=(Math.random()-.5)*80;
-    pos[i*3+2]=-12-Math.random()*70;
-  }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({
-    color:0xffffff,size:0.06,transparent:true,opacity:0.4,
-    blending:THREE.AdditiveBlending,depthWrite:false
-  })));
-})();
-
-// ─── Material Factory ────────────────────────────────────────────
-const ADD = THREE.AdditiveBlending;
-function lmat(color, alpha=1) {
-  return new THREE.LineBasicMaterial({
-    color:new THREE.Color(color), transparent:alpha<1,
-    opacity:alpha, blending:ADD, depthWrite:false
-  });
-}
-function lseg(pts, color, alpha=1) {
-  const g=new THREE.BufferGeometry().setFromPoints(pts);
-  return new THREE.LineSegments(g, lmat(color,alpha));
-}
-function ptmat(color, size=0.1) {
-  return new THREE.PointsMaterial({
-    color:new THREE.Color(color), size, blending:ADD,
-    depthWrite:false, transparent:true, opacity:1
-  });
-}
-
-// ─── Tube Builder ────────────────────────────────────────────────
-let centerGlow;
-function buildTube(li) {
-  G_TUBE.clear();
-  centerGlow = null;
-  const {shape,color} = LEVELS[li];
-  const n = shape.length;
-  const col = new THREE.Color(color);
-  const colDim = col.clone().multiplyScalar(0.35);
-
-  // Lane dividers
-  {
-    const pts=[];
-    for(let i=0;i<n;i++){
-      pts.push(vtx(shape,i,0));
-      pts.push(vtx(shape,i,1));
-    }
-    G_TUBE.add(lseg(pts,color,1));
-    G_TUBE.add(lseg(pts,color,0.18)); // bloom
-  }
-
-  // Rings
-  for(let ri=0;ri<=RINGS;ri++){
-    const d=ri/RINGS;
-    const alpha = d===0?1.0 : Math.max(0.08, 1-d*0.88);
-    const c = d===0 ? color : colDim.getHex();
-    const pts=[];
-    for(let i=0;i<n;i++){
-      pts.push(vtx(shape,i,d));
-      pts.push(vtx(shape,(i+1)%n,d));
-    }
-    G_TUBE.add(lseg(pts, c, alpha));
-  }
-
-  // Center star at inner end
-  const starGeo = new THREE.BufferGeometry();
-  const starV = [];
-  for(let i=0;i<8;i++){
-    const a=i/8*Math.PI*2;
-    const r=0.18+Math.random()*.06;
-    starV.push(0,0,-TUBE_LEN, Math.cos(a)*r, Math.sin(a)*r, -TUBE_LEN);
-  }
-  starGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(starV),3));
-  G_TUBE.add(new THREE.LineSegments(starGeo, lmat(color,1)));
-
-  // Inner glow sphere
-  const sg = new THREE.SphereGeometry(0.18,8,8);
-  const sm = new THREE.MeshBasicMaterial({
-    color:col.clone().multiplyScalar(3),transparent:true,opacity:0.9,
-    blending:ADD,depthWrite:false
-  });
-  centerGlow = new THREE.Mesh(sg,sm);
-  centerGlow.position.set(0,0,-TUBE_LEN);
-  G_TUBE.add(centerGlow);
-}
-
-// ─── Lane Highlight ───────────────────────────────────────────────
-let laneHL = null;
-function updateLaneHighlight(lane, shape, color) {
-  if(laneHL) G_TUBE.remove(laneHL);
-  const pts=[];
-  const v1a = vtx(shape, lane, 0);
-  const v1b = vtx(shape, lane, 0.55);
-  const v2a = vtx(shape, (lane+1)%shape.length, 0);
-  const v2b = vtx(shape, (lane+1)%shape.length, 0.55);
-  // Lane strip lines
-  pts.push(v1a,v1b, v2a,v2b, v1a,v2a);
-  for(let i=1;i<5;i++){
-    const d=i/4*0.55;
-    pts.push(vtx(shape,lane,d), vtx(shape,(lane+1)%shape.length,d));
-  }
-  laneHL = lseg(pts, color, 0.55);
-  G_TUBE.add(laneHL);
+let laneHL=null;
+function updateLaneHL(lane,sh,color){
+  if(laneHL)G_TUBE.remove(laneHL);
+  const n=sh.length,pts=[vtx(sh,lane,0),vtx(sh,lane,0.55),vtx(sh,(lane+1)%n,0),vtx(sh,(lane+1)%n,0.55),vtx(sh,lane,0),vtx(sh,(lane+1)%n,0)];
+  for(let i=1;i<5;i++){const d=i/4*0.55;pts.push(vtx(sh,lane,d),vtx(sh,(lane+1)%n,d));}
+  laneHL=lseg(pts,color,0.55);G_TUBE.add(laneHL);
 }
 
 // ─── Player Claw ─────────────────────────────────────────────────
-function buildClaw(lane, shape, color) {
+function buildClaw(lane,sh,color){
   G_PLAY.clear();
-  const c = lc(shape,lane,0);
-  const [tx,ty] = laneTan(shape,lane);
-  const len=Math.hypot(c.x,c.y);
-  const nx=len>0.01?-c.x/len:0, ny=len>0.01?-c.y/len:0;
-  const v=(dt,di)=>new THREE.Vector3(c.x+tx*dt+nx*di, c.y+ty*dt+ny*di, c.z+0.02);
-  const hw=0.19, d=0.30, d2=0.21;
-  const pts=[
-    v(-hw*1.45,0),v(hw*1.45,0),          // top bar
-    v(-hw*1.45,0),v(-hw*1.45,d2),         // left outer
-    v(hw*1.45,0),v(hw*1.45,d2),           // right outer
-    v(-hw*1.45,d2),v(-hw*0.6,d2),         // left mid
-    v(hw*1.45,d2),v(hw*0.6,d2),           // right mid
-    v(-hw*0.6,d2),v(-hw*0.32,d),          // left inner
-    v(hw*0.6,d2),v(hw*0.32,d),            // right inner
-    v(-hw*0.32,d),v(hw*0.32,d),           // tip bar
-    v(0,d),v(0,d*1.28),                   // tip spike
-    v(-hw*.7,0.04),v(-hw*.7,d2*.7),       // left detail
-    v(hw*.7,0.04),v(hw*.7,d2*.7),         // right detail
-  ];
-  G_PLAY.add(lseg(pts,color,1));
-  G_PLAY.add(lseg(pts,color,0.28)); // bloom
+  const c=lc(sh,lane,0),[tx,ty]=laneTan(sh,lane);
+  const len=Math.hypot(c.x,c.y),nx=len>.01?-c.x/len:0,ny=len>.01?-c.y/len:0;
+  const v=(dt,di)=>new THREE.Vector3(c.x+tx*dt+nx*di,c.y+ty*dt+ny*di,c.z+0.02);
+  const hw=0.19,d=0.30,d2=0.21;
+  const pts=[v(-hw*1.45,0),v(hw*1.45,0),v(-hw*1.45,0),v(-hw*1.45,d2),v(hw*1.45,0),v(hw*1.45,d2),v(-hw*1.45,d2),v(-hw*0.6,d2),v(hw*1.45,d2),v(hw*0.6,d2),v(-hw*0.6,d2),v(-hw*.32,d),v(hw*0.6,d2),v(hw*.32,d),v(-hw*.32,d),v(hw*.32,d),v(0,d),v(0,d*1.28),v(-hw*.7,.04),v(-hw*.7,d2*.7),v(hw*.7,.04),v(hw*.7,d2*.7)];
+  G_PLAY.add(lseg(pts,color,1));G_PLAY.add(lseg(pts,color,0.28));
 }
 
-// ─── Enemy Geometries ────────────────────────────────────────────
-function mkFlipGeo(){
-  const s=0.22;
-  return [
-    new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0),
-    new THREE.Vector3(s,0,0),new THREE.Vector3(0,-s*.8,s*.6),
-    new THREE.Vector3(0,-s*.8,s*.6),new THREE.Vector3(-s,0,0),
-    new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(s,0,0),
-    new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(-s,0,0),
-    new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(0,-s*.8,s*.6),
-  ];
-}
-function mkTankGeo(){
-  const s=0.24;
-  const pts=[];
-  for(let i=0;i<4;i++){
-    const a1=i/4*Math.PI*2+Math.PI/4, a2=(i+1)/4*Math.PI*2+Math.PI/4;
-    pts.push(new THREE.Vector3(Math.cos(a1)*s,Math.sin(a1)*s,0));
-    pts.push(new THREE.Vector3(Math.cos(a2)*s,Math.sin(a2)*s,0));
-  }
-  // Cross inside
-  pts.push(new THREE.Vector3(-s*.7,0,0),new THREE.Vector3(s*.7,0,0));
-  pts.push(new THREE.Vector3(0,-s*.7,0),new THREE.Vector3(0,s*.7,0));
-  // 3D ring
-  for(let i=0;i<4;i++){
-    const a=(i/4)*Math.PI*2;
-    pts.push(
-      new THREE.Vector3(Math.cos(a)*s*.6,Math.sin(a)*s*.6,s*.5),
-      new THREE.Vector3(Math.cos(a+Math.PI/2)*s*.6,Math.sin(a+Math.PI/2)*s*.6,s*.5)
-    );
-  }
-  return pts;
-}
-function mkFusGeo(){
-  const pts=[], r=0.21, r2=0.11;
-  for(let i=0;i<6;i++){
-    const a1=i/6*Math.PI*2, a2=(i+1)/6*Math.PI*2;
-    pts.push(new THREE.Vector3(Math.cos(a1)*r,Math.sin(a1)*r,0));
-    pts.push(new THREE.Vector3(Math.cos(a2)*r,Math.sin(a2)*r,0));
-    pts.push(new THREE.Vector3(Math.cos(a1)*r,Math.sin(a1)*r,0));
-    pts.push(new THREE.Vector3(0,0,0));
-  }
-  // Inner spinning ring
-  for(let i=0;i<6;i++){
-    const a1=i/6*Math.PI*2+0.3, a2=(i+1)/6*Math.PI*2+0.3;
-    pts.push(new THREE.Vector3(Math.cos(a1)*r2,Math.sin(a1)*r2,r*.4));
-    pts.push(new THREE.Vector3(Math.cos(a2)*r2,Math.sin(a2)*r2,r*.4));
-  }
-  return pts;
-}
+// ─── Enemy shapes ────────────────────────────────────────────────
+function mkFlipGeo(){const s=0.22;return[new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0),new THREE.Vector3(s,0,0),new THREE.Vector3(0,-s*.8,s*.6),new THREE.Vector3(0,-s*.8,s*.6),new THREE.Vector3(-s,0,0),new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(s,0,0),new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(-s,0,0),new THREE.Vector3(0,s*1.3,0),new THREE.Vector3(0,-s*.8,s*.6)];}
+function mkTankGeo(){const s=0.24,pts=[];for(let i=0;i<4;i++){const a1=i/4*Math.PI*2+Math.PI/4,a2=(i+1)/4*Math.PI*2+Math.PI/4;pts.push(new THREE.Vector3(Math.cos(a1)*s,Math.sin(a1)*s,0),new THREE.Vector3(Math.cos(a2)*s,Math.sin(a2)*s,0));}pts.push(new THREE.Vector3(-s*.7,0,0),new THREE.Vector3(s*.7,0,0),new THREE.Vector3(0,-s*.7,0),new THREE.Vector3(0,s*.7,0));for(let i=0;i<4;i++){const a=i/4*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*s*.6,Math.sin(a)*s*.6,s*.5),new THREE.Vector3(Math.cos(a+Math.PI/2)*s*.6,Math.sin(a+Math.PI/2)*s*.6,s*.5));}return pts;}
+function mkFusGeo(){const pts=[],r=0.21,r2=0.11;for(let i=0;i<6;i++){const a1=i/6*Math.PI*2,a2=(i+1)/6*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a1)*r,Math.sin(a1)*r,0),new THREE.Vector3(Math.cos(a2)*r,Math.sin(a2)*r,0),new THREE.Vector3(Math.cos(a1)*r,Math.sin(a1)*r,0),new THREE.Vector3(0,0,0));}for(let i=0;i<6;i++){const a1=i/6*Math.PI*2+.3,a2=(i+1)/6*Math.PI*2+.3;pts.push(new THREE.Vector3(Math.cos(a1)*r2,Math.sin(a1)*r2,r*.4),new THREE.Vector3(Math.cos(a2)*r2,Math.sin(a2)*r2,r*.4));}return pts;}
 
-// ─── Particle System ─────────────────────────────────────────────
-const PARTS = [];
-function explode(pos, color, n=22) {
-  for(let i=0;i<n;i++){
-    const vel=new THREE.Vector3(
-      (Math.random()-.5)*.28,(Math.random()-.5)*.28,(Math.random()-.5)*.18
-    );
-    const ep=[new THREE.Vector3(0,0,0), vel.clone().multiplyScalar(.4)];
-    const m=lseg(ep,color,1);
-    m.position.copy(pos); G_PART.add(m);
-    PARTS.push({mesh:m,vel:vel.clone().multiplyScalar(.92+Math.random()*.08),
-      life:1,decay:.02+Math.random()*.03,isLine:true});
-  }
-  // Flash sphere
-  const fm=new THREE.Mesh(
-    new THREE.SphereGeometry(.14,5,5),
-    new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(2),
-      transparent:true,opacity:.85,blending:ADD,depthWrite:false})
-  );
-  fm.position.copy(pos); G_PART.add(fm);
-  PARTS.push({mesh:fm,vel:new THREE.Vector3(),life:1,decay:.1,isFlash:true});
+// ─── Particles ───────────────────────────────────────────────────
+const PARTS=[];
+function explode(pos,color,n=22){
+  for(let i=0;i<n;i++){const vel=new THREE.Vector3((Math.random()-.5)*.28,(Math.random()-.5)*.28,(Math.random()-.5)*.18);const m=lseg([new THREE.Vector3(0,0,0),vel.clone().multiplyScalar(.4)],color,1);m.position.copy(pos);G_PART.add(m);PARTS.push({mesh:m,vel:vel.clone().multiplyScalar(.92+Math.random()*.08),life:1,decay:.02+Math.random()*.03});}
+  const fm=new THREE.Mesh(new THREE.SphereGeometry(.14,5,5),new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(2),transparent:true,opacity:.85,blending:ADD,depthWrite:false}));
+  fm.position.copy(pos);G_PART.add(fm);PARTS.push({mesh:fm,vel:new THREE.Vector3(),life:1,decay:.1,isFlash:true});
 }
 function tickParticles(){
   for(let i=PARTS.length-1;i>=0;i--){
-    const p=PARTS[i];
-    p.life-=p.decay;
-    p.mesh.position.add(p.vel);
-    if(p.isFlash){p.mesh.material.opacity=p.life*0.85;p.mesh.scale.setScalar(1+(1-p.life)*4);}
+    const p=PARTS[i];p.life-=p.decay;p.mesh.position.add(p.vel);
+    if(p.isFlash){p.mesh.material.opacity=p.life*.85;p.mesh.scale.setScalar(1+(1-p.life)*4);}
     else p.mesh.material.opacity=p.life;
     if(p.life<=0){G_PART.remove(p.mesh);PARTS.splice(i,1);}
   }
 }
 
-// ─── Bullet Class ────────────────────────────────────────────────
-class Bullet {
-  constructor(lane,depth,isPlayer,shape){
-    this.lane=lane; this.depth=depth;
-    this.isPlayer=isPlayer; this.dead=false;
-    const col=isPlayer?0xFFFF44:0xFF3333;
-    const p=lc(shape,lane,depth);
-    this.mesh=lseg([p.clone().add(new THREE.Vector3(0,0,.35)),
-                    p.clone().add(new THREE.Vector3(0,0,-.35))],col,1);
-    // Dot glow
-    const dg=new THREE.BufferGeometry();
-    dg.setAttribute('position',new THREE.BufferAttribute(new Float32Array([0,0,0]),3));
+// ─── Ripple ──────────────────────────────────────────────────────
+function spawnRipple(x,y){
+  const r=document.createElement('div');r.className='ripple';
+  r.style.left=x+'px';r.style.top=y+'px';
+  document.body.appendChild(r);setTimeout(()=>r.remove(),500);
+}
+
+// ─── Bullet ──────────────────────────────────────────────────────
+class Bullet{
+  constructor(lane,depth,isPlayer,sh){
+    this.lane=lane;this.depth=depth;this.isPlayer=isPlayer;this.dead=false;
+    const col=isPlayer?0xFFFF44:0xFF3333,p=lc(sh,lane,depth);
+    this.mesh=lseg([p.clone().add(new THREE.Vector3(0,0,.35)),p.clone().add(new THREE.Vector3(0,0,-.35))],col,1);
+    const dg=new THREE.BufferGeometry();dg.setAttribute('position',new THREE.BufferAttribute(new Float32Array([0,0,0]),3));
     this.dot=new THREE.Points(dg,ptmat(isPlayer?0xFFFFAA:0xFF6666,.1));
-    this.dot.position.copy(p);
-    G_BULL.add(this.mesh,this.dot);
+    this.dot.position.copy(p);G_BULL.add(this.mesh,this.dot);
   }
-  update(shape){
+  update(sh){
     this.depth+=this.isPlayer?BSPEED:-ESPEED;
     if(this.depth>1.05||this.depth<-0.05){this.kill();return;}
-    const p=lc(shape,this.lane,Math.max(0,Math.min(1,this.depth)));
-    this.mesh.position.copy(p); this.dot.position.copy(p);
+    const p=lc(sh,this.lane,Math.max(0,Math.min(1,this.depth)));
+    this.mesh.position.copy(p);this.dot.position.copy(p);
   }
   kill(){this.dead=true;G_BULL.remove(this.mesh,this.dot);}
 }
 
-// ─── Enemy Class ─────────────────────────────────────────────────
+// ─── Enemy ───────────────────────────────────────────────────────
 const ECOLORS=[0x00FFFF,0xFF8800,0x00FF44,0xFF00FF];
 const EPOINTS=[150,100,50,250];
-const ENAMES=['FLIPPER','TANKER','SPIKER','FUSEBALL'];
-
-class Enemy {
-  constructor(type,lane,shape,level){
-    this.type=type; this.lane=lane; this.depth=0.97;
-    this.dead=false; this.shape=shape;
-    this.hp = type===1?2:1;
-    this.color=ECOLORS[type];
+class Enemy{
+  constructor(type,lane,sh,level){
+    this.type=type;this.lane=lane;this.depth=0.97;this.dead=false;this.shape=sh;
+    this.hp=type===1?2:1;this.color=ECOLORS[type];
     const sm=LEVELS[level%LEVELS.length].sm;
     this.speed=(0.002+Math.random()*.002)*sm*(type===3?1.6:1);
-    this.flipT=0; this.flipR=1100+Math.random()*1400;
-    this.shootT=Math.random()*3000; this.shootR=1800+Math.random()*2200;
-    this.rot=Math.random()*Math.PI*2; this.rotS=.04+Math.random()*.06;
-    this.nLanes=shape.length;
-
-    let gpts;
-    if(type===0)gpts=mkFlipGeo();
-    else if(type===1)gpts=mkTankGeo();
-    else if(type===3)gpts=mkFusGeo();
-    else gpts=mkFlipGeo();
-
+    this.flipT=0;this.flipR=1100+Math.random()*1400;
+    this.shootT=Math.random()*3000;this.shootR=1800+Math.random()*2200;
+    this.rot=Math.random()*Math.PI*2;this.rotS=.04+Math.random()*.06;
+    this.nLanes=sh.length;
+    let gpts;if(type===0)gpts=mkFlipGeo();else if(type===1)gpts=mkTankGeo();else if(type===3)gpts=mkFusGeo();else gpts=mkFlipGeo();
     const g=new THREE.BufferGeometry().setFromPoints(gpts);
     this.mesh=new THREE.LineSegments(g,lmat(this.color,1));
     this.glow=new THREE.LineSegments(g.clone(),lmat(this.color,0.28));
-    const p=lc(shape,lane,this.depth);
-    this.mesh.position.copy(p); this.glow.position.copy(p);
+    const p=lc(sh,lane,this.depth);this.mesh.position.copy(p);this.glow.position.copy(p);
     G_ENMY.add(this.mesh,this.glow);
   }
-  update(dt,spawnEnemyBullet){
-    this.depth-=this.speed;
-    this.rot+=this.rotS;
-    if(this.type===0){
-      this.flipT+=dt;
-      if(this.flipT>this.flipR){
-        this.flipT=0;
-        this.lane=(this.lane+(Math.random()<.5?-1:1)+this.nLanes)%this.nLanes;
-        this.flipR=700+Math.random()*1100;
-      }
-    }
-    if(this.type===3&&Math.random()<.035){
-      this.lane=(this.lane+(Math.random()<.5?-1:1)+this.nLanes)%this.nLanes;
-    }
+  update(dt,sFire){
+    this.depth-=this.speed;this.rot+=this.rotS;
+    if(this.type===0){this.flipT+=dt;if(this.flipT>this.flipR){this.flipT=0;this.lane=(this.lane+(Math.random()<.5?-1:1)+this.nLanes)%this.nLanes;this.flipR=700+Math.random()*1100;}}
+    if(this.type===3&&Math.random()<.035)this.lane=(this.lane+(Math.random()<.5?-1:1)+this.nLanes)%this.nLanes;
     this.shootT+=dt;
-    if(this.type!==2&&this.shootT>this.shootR&&this.depth>.1&&this.depth<.82){
-      this.shootT=0;
-      spawnEnemyBullet(this.lane,this.depth,this.shape);
-    }
-    const p=lc(this.shape,this.lane,Math.max(0,this.depth));
-    const s=1+(1-Math.max(0,this.depth))*.35;
-    this.mesh.position.copy(p); this.mesh.rotation.z=this.rot; this.mesh.scale.setScalar(s);
-    this.glow.position.copy(p); this.glow.rotation.z=this.rot; this.glow.scale.setScalar(s);
-    if(this.depth<=0) return 'rim';
-    return null;
+    if(this.type!==2&&this.shootT>this.shootR&&this.depth>.1&&this.depth<.82){this.shootT=0;sFire(this.lane,this.depth,this.shape);}
+    const p=lc(this.shape,this.lane,Math.max(0,this.depth)),s=1+(1-Math.max(0,this.depth))*.35;
+    this.mesh.position.copy(p);this.mesh.rotation.z=this.rot;this.mesh.scale.setScalar(s);
+    this.glow.position.copy(p);this.glow.rotation.z=this.rot;this.glow.scale.setScalar(s);
+    if(this.depth<=0)return'rim';return null;
   }
   kill(){this.dead=true;G_ENMY.remove(this.mesh,this.glow);}
 }
 
-// ─── UI Helpers ──────────────────────────────────────────────────
-function setMsg(html){
-  const m=document.getElementById('msg');
-  document.getElementById('msg-inner').innerHTML=html;
-  m.style.display='flex';
-}
-function hideMsg(){ document.getElementById('msg').style.display='none'; }
-function showBanner(text,colorHex){
-  const b=document.getElementById('banner');
-  b.textContent=text;
-  b.style.color=colorHex; b.style.textShadow=`0 0 12px ${colorHex}`;
-  b.style.opacity='1';
-  clearTimeout(b._t);
-  b._t=setTimeout(()=>b.style.opacity='0',2600);
-}
-function showCombo(text,col){
-  const c=document.getElementById('combo');
-  c.textContent=text; c.style.color=col; c.style.textShadow=`0 0 20px ${col}`;
-  c.style.opacity='1'; c.style.transition='none';
-  clearTimeout(c._t);
-  c._t=setTimeout(()=>{c.style.transition='opacity .5s'; c.style.opacity='0';},600);
-}
-
-// ─── Game State ──────────────────────────────────────────────────
-const S = {
-  mode:'title', // title|playing|dying|levelclear|gameover|paused
-  level:0, score:0, hiScore:parseInt(localStorage.getItem('vortexHi')||'0'),
-  lives:3, playerLane:0, superZ:2,
-  shape:null, color:0x00FFFF,
-  enemies:[], bullets:[],
-  spawnTimer:0, spawnRate:2000,
-  spawned:0, toSpawn:15,
-  shotT:0, moveT:0,
-  stateT:0, dyingT:0, clearT:0,
-  shake:0,
-  combo:0, comboT:0,
-  extraLifeAt:10000, nextExtraLife:10000,
-  paused:false,
-
-  spawnEnemyBullet(lane,depth,shape){
-    this.bullets.push(new Bullet(lane,depth,false,shape));
-  },
-
-  updateHUD(){
-    document.getElementById('score').textContent=this.score;
-    document.getElementById('hi').textContent=Math.max(this.score,this.hiScore);
-    document.getElementById('lives').textContent='◆'.repeat(Math.max(0,this.lives))+'◇'.repeat(Math.max(0,3-this.lives));
-    document.getElementById('zapct').textContent=this.superZ;
-    document.getElementById('level-lbl').textContent=`LEVEL ${this.level+1}`;
-  },
-
-  init(){
-    this.score=0; this.lives=3; this.level=0;
-    this.nextExtraLife=10000;
-    this.mode='playing';
-    this.loadLevel();
-  },
-
-  loadLevel(){
-    const li=this.level%LEVELS.length;
-    const ld=LEVELS[li];
-    this.shape=ld.shape; this.color=ld.color;
-    this.playerLane=0;
-    this.superZ=2;
-    this.enemies=[]; this.bullets=[];
-    this.spawnTimer=0; this.spawnRate=Math.max(450,2200-this.level*75);
-    this.spawned=0; this.toSpawn=15+this.level*2;
-    this.stateT=0; this.shake=0;
-    this.combo=0;
-    G_ENMY.clear(); G_BULL.clear();
-    PARTS.forEach(p=>G_PART.remove(p.mesh)); PARTS.length=0;
-    G_TUBE.rotation.z=0;
-    buildTube(li);
-    buildClaw(this.playerLane,this.shape,0xFFFF88);
-    updateLaneHighlight(this.playerLane,this.shape,ld.color);
-    const cHex='#'+new THREE.Color(ld.color).getHexString();
-    showBanner(`LEVEL ${this.level+1}  ·  ${ld.name}`, cHex);
-    renderer.setClearColor(ld.bg||0x000000);
-    this.updateHUD();
-  },
-
-  addScore(pts){
-    this.score+=pts;
-    if(this.score>=this.nextExtraLife){
-      this.lives=Math.min(this.lives+1,5);
-      this.nextExtraLife+=20000;
-      showCombo('EXTRA LIFE!','#00FFFF');
-      this.updateHUD();
-    }
-    this.hiScore=Math.max(this.score,this.hiScore);
-    this.updateHUD();
-    localStorage.setItem('vortexHi',this.hiScore);
-  },
-
-  superzap(){
-    if(this.superZ<=0) return;
-    this.superZ--;
-    this.shake=0.8;
-    const killed=[];
-    for(const en of this.enemies){
-      if(!en.dead){
-        explode(lc(this.shape,en.lane,en.depth),en.color,18);
-        this.addScore(50);
-        en.kill(); killed.push(en);
-      }
-    }
-    this.enemies=this.enemies.filter(e=>!killed.includes(e));
-    this.updateHUD();
-  },
-
-  die(){
-    if(this.mode!=='playing') return;
-    this.mode='dying'; this.dyingT=1600; this.shake=1.2;
-    explode(lc(this.shape,this.playerLane,0),0xFFFF00,32);
-    explode(lc(this.shape,this.playerLane,0),0xFF8800,20);
-    G_PLAY.clear();
-    for(const en of this.enemies) if(!en.dead&&en.depth<.12) en.kill();
-  },
-};
+// ─── UI helpers ──────────────────────────────────────────────────
+function setMsg(html){const m=document.getElementById('msg');document.getElementById('msg-inner').innerHTML=html;m.style.display='flex';}
+function hideMsg(){document.getElementById('msg').style.display='none';}
+function showBanner(text,ch){const b=document.getElementById('banner');b.textContent=text;b.style.color=ch;b.style.textShadow=`0 0 12px ${ch}`;b.style.opacity='1';clearTimeout(b._t);b._t=setTimeout(()=>b.style.opacity='0',2600);}
+function showCombo(text,col){const c=document.getElementById('combo');c.textContent=text;c.style.color=col;c.style.textShadow=`0 0 20px ${col}`;c.style.opacity='1';c.style.transition='none';clearTimeout(c._t);c._t=setTimeout(()=>{c.style.transition='opacity .5s';c.style.opacity='0';},700);}
+function zapUI(n){document.getElementById('zap-count').textContent=`×${n}`;document.getElementById('tbtn-zap').classList.toggle('depleted',n<=0);}
 
 // ─── Input ───────────────────────────────────────────────────────
 const K={};
 window.addEventListener('keydown',e=>{
   K[e.code]=true;
-  if(e.code==='Space'||e.code==='Enter'){
-    if(S.mode==='title'){hideMsg();S.init();}
-    else if(S.mode==='gameover'){hideMsg();S.init();}
-  }
+  if((e.code==='Space'||e.code==='Enter')&&(S.mode==='title'||S.mode==='gameover')){hideMsg();S.init();}
   if(S.mode==='playing'){
-    if(e.code==='KeyZ') S.superzap();
-    if(e.code==='KeyP'){
-      S.paused=!S.paused;
-      if(S.paused) setMsg(`<div class="msg-title" style="color:#FFFF00">PAUSED</div><div class="msg-prompt" style="color:#FFFF00">[ P TO RESUME ]</div>`);
-      else hideMsg();
-    }
+    if(e.code==='KeyZ')S.superzap();
+    if(e.code==='KeyP'){S.paused=!S.paused;if(S.paused)setMsg('<div class="msg-title" style="color:#FFFF00">PAUSED</div><div class="msg-prompt" style="color:#FFFF00">[ P / TAP TO RESUME ]</div>');else hideMsg();}
   }
   e.preventDefault();
 },{passive:false});
 window.addEventListener('keyup',e=>{K[e.code]=false;},{passive:false});
 
-// Touch buttons
-function bindTouch(id,code){
-  const el=document.getElementById(id);
-  el.addEventListener('touchstart',e=>{K[code]=true;e.preventDefault();},{passive:false});
-  el.addEventListener('touchend',e=>{K[code]=false;e.preventDefault();},{passive:false});
-  el.addEventListener('mousedown',e=>{K[code]=true;e.preventDefault();});
-  el.addEventListener('mouseup',e=>{K[code]=false;e.preventDefault();});
-}
-bindTouch('tbtn-left','ArrowLeft');
-bindTouch('tbtn-right','ArrowRight');
-bindTouch('tbtn-fire','Space');
+// ─── Touch state ─────────────────────────────────────────────────
+const touchTracks={}; // id -> {side, lastX, acc}
+let tLeft=false,tRight=false;
+let lastMoveT=0;
 
-// ─── Title Screen ────────────────────────────────────────────────
+function tMove(dir){
+  if(S.mode!=='playing'||S.stateT<=350)return;
+  const now=Date.now();if(now-lastMoveT<MOVE_CD)return;
+  lastMoveT=now;
+  const n=S.shape.length;
+  S.playerLane=(S.playerLane+dir+n)%n;
+  buildClaw(S.playerLane,S.shape,0xFFFF88);
+  updateLaneHL(S.playerLane,S.shape,S.color);
+  vibrate(6);
+}
+
+function setupTouch(){
+  const layer=document.getElementById('touch-layer');
+  const arL=document.getElementById('tarrow-left'),arR=document.getElementById('tarrow-right');
+
+  layer.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    // Title / game over: tap to start
+    if(S.mode==='title'||S.mode==='gameover'){hideMsg();S.init();return;}
+    if(S.mode==='paused'){S.paused=false;hideMsg();return;}
+
+    for(const t of e.changedTouches){
+      const id=t.identifier,x=t.clientX,y=t.clientY;
+      const side=x<window.innerWidth/2?'left':'right';
+      touchTracks[id]={side,lastX:x,acc:0};
+      spawnRipple(x,y);
+      if(side==='left'){tLeft=true;arL.classList.add('active');}
+      else{tRight=true;arR.classList.add('active');}
+    }
+  },{passive:false});
+
+  layer.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      const tr=touchTracks[t.identifier];if(!tr)continue;
+      const dx=t.clientX-tr.lastX;tr.lastX=t.clientX;tr.acc+=dx;
+      while(tr.acc>=SWIPE_PX){tr.acc-=SWIPE_PX;tMove(1);}
+      while(tr.acc<=-SWIPE_PX){tr.acc+=SWIPE_PX;tMove(-1);}
+    }
+  },{passive:false});
+
+  function touchEnd(e){
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      const tr=touchTracks[t.identifier];if(!tr)continue;
+      delete touchTracks[t.identifier];
+      const sl=Object.values(touchTracks).some(t=>t.side==='left');
+      const sr=Object.values(touchTracks).some(t=>t.side==='right');
+      if(!sl){tLeft=false;arL.classList.remove('active');}
+      if(!sr){tRight=false;arR.classList.remove('active');}
+    }
+  }
+  layer.addEventListener('touchend',touchEnd,{passive:false});
+  layer.addEventListener('touchcancel',touchEnd,{passive:false});
+
+  // Superzap button
+  const zb=document.getElementById('tbtn-zap');
+  zb.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();zb.classList.add('active');if(S.mode==='playing')S.superzap();},{passive:false});
+  zb.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();zb.classList.remove('active');},{passive:false});
+  zb.addEventListener('mousedown',()=>{if(S.mode==='playing')S.superzap();});
+
+  // Tap on title/gameover msg overlay itself
+  document.getElementById('msg').addEventListener('touchstart',e=>{
+    if(S.mode==='title'||S.mode==='gameover'){e.preventDefault();hideMsg();S.init();}
+    if(S.mode==='paused'){e.preventDefault();S.paused=false;hideMsg();}
+  },{passive:false});
+}
+setupTouch();
+
+// ─── Game state ──────────────────────────────────────────────────
+const S={
+  mode:'title',level:0,score:0,hiScore:parseInt(localStorage.getItem('vcHi')||'0'),
+  lives:3,playerLane:0,superZ:2,shape:null,color:0x00FFFF,
+  enemies:[],bullets:[],spawnTimer:0,spawnRate:2000,spawned:0,toSpawn:15,
+  shotT:0,stateT:0,dyingT:0,clearT:0,shake:0,combo:0,comboT:0,nextExtraLife:10000,paused:false,
+
+  eFire(la,de,sh){this.bullets.push(new Bullet(la,de,false,sh));},
+
+  hud(){
+    document.getElementById('score').textContent=this.score;
+    document.getElementById('hi').textContent=Math.max(this.score,this.hiScore);
+    document.getElementById('lives').textContent='◆'.repeat(Math.max(0,this.lives))+'◇'.repeat(Math.max(0,3-this.lives));
+    document.getElementById('level-lbl').textContent=`LEVEL ${this.level+1}`;
+    zapUI(this.superZ);
+  },
+
+  init(){this.score=0;this.lives=3;this.level=0;this.nextExtraLife=10000;this.mode='playing';this.load();},
+
+  load(){
+    const li=this.level%LEVELS.length,ld=LEVELS[li];
+    this.shape=ld.shape;this.color=ld.color;
+    this.playerLane=0;this.superZ=2;
+    this.enemies=[];this.bullets=[];
+    this.spawnTimer=0;this.spawnRate=Math.max(400,2200-this.level*75);
+    this.spawned=0;this.toSpawn=15+this.level*2;
+    this.stateT=0;this.shake=0;this.combo=0;
+    G_ENMY.clear();G_BULL.clear();
+    PARTS.forEach(p=>G_PART.remove(p.mesh));PARTS.length=0;
+    G_TUBE.rotation.z=0;
+    buildTube(li);buildClaw(this.playerLane,this.shape,0xFFFF88);
+    updateLaneHL(this.playerLane,this.shape,ld.color);
+    const ch='#'+new THREE.Color(ld.color).getHexString();
+    showBanner(`LEVEL ${this.level+1}  ·  ${ld.name}`,ch);
+    renderer.setClearColor(ld.bg||0x000000);
+    this.hud();
+  },
+
+  addScore(pts){
+    this.score+=pts;
+    if(this.score>=this.nextExtraLife){this.lives=Math.min(this.lives+1,5);this.nextExtraLife+=20000;showCombo('EXTRA LIFE!','#00FFFF');vibrate([30,20,60]);this.hud();}
+    this.hiScore=Math.max(this.score,this.hiScore);
+    this.hud();
+    localStorage.setItem('vcHi',this.hiScore);
+  },
+
+  superzap(){
+    if(this.superZ<=0){vibrate([20,10,20]);return;}
+    this.superZ--;this.shake=0.8;vibrate([30,20,50]);
+    const kl=[];
+    for(const en of this.enemies){if(!en.dead){explode(lc(this.shape,en.lane,en.depth),en.color,18);this.addScore(50);en.kill();kl.push(en);}}
+    this.enemies=this.enemies.filter(e=>!kl.includes(e));this.hud();
+  },
+
+  die(){
+    if(this.mode!=='playing')return;
+    this.mode='dying';this.dyingT=1600;this.shake=1.2;
+    vibrate([80,30,80]);
+    explode(lc(this.shape,this.playerLane,0),0xFFFF00,32);
+    explode(lc(this.shape,this.playerLane,0),0xFF8800,20);
+    G_PLAY.clear();
+    for(const en of this.enemies)if(!en.dead&&en.depth<.12)en.kill();
+  },
+};
+
+// ─── Title screen ────────────────────────────────────────────────
 function doTitle(){
-  S.shape=LEVELS[0].shape; S.color=LEVELS[0].color;
-  buildTube(0);
-  buildClaw(0,S.shape,0xFFFF88);
-  updateLaneHighlight(0,S.shape,0x00FFFF);
-  S.updateHUD();
-  const cHex='#'+new THREE.Color(LEVELS[0].color).getHexString();
-  setMsg(`
-    <div style="position:relative">
-      <div class="msg-title" style="color:#00FFFF;text-shadow:0 0 20px #00FFFF,0 0 60px #00FFFF,0 0 120px #00FFFF;">VORTEX</div>
-      <div class="msg-title" style="color:#FF00FF;text-shadow:0 0 20px #FF00FF,0 0 60px #FF00FF;font-size:clamp(24px,5vw,48px);letter-spacing:16px;margin-top:-8px">COMMAND</div>
-      <div style="color:#FFFF00;font-size:11px;letter-spacing:5px;margin-top:14px;text-shadow:0 0 8px #FFFF00;">
-        ✦ TEMPEST 3D REMIX ✦
-      </div>
-      <div style="height:28px"></div>
-      <div class="msg-controls">
-        ← → &nbsp; MOVE LANES<br>
-        SPACE / X &nbsp; FIRE<br>
-        Z &nbsp; SUPERZAPPER<br>
-        P &nbsp; PAUSE
-      </div>
-      <div class="msg-prompt" style="color:#00FFFF;text-shadow:0 0 12px #00FFFF;">[ PRESS SPACE ]</div>
-      <div style="font-size:10px;letter-spacing:3px;margin-top:16px;color:#666;">
-        HI: ${S.hiScore}
-      </div>
+  S.shape=LEVELS[0].shape;S.color=LEVELS[0].color;
+  buildTube(0);buildClaw(0,S.shape,0xFFFF88);updateLaneHL(0,S.shape,0x00FFFF);S.hud();
+  setMsg(`<div style="position:relative">
+    <div class="msg-title" style="color:#00FFFF;text-shadow:0 0 20px #00FFFF,0 0 60px #00FFFF,0 0 120px #00FFFF;">VORTEX</div>
+    <div class="msg-title" style="color:#FF00FF;text-shadow:0 0 20px #FF00FF,0 0 60px #FF00FF;font-size:clamp(22px,5vw,48px);letter-spacing:14px;margin-top:-8px">COMMAND</div>
+    <div style="color:#FFFF00;font-size:10px;letter-spacing:5px;margin-top:12px;text-shadow:0 0 8px #FFFF00;">✦ TEMPEST 3D REMIX ✦</div>
+    <div style="height:20px"></div>
+    ${IS_TOUCH?`
+    <div class="msg-controls">
+      ◀ LEFT SIDE &nbsp; MOVE LEFT<br>
+      RIGHT SIDE ▶ &nbsp; MOVE RIGHT<br>
+      DRAG &nbsp; FAST LANE SWEEP<br>
+      ⚡ CENTRE BUTTON &nbsp; SUPERZAP<br>
+      <span style="color:#FF4444">AUTO-FIRE ALWAYS ON</span>
     </div>
-  `);
+    `:
+    `<div class="msg-controls">
+      ← → MOVE · SPACE FIRE<br>
+      Z SUPERZAP · P PAUSE
+    </div>`}
+    <div class="msg-prompt" style="color:#00FFFF;text-shadow:0 0 12px #00FFFF;">${IS_TOUCH?'[ TAP TO PLAY ]':'[ PRESS SPACE ]'}</div>
+    <div style="font-size:9px;letter-spacing:3px;margin-top:12px;color:#444;">HI: ${S.hiScore}</div>
+  </div>`);
 }
 
-// ─── Game Loop ───────────────────────────────────────────────────
+// ─── Game loop ───────────────────────────────────────────────────
 let t0=0;
-
 function loop(t){
   requestAnimationFrame(loop);
-  const dt=Math.min(t-t0,50); t0=t;
+  const dt=Math.min(t-t0,50);t0=t;
 
-  // Camera shake
   S.shake*=0.88;
   camera.position.set(
-    CAM_BASE.x+(S.shake>0.01?(Math.random()-.5)*S.shake:0),
-    CAM_BASE.y+(S.shake>0.01?(Math.random()-.5)*S.shake*0.5:0),
+    CAM_BASE.x+(S.shake>.01?(Math.random()-.5)*S.shake:0),
+    CAM_BASE.y+(S.shake>.01?(Math.random()-.5)*S.shake*.5:0),
     CAM_BASE.z
   );
-
-  // Pulse center glow
-  if(centerGlow){
-    const pulse=0.7+Math.sin(t*0.003)*0.3;
-    centerGlow.material.opacity=pulse;
-    centerGlow.scale.setScalar(0.9+pulse*.2);
-  }
-
+  if(centerGlow){const p=0.7+Math.sin(t*.003)*.3;centerGlow.material.opacity=p;centerGlow.scale.setScalar(0.9+p*.2);}
   tickParticles();
 
-  if(S.mode==='title'){
-    G_TUBE.rotation.z+=0.004;
-    renderer.render(scene,camera);
-    return;
-  }
-  if(S.mode==='gameover'||S.mode==='paused'){
-    renderer.render(scene,camera); return;
-  }
+  if(S.mode==='title'){G_TUBE.rotation.z+=.004;renderer.render(scene,camera);return;}
+  if(S.mode==='gameover'||S.mode==='paused'){renderer.render(scene,camera);return;}
+
   if(S.mode==='dying'){
     S.dyingT-=dt;
     if(S.dyingT<=0){
-      S.lives--;
-      S.updateHUD();
+      S.lives--;S.hud();
       if(S.lives<=0){
-        S.mode='gameover';
-        localStorage.setItem('vortexHi',S.hiScore);
-        setMsg(`
-          <div class="msg-title" style="color:#FF0044;text-shadow:0 0 20px #FF0044,0 0 60px #FF0044">GAME OVER</div>
-          <div class="msg-sub" style="color:#FFFF00;margin-top:20px">SCORE: ${S.score}</div>
+        S.mode='gameover';localStorage.setItem('vcHi',S.hiScore);
+        setMsg(`<div class="msg-title" style="color:#FF0044;text-shadow:0 0 20px #FF0044,0 0 60px #FF0044">GAME OVER</div>
+          <div class="msg-sub" style="color:#FFFF00;margin-top:18px">SCORE: ${S.score}</div>
           <div class="msg-sub" style="color:#FF00FF">HI-SCORE: ${S.hiScore}</div>
-          <div class="msg-sub" style="color:#888;margin-top:8px">LEVEL ${S.level+1} REACHED</div>
-          <div class="msg-prompt" style="color:#00FFFF">[ PRESS SPACE ]</div>
-        `);
-      } else {
-        S.mode='playing';
-        buildClaw(S.playerLane,S.shape,0xFFFF88);
-      }
+          <div class="msg-sub" style="color:#888;margin-top:6px">LEVEL ${S.level+1} REACHED</div>
+          <div class="msg-prompt" style="color:#00FFFF">${IS_TOUCH?'[ TAP TO PLAY AGAIN ]':'[ PRESS SPACE ]'}</div>`);
+      }else{S.mode='playing';buildClaw(S.playerLane,S.shape,0xFFFF88);}
     }
-    renderer.render(scene,camera); return;
+    renderer.render(scene,camera);return;
   }
+
   if(S.mode==='levelclear'){
-    S.clearT-=dt;
-    G_TUBE.rotation.z+=0.055;
-    if(S.clearT<=0){
-      S.level++;
-      S.mode='playing';
-      S.loadLevel();
-    }
-    renderer.render(scene,camera); return;
+    S.clearT-=dt;G_TUBE.rotation.z+=.055;
+    if(S.clearT<=0){S.level++;S.mode='playing';S.load();}
+    renderer.render(scene,camera);return;
   }
 
   // ── PLAYING ──────────────────────────────────────────────────
   S.stateT+=dt;
-  const shape=S.shape, n=shape.length;
-  const now=Date.now();
+  const sh=S.shape,n=sh.length,now=Date.now();
 
-  // Controls
-  if(S.stateT>350){
-    if(now-S.moveT>MOVE_CD){
-      if(K['ArrowLeft']||K['KeyA']){
-        S.playerLane=(S.playerLane-1+n)%n; S.moveT=now;
-        buildClaw(S.playerLane,shape,0xFFFF88);
-        updateLaneHighlight(S.playerLane,shape,S.color);
-      } else if(K['ArrowRight']||K['KeyD']){
-        S.playerLane=(S.playerLane+1)%n; S.moveT=now;
-        buildClaw(S.playerLane,shape,0xFFFF88);
-        updateLaneHighlight(S.playerLane,shape,S.color);
-      }
-    }
-    if((K['Space']||K['KeyX'])&&now-S.shotT>SHOOT_CD){
-      S.shotT=now;
-      S.bullets.push(new Bullet(S.playerLane,.01,true,shape));
-    }
+  // Keyboard movement
+  if(S.stateT>350&&now-lastMoveT>MOVE_CD){
+    if(K['ArrowLeft']||K['KeyA']){tMove(-1);}
+    else if(K['ArrowRight']||K['KeyD']){tMove(1);}
   }
 
-  // Combo timer decay
-  S.comboT+=dt;
-  if(S.comboT>2200){S.combo=0; S.comboT=0;}
+  // Touch hold-to-move
+  if(IS_TOUCH&&S.stateT>350&&now-lastMoveT>MOVE_CD){
+    if(tLeft)tMove(-1);
+    else if(tRight)tMove(1);
+  }
 
-  // Enemy spawning
+  // Fire: keyboard or always-on auto-fire (touch)
+  const doFire=K['Space']||K['KeyX']||(IS_TOUCH&&S.stateT>400);
+  if(doFire&&now-S.shotT>SHOOT_CD){S.shotT=now;S.bullets.push(new Bullet(S.playerLane,.01,true,sh));}
+
+  // Combo decay
+  S.comboT+=dt;if(S.comboT>2200){S.combo=0;S.comboT=0;}
+
+  // Spawn
   if(S.spawned<S.toSpawn&&S.enemies.filter(e=>!e.dead).length<11){
     S.spawnTimer+=dt;
     if(S.spawnTimer>=S.spawnRate){
       S.spawnTimer=0;
-      const li=S.level%LEVELS.length;
-      const r=Math.random();
+      const li=S.level%LEVELS.length,r=Math.random();
       let type=0;
-      if(S.level>=1&&r<.22) type=1;
-      if(S.level>=3&&r<.13) type=3;
-      if(S.level>=5&&r<.10) type=2;
-      S.enemies.push(new Enemy(type,Math.floor(Math.random()*n),shape,S.level));
-      S.spawned++;
+      if(S.level>=1&&r<.22)type=1;
+      if(S.level>=3&&r<.13)type=3;
+      if(S.level>=5&&r<.10)type=2;
+      S.enemies.push(new Enemy(type,Math.floor(Math.random()*n),sh,S.level));S.spawned++;
     }
   }
 
-  // Update bullets + collision
-  const toAddEnemies=[];
+  // Bullets
+  const newEn=[];
   S.bullets=S.bullets.filter(b=>{
-    if(b.dead) return false;
-    b.update(shape);
-    if(b.dead) return false;
-
+    if(b.dead)return false;
+    b.update(sh);if(b.dead)return false;
     if(b.isPlayer){
       for(const en of S.enemies){
-        if(en.dead) continue;
+        if(en.dead)continue;
         if(en.lane===b.lane&&Math.abs(en.depth-b.depth)<.1){
           en.hp--;
-          const pos=lc(shape,en.lane,en.depth);
+          const pos=lc(sh,en.lane,en.depth);
           if(en.hp<=0){
-            explode(pos,en.color,24);
-            S.combo++; S.comboT=0;
-            const mult=Math.min(S.combo,8);
-            const pts=EPOINTS[en.type]*mult;
-            S.addScore(pts);
-            if(S.combo>=3) showCombo(`×${mult} COMBO!`,'#FFFF00');
-            if(en.type===1){
-              for(let k=0;k<2;k++){
-                const ne=new Enemy(0,(en.lane+k)%n,shape,S.level);
-                ne.depth=en.depth; ne.speed=en.speed*1.45;
-                toAddEnemies.push(ne);
-              }
-            }
+            explode(pos,en.color,24);S.combo++;S.comboT=0;
+            const mult=Math.min(S.combo,8);S.addScore(EPOINTS[en.type]*mult);
+            if(S.combo>=3)showCombo(`×${mult} COMBO!`,'#FFFF00');
+            vibrate(8);
+            if(en.type===1){for(let k=0;k<2;k++){const ne=new Enemy(0,(en.lane+k)%n,sh,S.level);ne.depth=en.depth;ne.speed=en.speed*1.45;newEn.push(ne);}}
             en.kill();
-          } else {
-            explode(pos,0xFFFFFF,8);
-          }
-          b.kill(); return false;
+          }else explode(pos,0xFFFFFF,8);
+          b.kill();return false;
         }
       }
-    } else {
-      // Enemy bullet hits player
-      if(b.depth<=.04&&b.lane===S.playerLane&&S.stateT>400){
-        S.die(); b.kill(); return false;
-      }
-    }
-    return !b.dead;
+    }else if(b.depth<=.04&&b.lane===S.playerLane&&S.stateT>400){S.die();b.kill();return false;}
+    return!b.dead;
   });
-  S.enemies.push(...toAddEnemies);
+  S.enemies.push(...newEn);
 
-  // Update enemies
+  // Enemies
   S.enemies=S.enemies.filter(en=>{
-    if(en.dead) return false;
-    const r=en.update(dt,(la,de,sh)=>S.spawnEnemyBullet(la,de,sh));
-    if(r==='rim'){
-      if(en.lane===S.playerLane&&S.stateT>400) S.die();
-      explode(lc(shape,en.lane,.04),en.color,12);
-      en.kill(); return false;
-    }
-    return !en.dead;
+    if(en.dead)return false;
+    const r=en.update(dt,(la,de,sh2)=>S.eFire(la,de,sh2));
+    if(r==='rim'){if(en.lane===S.playerLane&&S.stateT>400)S.die();explode(lc(sh,en.lane,.04),en.color,12);en.kill();return false;}
+    return!en.dead;
   });
 
-  // Level clear check
+  // Level clear
   if(S.stateT>2000&&S.spawned>=S.toSpawn&&S.enemies.filter(e=>!e.dead).length===0){
-    S.mode='levelclear'; S.clearT=2200;
+    S.mode='levelclear';S.clearT=2200;
     S.addScore(1000+S.level*300);
     showBanner(`LEVEL ${S.level+1} CLEAR! +${1000+S.level*300}`,'#FFFF00');
-    // Victory burst
-    for(let i=0;i<10;i++){
-      const la=Math.floor(Math.random()*n);
-      explode(lc(shape,la,Math.random()*.6),S.color,10);
-    }
+    vibrate([40,20,40,20,80]);
+    for(let i=0;i<10;i++){const la=Math.floor(Math.random()*n);explode(lc(sh,la,Math.random()*.6),S.color,10);}
   }
 
   renderer.render(scene,camera);
 }
 
-// ─── Kick ────────────────────────────────────────────────────────
+// ─── Resize ──────────────────────────────────────────────────────
 window.addEventListener('resize',()=>{
-  const w=window.innerWidth, h=window.innerHeight;
-  camera.aspect=w/h;
+  camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(w,h);
+  renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
+// ─── Boot ────────────────────────────────────────────────────────
 doTitle();
 requestAnimationFrame(t=>{t0=t;requestAnimationFrame(loop);});
 </script>
