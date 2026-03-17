@@ -547,51 +547,49 @@
     <div class="step">
       <div class="step-header">
         <span class="step-num">STEP 04</span>
-        <span class="step-title">Create a One-Shot Game File</span>
+        <span class="step-title">Submit Your Prompt and Capture the Game</span>
       </div>
       <div class="step-body">
-        <p>
-          A one-shot game is a <strong>single self-contained HTML file</strong>. All the HTML structure, CSS styling,
-          and JavaScript game logic live in one file — no external dependencies, no build tools, no npm install.
-          Open a text editor (VS Code, Notepad++, or any plain-text editor) and start with this skeleton:
-        </p>
-        <div class="code-block">
-          <span class="label">GAME SKELETON</span><span class="comment">&lt;!-- my-game.html --&gt;</span>
-&lt;<span class="key">!DOCTYPE html</span>&gt;
-&lt;<span class="key">html</span> <span class="val">lang</span>=<span class="str">"en"</span>&gt;
-&lt;<span class="key">head</span>&gt;
-  &lt;<span class="key">meta</span> <span class="val">charset</span>=<span class="str">"UTF-8"</span>&gt;
-  &lt;<span class="key">title</span>&gt;My One-Shot Game&lt;/<span class="key">title</span>&gt;
-  &lt;<span class="key">style</span>&gt;
-    <span class="comment">/* All your CSS goes here */</span>
-    body { background: #000; color: #fff; font-family: monospace; }
-  &lt;/<span class="key">style</span>&gt;
-&lt;/<span class="key">head</span>&gt;
-&lt;<span class="key">body</span>&gt;
-
-  &lt;<span class="key">h1</span>&gt;My Game&lt;/<span class="key">h1</span>&gt;
-  <span class="comment">&lt;!-- All your HTML goes here --&gt;</span>
-
-  &lt;<span class="key">script</span>&gt;
-    <span class="comment">// All your JavaScript goes here</span>
-    console.log(<span class="str">'Game loaded!'</span>);
-  &lt;/<span class="key">script</span>&gt;
-
-&lt;/<span class="key">body</span>&gt;
-&lt;/<span class="key">html</span>&gt;</div>
-
-        <p>
-          Save the file with a descriptive, lowercase, hyphen-separated name — for example <code>lunar-lander.html</code>
-          or <code>lucky-sevens-slots.html</code>. Avoid spaces in filenames; they create URL encoding headaches.
-        </p>
         <div class="callout callout-warn">
           <span class="callout-icon">⚠</span>
           <div class="callout-text">
             <strong>The One-Shot Rule</strong>
-            The "one-shot" constraint applies to the <em>creation</em> of the game, not just the gameplay.
-            One prompt. One LLM run. One HTML output. You take what you get — no follow-up prompts,
-            no iteration, no do-overs. The prompt is the skill. The game is the prize.
-            Craft your prompt carefully before you pull the lever.
+            One prompt. One LLM run. One HTML output. No follow-up prompts, no refinement, no do-overs.
+            You take what the model gives you and ship it. Craft your prompt carefully before you pull the lever —
+            the prompt is the skill, the game is the prize.
+          </div>
+        </div>
+
+        <p>
+          Go to your LLM of choice — Claude, ChatGPT, Gemini, or any other — and submit your prompt.
+          Here is a proven example prompt for a first game:
+        </p>
+        <div class="code-block">
+          <span class="label">EXAMPLE PROMPT</span>Create a complete single-file HTML5 Snake game. All CSS and
+JavaScript must be inline in one .html file — no external
+libraries, no imports, no dependencies. The game should have
+a dark background, render on an HTML canvas, use arrow keys
+to control the snake, track and display the score, and show
+a game-over screen with the final score when the snake hits
+a wall or itself. Start the game automatically on page load.
+The visual style should feel retro and minimal.</div>
+
+        <p>The model will respond with a complete block of HTML code. Now capture it:</p>
+        <ol>
+          <li>In the LLM's response, locate the HTML code block — it starts with <code>&lt;!DOCTYPE html&gt;</code> and ends with <code>&lt;/html&gt;</code>.</li>
+          <li>Select all of that code and copy it to your clipboard.</li>
+          <li>Open a plain-text editor — VS Code, Notepad++, TextEdit (in plain-text mode), or any editor that saves raw text.</li>
+          <li>Paste the code into a new empty file.</li>
+          <li>Save the file with a descriptive, lowercase, hyphen-separated name — for example <code>snake.html</code> or <code>lunar-lander.html</code>. Avoid spaces in filenames; they cause URL encoding headaches.</li>
+        </ol>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">✦</span>
+          <div class="callout-text">
+            <strong>Test Before You Commit</strong>
+            Double-click the saved <code>.html</code> file to open it in a browser before uploading to GitHub.
+            Verify it loads and runs. If it works locally, it will work on GitHub Pages.
+            If it doesn't — that's the game you're shipping. One shot.
           </div>
         </div>
       </div>
