@@ -584,13 +584,14 @@
           Save the file with a descriptive, lowercase, hyphen-separated name — for example <code>lunar-lander.html</code>
           or <code>lucky-sevens-slots.html</code>. Avoid spaces in filenames; they create URL encoding headaches.
         </p>
-        <div class="callout callout-tip">
-          <span class="callout-icon">✦</span>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠</span>
           <div class="callout-text">
-            <strong>Using AI to Write Your Game</strong>
-            Tools like Claude, ChatGPT, or Gemini are excellent at generating complete single-file HTML games from a short description.
-            Prompt them with: <em>"Write a complete single-file HTML5 game of [game type]. Include all CSS and JavaScript inline. No external dependencies."</em>
-            You'll usually get something playable on the first try.
+            <strong>The One-Shot Rule</strong>
+            The "one-shot" constraint applies to the <em>creation</em> of the game, not just the gameplay.
+            One prompt. One LLM run. One HTML output. You take what you get — no follow-up prompts,
+            no iteration, no do-overs. The prompt is the skill. The game is the prize.
+            Craft your prompt carefully before you pull the lever.
           </div>
         </div>
       </div>
@@ -728,9 +729,10 @@ https://thedailybabel.github.io/lunar-lander.html</div>
           <span class="callout-icon">⚠</span>
           <div class="callout-text">
             <strong>One-Shot Rules</strong>
-            The "one-shot" philosophy applies to the gameplay, not the development. You can iterate on the game
-            file as many times as you want — just push a new commit. Players get no saves and no continues;
-            you as the developer get unlimited do-overs.
+            The constraint applies to <em>development</em>, not just gameplay. One prompt to the LLM,
+            one output, no follow-up prompts, no refinement passes. Ship what the model gives you.
+            Players get no saves or continues — and you get no second prompt.
+            The prompt is the skill. The game is the prize.
           </div>
         </div>
       </div>
