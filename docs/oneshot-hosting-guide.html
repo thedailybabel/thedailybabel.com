@@ -455,13 +455,13 @@
   <!-- Pipeline overview -->
   <div class="section-label">Mission Pipeline</div>
   <div class="progress-bar">
-    <div class="progress-dot" style="--i:0"><div class="dot"></div>GITHUB ACCOUNT</div>
+    <div class="progress-dot" style="--i:0"><div class="dot"></div>SUBMIT PROMPT</div>
     <div class="progress-dot"><span class="arrow">▶</span></div>
-    <div class="progress-dot" style="--i:1"><div class="dot"></div>CREATE REPO</div>
+    <div class="progress-dot" style="--i:1"><div class="dot"></div>GITHUB ACCOUNT</div>
     <div class="progress-dot"><span class="arrow">▶</span></div>
-    <div class="progress-dot" style="--i:2"><div class="dot"></div>ENABLE PAGES</div>
+    <div class="progress-dot" style="--i:2"><div class="dot"></div>CREATE REPO</div>
     <div class="progress-dot"><span class="arrow">▶</span></div>
-    <div class="progress-dot" style="--i:3"><div class="dot"></div>BUILD GAME</div>
+    <div class="progress-dot" style="--i:3"><div class="dot"></div>ENABLE PAGES</div>
     <div class="progress-dot"><span class="arrow">▶</span></div>
     <div class="progress-dot" style="--i:4"><div class="dot"></div>PUSH FILE</div>
     <div class="progress-dot"><span class="arrow">▶</span></div>
@@ -477,90 +477,6 @@
     <div class="step">
       <div class="step-header">
         <span class="step-num">STEP 01</span>
-        <span class="step-title">Create a GitHub Account</span>
-      </div>
-      <div class="step-body">
-        <p>If you already have a GitHub account, skip ahead to Step 2. Otherwise:</p>
-        <ol>
-          <li>Go to <span class="url-pill">https://github.com</span> and click <strong>Sign up</strong>.</li>
-          <li>Enter your email address, create a password, and choose a username. Your username will become part of your game's public URL, so pick something you're happy with.</li>
-          <li>Verify your email address when GitHub sends you a confirmation.</li>
-          <li>Log in. You're now a GitHub citizen.</li>
-        </ol>
-        <div class="callout callout-info">
-          <span class="callout-icon">ℹ</span>
-          <div class="callout-text">
-            <strong>Free Tier Is Enough</strong>
-            GitHub Pages is available on free accounts. You do not need GitHub Pro, Teams, or any paid plan to host static files.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 2 -->
-    <div class="step">
-      <div class="step-header">
-        <span class="step-num">STEP 02</span>
-        <span class="step-title">Create a New Repository</span>
-      </div>
-      <div class="step-body">
-        <p>A repository (repo) is the folder that holds all your game files on GitHub.</p>
-        <ol>
-          <li>Click the <strong>+</strong> icon in the top-right corner of GitHub and choose <strong>New repository</strong>.</li>
-          <li>Give the repo a name. For a dedicated games site, name it exactly:<br>
-              <code>YOUR-USERNAME.github.io</code><br>
-              Replacing <code>YOUR-USERNAME</code> with your actual GitHub username.
-              This special naming convention activates the root GitHub Pages domain for your account.
-          </li>
-          <li>Set visibility to <strong>Public</strong>. GitHub Pages requires public repos on free accounts.</li>
-          <li>Check <strong>Add a README file</strong> — this gives the repo something to start with so it's not empty.</li>
-          <li>Click <strong>Create repository</strong>.</li>
-        </ol>
-        <div class="callout callout-tip">
-          <span class="callout-icon">✦</span>
-          <div class="callout-text">
-            <strong>Naming Options</strong>
-            The <code>username.github.io</code> pattern gives you a root URL like <code>https://username.github.io</code>. 
-            If you'd prefer a sub-path (e.g. <code>/games</code>), name the repo anything else and your URL becomes <code>https://username.github.io/repo-name</code>.
-            Either approach works fine for hosting games.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 3 -->
-    <div class="step">
-      <div class="step-header">
-        <span class="step-num">STEP 03</span>
-        <span class="step-title">Enable GitHub Pages</span>
-      </div>
-      <div class="step-body">
-        <p>GitHub Pages is the feature that turns your repo into a live website. It doesn't turn itself on automatically.</p>
-        <ol>
-          <li>Inside your new repo, click the <strong>Settings</strong> tab (top of the repo, right side).</li>
-          <li>In the left sidebar, click <strong>Pages</strong> (under the "Code and automation" section).</li>
-          <li>Under <strong>Source</strong>, select <strong>Deploy from a branch</strong>.</li>
-          <li>Set the branch to <strong>main</strong> and the folder to <strong>/ (root)</strong>.</li>
-          <li>Click <strong>Save</strong>.</li>
-        </ol>
-        <p>After a minute or two, GitHub will display the live URL of your site at the top of the Pages settings panel:</p>
-        <div class="code-block">
-          <span class="label">LIVE URL</span>https://YOUR-USERNAME.github.io
-        </div>
-        <div class="callout callout-warn">
-          <span class="callout-icon">⚠</span>
-          <div class="callout-text">
-            <strong>Propagation Delay</strong>
-            The first deployment takes 1–3 minutes. Subsequent pushes are usually faster but can still take up to a minute to appear live. Don't panic if the URL 404s immediately.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 4 -->
-    <div class="step">
-      <div class="step-header">
-        <span class="step-num">STEP 04</span>
         <span class="step-title">Submit Your Prompt and Capture the Game</span>
       </div>
       <div class="step-body">
@@ -617,6 +533,90 @@ to https://discord.gg/dcSyD75Mas for community scoring.</div>
       </div>
     </div>
 
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 02</span>
+        <span class="step-title">Create a GitHub Account</span>
+      </div>
+      <div class="step-body">
+        <p>If you already have a GitHub account, skip ahead to Step 3. Otherwise:</p>
+        <ol>
+          <li>Go to <span class="url-pill">https://github.com</span> and click <strong>Sign up</strong>.</li>
+          <li>Enter your email address, create a password, and choose a username. Your username will become part of your game's public URL, so pick something you're happy with.</li>
+          <li>Verify your email address when GitHub sends you a confirmation.</li>
+          <li>Log in. You're now a GitHub citizen.</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-text">
+            <strong>Free Tier Is Enough</strong>
+            GitHub Pages is available on free accounts. You do not need GitHub Pro, Teams, or any paid plan to host static files.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 03</span>
+        <span class="step-title">Create a New Repository</span>
+      </div>
+      <div class="step-body">
+        <p>A repository (repo) is the folder that holds all your game files on GitHub.</p>
+        <ol>
+          <li>Click the <strong>+</strong> icon in the top-right corner of GitHub and choose <strong>New repository</strong>.</li>
+          <li>Give the repo a name. For a dedicated games site, name it exactly:<br>
+              <code>YOUR-USERNAME.github.io</code><br>
+              Replacing <code>YOUR-USERNAME</code> with your actual GitHub username.
+              This special naming convention activates the root GitHub Pages domain for your account.
+          </li>
+          <li>Set visibility to <strong>Public</strong>. GitHub Pages requires public repos on free accounts.</li>
+          <li>Check <strong>Add a README file</strong> — this gives the repo something to start with so it's not empty.</li>
+          <li>Click <strong>Create repository</strong>.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✦</span>
+          <div class="callout-text">
+            <strong>Naming Options</strong>
+            The <code>username.github.io</code> pattern gives you a root URL like <code>https://username.github.io</code>. 
+            If you'd prefer a sub-path (e.g. <code>/games</code>), name the repo anything else and your URL becomes <code>https://username.github.io/repo-name</code>.
+            Either approach works fine for hosting games.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 04</span>
+        <span class="step-title">Enable GitHub Pages</span>
+      </div>
+      <div class="step-body">
+        <p>GitHub Pages is the feature that turns your repo into a live website. It doesn't turn itself on automatically.</p>
+        <ol>
+          <li>Inside your new repo, click the <strong>Settings</strong> tab (top of the repo, right side).</li>
+          <li>In the left sidebar, click <strong>Pages</strong> (under the "Code and automation" section).</li>
+          <li>Under <strong>Source</strong>, select <strong>Deploy from a branch</strong>.</li>
+          <li>Set the branch to <strong>main</strong> and the folder to <strong>/ (root)</strong>.</li>
+          <li>Click <strong>Save</strong>.</li>
+        </ol>
+        <p>After a minute or two, GitHub will display the live URL of your site at the top of the Pages settings panel:</p>
+        <div class="code-block">
+          <span class="label">LIVE URL</span>https://YOUR-USERNAME.github.io
+        </div>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-text">
+            <strong>Propagation Delay</strong>
+            The first deployment takes 1–3 minutes. Subsequent pushes are usually faster but can still take up to a minute to appear live. Don't panic if the URL 404s immediately.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- STEP 5 -->
     <div class="step">
       <div class="step-header">
@@ -631,7 +631,7 @@ to https://discord.gg/dcSyD75Mas for community scoring.</div>
           <li>Go to your repo on GitHub.</li>
           <li>Click <strong>Add file → Upload files</strong>.</li>
           <li>Drag your <code>.html</code> file into the upload box, or click to browse for it.</li>
-          <li>Scroll down to the <strong>Commit changes</strong> section. Add a short message like <code>Add lunar-lander game</code>.</li>
+          <li>Scroll down to the <strong>Commit changes</strong> section. Add a short message like <code>Add snake game</code>.</li>
           <li>Make sure <strong>Commit directly to the main branch</strong> is selected.</li>
           <li>Click <strong>Commit changes</strong>.</li>
         </ol>
@@ -644,8 +644,8 @@ git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
 cd YOUR-REPO
 
 <span class="comment"># Copy your game file into the repo folder, then:</span>
-git add my-game.html
-git commit -m <span class="str">"Add my-game one-shot"</span>
+git add snake.html
+git commit -m <span class="str">"Add snake one-shot"</span>
 git push origin main</div>
 
         <div class="callout callout-info">
