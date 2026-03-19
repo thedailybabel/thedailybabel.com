@@ -1,0 +1,150 @@
+ONE SHOT GAMES — CONTEST SUBMISSION PAGE META-PROMPT
+=====================================================
+Copy everything below the dashed line, fill in your details, and submit it
+to the LLM of your choice. The output is your submission page.
+
+Bonus points if this page is itself a one-shot (no editing after generation).
+Minor UI fixes are allowed and frankly expected — we're not monsters.
+
+────────────────────────────────────────────────────────────────────────────
+
+Generate a complete, single-file HTML contest submission page for the
+"One Shot Games" arcade competition. No external assets. All CSS and
+JavaScript must be inline. It must host correctly on GitHub Pages.
+
+== ENTRANT DETAILS (fill these in before submitting) ==
+
+ENTRANT_HANDLE    : [YOUR HANDLE OR USERNAME]
+GAME_TITLE        : [YOUR GAME'S NAME]
+GAME_FILE         : [your-game-filename.html]
+GITHUB_USERNAME   : [your-github-username]
+GITHUB_REPO       : [your-repo-name]
+LLM_USED          : [e.g. Claude Sonnet 4.5 / GPT-4o / Gemini 1.5 Pro]
+SUBMISSION_DATE   : [YYYY-MM-DD]
+GAME_GENRE        : [e.g. Roguelite / Puzzle / Arcade / Shooter]
+PROMPT_WORD_COUNT : [approx. count of words in your game prompt]
+ONE_SHOT_PAGE     : [YES — no edits after generation / NO — I used a template]
+GAME_EMOJI        : [pick one emoji that represents your game]
+GAME_DESCRIPTION  : [2-3 sentences pitching your game. What's the hook?]
+
+PROMPT_TEXT : |
+  [Paste your EXACT game generation prompt here, verbatim.
+   This goes on record. The community will read it.
+   Multi-line is fine.]
+
+== VISUAL DESIGN REQUIREMENTS ==
+
+Match this exact design system — consistency across all entries is part of
+the aesthetic. Do not deviate from these values:
+
+Color palette (CSS variables):
+  --bg: #080c10
+  --surface: #0d1117
+  --surface2: #111820
+  --amber: #ffb800
+  --amber-dim: #a07500
+  --amber-glow: rgba(255,184,0,0.12)
+  --green: #39ff14
+  --green-glow: rgba(57,255,20,0.1)
+  --cyan: #00e5ff
+  --cyan-glow: rgba(0,229,255,0.1)
+  --magenta: #ff00aa
+  --text: #c8d8e8
+  --text-dim: #55687a
+
+Fonts (Google Fonts, load via @import or <link>):
+  'Share Tech Mono' — body / monospace text
+  'Orbitron'        — headings and labels (weight 400, 700, 900)
+  'Michroma'        — optional secondary display
+
+Required background effects:
+  1. CRT scanline overlay: body::before, fixed, full viewport, z-index: 9999,
+     repeating-linear-gradient(0deg, transparent 2px, rgba(0,0,0,0.25) 4px),
+     opacity 0.35.
+  2. Vignette: body::after, fixed, radial-gradient darkening edges, z-index: 9998.
+  3. Drifting grid: fixed bg element, 48×48px grid lines in the entry accent
+     color at ~0.03 opacity, animating position 0→48px over 25–30s.
+
+Entry accent color: Use --cyan (#00e5ff) as the primary accent so contest
+entries are visually distinct from the main arcade's amber theme.
+
+Clip-path on cards: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))
+Corner notch decoration: ::after pseudo with triangle border trick matching the clip-path corner.
+
+== PAGE STRUCTURE (in order) ==
+
+1. BREADCRUMB NAV
+   Text: ARCADE / CONTEST / [GAME_TITLE]
+   ARCADE links to: https://[GITHUB_USERNAME].github.io/[GITHUB_REPO]/
+   CONTEST is a dead link (placeholder)
+   Accent color on current page name.
+
+2. HEADER
+   Small uppercase eyebrow: "// Contest Entry — One Shot Games"
+   H1: [GAME_TITLE] in Orbitron 900, accented in --cyan
+   Meta row below: ENTRANT · MODEL · SUBMITTED — small, dim, spaced
+   Horizontal rule: gradient from --cyan to transparent
+
+3. ACTION BUTTONS (2-column grid, 1-column on mobile)
+   Button A — PRIMARY: Play Game
+     href="[GAME_FILE]"
+     Icon: [GAME_EMOJI]
+     Title: PLAY GAME
+     Desc: "Launch the one-shot entry. No saves. No mercy."
+   Button B — SECONDARY: View Raw HTML
+     href="https://raw.githubusercontent.com/[GITHUB_USERNAME]/[GITHUB_REPO]/main/[GAME_FILE]"
+     target="_blank"
+     Icon: 📄
+     Title: VIEW RAW HTML
+     Desc: "Inspect the full output. Uncut. Unedited. (Allegedly.)"
+   Both buttons use the clip-path style with hover glow, lift, and corner notch.
+
+4. ENTRY DATA GRID (2×2, 1-column on mobile)
+   Cells: Game Title / Model Used / Genre / Prompt Word Count
+   Each cell: small dim label + Orbitron value in --cyan
+   Clip-path on top-right corner only (simpler variant).
+
+5. ONE-SHOT BADGE (only if ONE_SHOT_PAGE = YES)
+   Inline badge with pulsing dot: "ONE-SHOT SUBMISSION — PROMPT → OUTPUT, NO EDITS"
+   Styled in --amber with slow glow pulse animation.
+   If ONE_SHOT_PAGE = NO, replace with a plain dim text note:
+   "// Submission page generated from template"
+
+6. PROMPT BLOCK
+   Section label: "The Prompt"
+   Card with clip-path, header bar showing "// VERBATIM PROMPT — AS SUBMITTED TO [LLM_USED]"
+   and a pulsing "ON RECORD" badge in --green.
+   Prompt body: monospace, pre-wrap, line-numbered (dim numbers, 2-char wide).
+   Keywords in --cyan, comments in --text-dim italic, strings in --amber.
+   "[ COPY PROMPT ]" button bottom-right. On click: copies text content of
+   all prompt lines to clipboard, changes to "[ COPIED ✓ ]" for 2s then reverts.
+
+7. FOOTER
+   Left: "ONE SHOT GAMES — CONTEST ENTRY" with blinking block cursor in --cyan
+   Right: "← BACK TO ARCADE" link + "· GITHUB" link
+   Separated by a dim top border.
+
+== ANIMATION REQUIREMENTS ==
+
+- Staggered entrance: wrap each major section in a .fade-in class.
+  animation: fadeIn 0.5s ease forwards, delays 0.05s, 0.12s, 0.19s, 0.26s, 0.33s
+  keyframes: from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) }
+- Blinking cursor: 1.2s step-end, alternates opacity 1/0
+- Status dot pulse: 2s ease-in-out, opacity 1→0.3→1
+- Badge glow: 3s ease-in-out, box-shadow none→glow→none
+- Hover on action buttons: translateY(-3px) + box-shadow glow + border brightens
+
+== PLACEHOLDER TEXT POLICY ==
+
+Replace ALL bracketed placeholders with the supplied ENTRANT DETAILS before
+generating. If a field is left as [PLACEHOLDER], output it visually as a
+dim "???" so the entrant knows something is missing — do not hide the gap.
+
+== OUTPUT ==
+
+Return only the complete HTML file. No explanation, no markdown fences,
+no preamble. The file must be ready to save as entry.html and push to
+GitHub Pages.
+
+────────────────────────────────────────────────────────────────────────────
+END OF META-PROMPT
