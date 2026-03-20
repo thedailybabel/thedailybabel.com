@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contest Entry Form — One Shot Games Contest Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #111820;
+    --amber: #ffb800;
+    --amber-dim: #a07500;
+    --amber-glow: rgba(255,184,0,0.12);
+    --green: #39ff14;
+    --green-glow: rgba(57,255,20,0.1);
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0,229,255,0.1);
+    --magenta: #ff00aa;
+    --text: #c8d8e8;
+    --text-dim: #55687a;
+    --scan-lines: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px
+    );
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: var(--scan-lines);
+    pointer-events: none; z-index: 9999; opacity: 0.35;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none; z-index: 9998;
+  }
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: drift 28s linear infinite; z-index: 0;
+  }
+  @keyframes drift { from{background-position:0 0} to{background-position:48px 48px} }
+
+  .page {
+    position: relative; z-index: 10;
+    max-width: 860px; margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* BREADCRUMB */
+  .breadcrumb { font-size:.7rem; letter-spacing:.2em; color:var(--text-dim); margin-bottom:3rem; }
+  .breadcrumb a { color:var(--text-dim); text-decoration:none; transition:color .2s; }
+  .breadcrumb a:hover { color:var(--cyan); }
+  .breadcrumb .sep { margin:0 .6em; color:var(--amber-dim); }
+  .breadcrumb .current { color:var(--cyan); }
+
+  /* HEADER */
+  .header-accent { font-size:.65rem; letter-spacing:.45em; color:var(--amber-dim); text-transform:uppercase; margin-bottom:.6rem; }
+  .page-title {
+    font-family:'Orbitron',monospace; font-weight:900;
+    font-size:clamp(1.6rem,5vw,3rem); color:var(--text);
+    line-height:1.1; letter-spacing:.02em;
+    text-shadow:0 0 30px rgba(0,229,255,0.2),0 0 60px rgba(0,229,255,0.1);
+    margin-bottom:1rem;
+  }
+  .page-title .accent { color:var(--cyan); }
+  .header-meta {
+    display:flex; flex-wrap:wrap; gap:1.5rem;
+    font-size:.7rem; letter-spacing:.15em; color:var(--text-dim);
+    margin-top:1.2rem;
+  }
+  .meta-label { color:var(--cyan); margin-right:.4em; }
+  .header-line {
+    margin-top:1.5rem; height:1px;
+    background:linear-gradient(90deg,var(--cyan),transparent);
+    opacity:.3;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size:.65rem; letter-spacing:.4em; color:var(--text-dim);
+    text-transform:uppercase; margin-bottom:1rem;
+    padding-left:.8rem; border-left:2px solid var(--cyan);
+  }
+
+  /* DESCRIPTION BLOCK */
+  .desc-block {
+    background:var(--surface);
+    border:1px solid rgba(0,229,255,0.1);
+    border-left:3px solid var(--cyan);
+    padding:1.1rem 1.4rem; margin-bottom:2.5rem;
+    font-size:.78rem; line-height:1.8; color:var(--text);
+  }
+
+  /* ACTION BUTTONS */
+  .action-strip { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2.5rem; }
+  @media(max-width:520px) { .action-strip { grid-template-columns:1fr; } }
+
+  .action-btn {
+    display:flex; align-items:center; gap:1rem;
+    padding:1.1rem 1.4rem; background:var(--surface);
+    border:1px solid rgba(0,229,255,0.15); text-decoration:none; color:var(--text);
+    position:relative; overflow:hidden;
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+    transition:border-color .3s,box-shadow .3s,transform .2s;
+  }
+  .action-btn::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid; border-width:0 16px 16px 0;
+    border-color:transparent rgba(0,229,255,0.25) transparent transparent;
+    transition:border-color .3s;
+  }
+  .action-btn:hover { transform:translateY(-3px); border-color:var(--cyan); box-shadow:0 0 20px rgba(0,229,255,0.15),0 8px 30px rgba(0,0,0,0.5); }
+  .action-btn:hover::after { border-color:transparent var(--cyan) transparent transparent; }
+  .action-btn.primary { border-color:rgba(0,229,255,0.3); }
+
+  .btn-icon { font-size:1.6rem; flex-shrink:0; transition:transform .3s; filter:drop-shadow(0 0 6px rgba(0,229,255,0.3)); }
+  .action-btn:hover .btn-icon { transform:scale(1.15); }
+  .btn-text { display:flex; flex-direction:column; }
+  .btn-title { font-family:'Orbitron',monospace; font-size:.8rem; font-weight:700; color:var(--cyan); letter-spacing:.05em; margin-bottom:.2rem; }
+  .btn-desc { font-size:.65rem; color:var(--text-dim); line-height:1.4; }
+
+  /* ENTRY DATA GRID */
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; }
+  @media(max-width:540px) { .info-grid { grid-template-columns:1fr; } }
+  .info-cell {
+    background:var(--surface); border:1px solid rgba(0,229,255,0.1);
+    padding:1rem 1.2rem;
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);
+  }
+  .cell-label { font-size:.6rem; letter-spacing:.3em; color:var(--text-dim); text-transform:uppercase; margin-bottom:.4rem; }
+  .cell-value { font-family:'Orbitron',monospace; font-size:.82rem; font-weight:700; color:var(--cyan); }
+  .cell-value.sm { font-size:.72rem; }
+
+  /* ONE-SHOT STATUS */
+  .status-note {
+    font-size:.72rem; font-style:italic; color:var(--text-dim);
+    margin-bottom:2.5rem; letter-spacing:.05em;
+  }
+
+  /* PROMPT BLOCK */
+  .prompt-card {
+    background:var(--surface); border:1px solid rgba(0,229,255,0.12);
+    margin-bottom:2.5rem; position:relative; overflow:hidden;
+    clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));
+  }
+  .prompt-card::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid; border-width:0 20px 20px 0;
+    border-color:transparent rgba(0,229,255,0.25) transparent transparent;
+  }
+  .prompt-card-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.65rem 1.4rem;
+    background:linear-gradient(90deg,rgba(0,229,255,0.06),transparent);
+    border-bottom:1px solid rgba(0,229,255,0.1);
+    flex-wrap:wrap; gap:.5rem;
+  }
+  .prompt-card-title { font-family:'Orbitron',monospace; font-size:.68rem; font-weight:700; color:var(--cyan); letter-spacing:.08em; }
+  .prompt-badge {
+    font-size:.6rem; letter-spacing:.2em; padding:.2em .7em;
+    border:1px solid var(--green); color:var(--green);
+    text-shadow:0 0 6px var(--green); box-shadow:0 0 8px var(--green-glow);
+    animation:green-pulse 2.5s ease-in-out infinite; flex-shrink:0;
+  }
+  @keyframes green-pulse { 0%,100%{box-shadow:0 0 8px var(--green-glow)} 50%{box-shadow:0 0 18px rgba(57,255,20,0.28)} }
+
+  .prompt-body {
+    padding:1.4rem 1.4rem .6rem;
+    font-family:'Share Tech Mono',monospace; font-size:.75rem; line-height:1.75;
+    overflow-x:auto;
+  }
+  .pl { display:flex; gap:.8rem; min-height:1.75em; }
+  .ln { user-select:none; color:var(--text-dim); font-size:.68rem; min-width:2.2ch; text-align:right; opacity:.35; padding-top:.08em; flex-shrink:0; }
+  .lc { color:var(--text); white-space:pre-wrap; word-break:break-word; }
+  .kw { color:var(--cyan); }
+  .cm { color:var(--text-dim); font-style:italic; }
+  .str { color:var(--amber); }
+
+  .copy-btn {
+    display:block; margin:.4rem 1.4rem 1.2rem auto;
+    background:transparent; border:1px solid rgba(0,229,255,0.25);
+    color:var(--text-dim); font-family:'Share Tech Mono',monospace;
+    font-size:.65rem; letter-spacing:.2em; padding:.35em .9em; cursor:pointer; transition:all .2s;
+  }
+  .copy-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+  .copy-btn.copied { border-color:var(--green); color:var(--green); }
+
+  /* REFINEMENT LOG */
+  .refine-toggle {
+    display:flex; align-items:center; gap:.8rem;
+    background:transparent; border:1px solid rgba(0,229,255,0.15);
+    color:var(--text-dim); font-family:'Share Tech Mono',monospace;
+    font-size:.68rem; letter-spacing:.2em; padding:.6rem 1.1rem;
+    cursor:pointer; margin-bottom:1rem; transition:all .2s; width:100%;
+  }
+  .refine-toggle:hover { border-color:var(--cyan); color:var(--cyan); }
+  .refine-toggle .toggle-icon { color:var(--cyan); font-size:.8rem; transition:transform .25s; }
+  .refine-toggle.open .toggle-icon { transform:rotate(90deg); }
+
+  .refine-log { display:none; }
+  .refine-log.open { display:block; animation:fadeIn .3s ease forwards; }
+
+  .refine-note {
+    font-size:.68rem; color:var(--text-dim); font-style:italic;
+    letter-spacing:.08em; margin-bottom:1rem; padding:.6rem .8rem;
+    border-left:2px solid rgba(0,229,255,0.2);
+  }
+
+  .refine-round {
+    background:var(--surface); border:1px solid rgba(0,229,255,0.1);
+    padding:1.2rem 1.4rem; margin-bottom:.8rem; position:relative;
+    clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  }
+  .refine-round::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid; border-width:0 12px 12px 0;
+    border-color:transparent rgba(0,229,255,0.2) transparent transparent;
+  }
+  .refine-round-num { font-size:.62rem; letter-spacing:.3em; color:var(--cyan); text-transform:uppercase; margin-bottom:.9rem; }
+  .refine-field-label { font-size:.6rem; letter-spacing:.25em; color:var(--text-dim); text-transform:uppercase; margin-bottom:.3rem; margin-top:.8rem; }
+  .refine-field-label:first-of-type { margin-top:0; }
+  .refine-field-value { font-size:.75rem; color:var(--text); line-height:1.7; }
+
+  /* FOOTER */
+  .page-footer {
+    border-top:1px solid rgba(0,229,255,0.08); padding-top:2rem; margin-top:3rem;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:1rem; font-size:.65rem; color:var(--text-dim); letter-spacing:.15em;
+  }
+  .page-footer a { color:var(--text-dim); text-decoration:none; transition:color .2s; }
+  .page-footer a:hover { color:var(--cyan); }
+  .footer-cursor {
+    display:inline-block; width:6px; height:.85em; background:var(--cyan);
+    animation:blink 1.2s step-end infinite; vertical-align:middle;
+    margin-left:2px; box-shadow:0 0 5px var(--cyan);
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .fade-in { opacity:0; transform:translateY(16px); animation:fadeIn .5s ease forwards; }
+  @keyframes fadeIn { to{opacity:1;transform:translateY(0)} }
+  .fi1{animation-delay:.05s} .fi2{animation-delay:.12s} .fi3{animation-delay:.19s}
+  .fi4{animation-delay:.26s} .fi5{animation-delay:.33s} .fi6{animation-delay:.40s} .fi7{animation-delay:.47s}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="page">
+
+  <!-- BREADCRUMB -->
+  <nav class="breadcrumb fade-in fi1">
+    <a href="https://thedailybabel.github.io/thedailybabel.com/">ARCADE</a>
+    <span class="sep">/</span>
+    <span style="color:var(--text-dim)">CONTEST</span>
+    <span class="sep">/</span>
+    <span class="current">CONTEST ENTRY FORM</span>
+  </nav>
+
+  <!-- HEADER -->
+  <header class="fade-in fi2">
+    <div class="header-accent">// Contest Entry — One Shot Games</div>
+    <h1 class="page-title"><span class="accent">Contest Entry<br>Form</span></h1>
+    <div class="header-meta">
+      <span><span class="meta-label">ENTRANT</span> TheDailyBabel</span>
+      <span><span class="meta-label">MODEL</span> Claude Sonnet 4.5</span>
+      <span><span class="meta-label">SUBMITTED</span> 2026-03-20</span>
+    </div>
+    <div class="header-line"></div>
+  </header>
+
+  <!-- DESCRIPTION -->
+  <div class="desc-block fade-in fi2">
+    Generate meta-prompt for contest entry — a self-hosting form that eats its own output.
+    Fill it in, generate the prompt, feed the prompt to an LLM, get a page.
+    This entry is that page. The snake has located its tail.
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="section-label fade-in fi3">Launch Pads</div>
+  <div class="action-strip fade-in fi3">
+    <a href="https://thedailybabel.com/contest_entry.html" class="action-btn primary">
+      <span class="btn-icon">📝</span>
+      <span class="btn-text">
+        <span class="btn-title">OPEN FORM</span>
+        <span class="btn-desc">Launch the one-shot entry. One session. No mercy.</span>
+      </span>
+    </a>
+    <a href="https://raw.githubusercontent.com/thedailybabel/thedailybabel.com/refs/heads/main/contest_entry.html"
+       target="_blank" rel="noopener" class="action-btn">
+      <span class="btn-icon">📄</span>
+      <span class="btn-text">
+        <span class="btn-title">VIEW RAW HTML</span>
+        <span class="btn-desc">Inspect the full output. Uncut. Unedited. (Allegedly.)</span>
+      </span>
+    </a>
+  </div>
+
+  <!-- ENTRY DATA -->
+  <div class="section-label fade-in fi4">Entry Data</div>
+  <div class="info-grid fade-in fi4">
+    <div class="info-cell">
+      <div class="cell-label">Entry Title</div>
+      <div class="cell-value sm">CONTEST ENTRY FORM</div>
+    </div>
+    <div class="info-cell">
+      <div class="cell-label">Model Used</div>
+      <div class="cell-value sm">CLAUDE SONNET 4.5</div>
+    </div>
+    <div class="info-cell">
+      <div class="cell-label">Category</div>
+      <div class="cell-value sm">DOCUMENTATION HELPER</div>
+    </div>
+    <div class="info-cell">
+      <div class="cell-label">Prompt Length</div>
+      <div class="cell-value">37 <span style="font-size:.65rem;font-weight:400">WORDS</span></div>
+    </div>
+  </div>
+
+  <!-- ONE-SHOT STATUS -->
+  <div class="status-note fade-in fi4">
+    // Output refined through multiple LLM rounds — see Refinement Log below
+  </div>
+
+  <!-- PROMPT BLOCK -->
+  <div class="section-label fade-in fi5">The Prompt</div>
+  <div class="prompt-card fade-in fi5">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">// VERBATIM PROMPT — AS SUBMITTED TO CLAUDE SONNET 4.5</span>
+      <span class="prompt-badge">ON RECORD</span>
+    </div>
+    <div class="prompt-body" id="promptBody">
+<div class="pl"><span class="ln">1</span><span class="lc"><span class="kw">I'd like</span> an html page that I can host on the contest web site <span class="str">(thedailybabel.com)</span> where an</span></div>
+<div class="pl"><span class="ln"> </span><span class="lc">entrant can fill out a short form, submit the form and receive a contest submission</span></div>
+<div class="pl"><span class="ln"> </span><span class="lc">page meta-prompt.</span></div>
+<div class="pl"><span class="ln">2</span><span class="lc"></span></div>
+<div class="pl"><span class="ln">3</span><span class="lc"><span class="cm">[supplied meta-prompt template]</span></span></div>
+    </div>
+    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">[ COPY PROMPT ]</button>
+  </div>
+
+  <!-- REFINEMENT LOG -->
+  <div class="section-label fade-in fi6">Refinement Log</div>
+  <div class="fade-in fi6">
+    <button class="refine-toggle" id="refineToggle" onclick="toggleRefineLog()">
+      <span class="toggle-icon">▶</span>
+      <span id="refineToggleLabel">[ SHOW REFINEMENT LOG ]</span>
+    </button>
+    <div class="refine-log" id="refineLog">
+      <div class="refine-note">Post-generation fixes applied to this entry.</div>
+
+      <div class="refine-round">
+        <div class="refine-round-num">// Round 1</div>
+        <div class="refine-field-label">What Was Wrong</div>
+        <div class="refine-field-value">Just wanted a few refinements.</div>
+        <div class="refine-field-label">Fix Applied</div>
+        <div class="refine-field-value">Some other improvements:
+1. For each field can you provide an "info" button that pops up a longer description of the field.
+2. For Genre / type give a longer list to choose from. Don't limit the list to just games — we will accept entries for anything (productivity, developer tools, business, health, fitness, education, lifestyle, etc.)
+3. For the game emoji is it possible to provide a set of default emojis? Perhaps based on genre?
+4. Add a section to include refinement prompts — what did they have to fix.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer fade-in fi7">
+    <span>ONE SHOT GAMES — CONTEST ENTRY<span class="footer-cursor"></span></span>
+    <span>
+      <a href="https://thedailybabel.github.io/thedailybabel.com/">← BACK TO ARCADE</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/thedailybabel/thedailybabel.com" target="_blank">GITHUB</a>
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  function copyPrompt() {
+    const lines = document.querySelectorAll('#promptBody .lc');
+    const text = Array.from(lines).map(l => l.textContent).join('\n').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '[ COPIED ✓ ]';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent='[ COPY PROMPT ]'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function toggleRefineLog() {
+    const log = document.getElementById('refineLog');
+    const btn = document.getElementById('refineToggle');
+    const lbl = document.getElementById('refineToggleLabel');
+    const isOpen = log.classList.contains('open');
+    log.classList.toggle('open', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+    lbl.textContent = isOpen ? '[ SHOW REFINEMENT LOG ]' : '[ HIDE REFINEMENT LOG ]';
+  }
+</script>
+
+</body>
+</html>
