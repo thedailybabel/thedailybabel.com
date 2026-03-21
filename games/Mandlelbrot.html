@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mandelbrot Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ui-bg: rgba(8, 8, 12, 0.82);
+    --ui-border: rgba(255,255,255,0.08);
+    --accent: #00ffe7;
+    --accent2: #ff3cac;
+    --text: #e8e8f0;
+    --dim: rgba(232,232,240,0.45);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    touch-action: none;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw; height: 100vh;
+    cursor: crosshair;
+    image-rendering: pixelated;
+  }
+
+  /* ── HUD overlay ── */
+  #hud {
+    position: fixed; inset: 0;
+    pointer-events: none;
+  }
+
+  /* coords strip */
+  #coords {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 6px 14px;
+    background: var(--ui-bg);
+    border-top: 1px solid var(--ui-border);
+    font-size: 10px;
+    color: var(--dim);
+    display: flex; gap: 18px; align-items: center;
+    backdrop-filter: blur(8px);
+    letter-spacing: 0.04em;
+  }
+  #coords span { color: var(--accent); }
+
+  /* title */
+  #title {
+    position: absolute;
+    top: 14px; left: 18px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+    pointer-events: none;
+  }
+  #title strong { color: var(--accent); font-weight: 700; letter-spacing: 0.22em; }
+
+  /* location badge */
+  #location-badge {
+    position: absolute;
+    top: 14px; right: 18px;
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 0.12em;
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+  #location-badge.show { opacity: 1; }
+
+  /* controls panel */
+  #controls {
+    position: absolute;
+    bottom: 38px; right: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: all;
+  }
+
+  .ctrl-row { display: flex; gap: 6px; justify-content: center; }
+
+  .btn {
+    width: 42px; height: 42px;
+    background: var(--ui-bg);
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(12px);
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { background: rgba(0,255,231,0.12); border-color: var(--accent); }
+  .btn:active { transform: scale(0.92); background: rgba(0,255,231,0.22); }
+  .btn.wide { width: 90px; font-size: 12px; letter-spacing: 0.08em; }
+
+  /* loading spinner */
+  #loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+    transition: opacity 0.5s;
+  }
+  #loading.done { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid rgba(0,255,231,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* zoom indicator flash */
+  #zoom-flash {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 13px; letter-spacing: 0.12em;
+    color: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #zoom-flash.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="title"><strong>MANDELBROT</strong> &nbsp;EXPLORER</div>
+  <div id="location-badge" id="lb"></div>
+
+  <div id="controls">
+    <div class="ctrl-row">
+      <button class="btn" id="btn-up"   title="Pan Up">↑</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="btn" id="btn-left"  title="Pan Left">←</button>
+      <button class="btn" id="btn-down"  title="Pan Down">↓</button>
+      <button class="btn" id="btn-right" title="Pan Right">→</button>
+    </div>
+    <div class="ctrl-row" style="margin-top:4px">
+      <button class="btn" id="btn-zoomin"  title="Zoom In">＋</button>
+      <button class="btn" id="btn-zoomout" title="Zoom Out">－</button>
+    </div>
+    <div class="ctrl-row" style="margin-top:4px">
+      <button class="btn wide" id="btn-reset" title="New Location">✦ NEW</button>
+    </div>
+  </div>
+
+  <div id="coords">
+    <div>RE <span id="cx">0</span></div>
+    <div>IM <span id="cy">0</span></div>
+    <div>ZOOM <span id="cz">1×</span></div>
+    <div style="margin-left:auto;font-size:9px;opacity:0.5">SCROLL/PINCH TO ZOOM · DRAG TO PAN</div>
+  </div>
+
+  <div id="zoom-flash"></div>
+</div>
+
+<div id="loading"><div class="spinner"></div></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// MANDELBROT EXPLORER
+// ═══════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+// ── Interesting locations to randomly start at ──
+const LOCATIONS = [
+  { name: "SEA HORSE VALLEY",   re: -0.7269, im: 0.1889,  zoom: 500 },
+  { name: "ELEPHANT VALLEY",    re: 0.3369,  im: 0.0489,  zoom: 800 },
+  { name: "SPIRAL TENDRILS",    re: -0.7453, im: 0.1127,  zoom: 1200 },
+  { name: "DOUBLE SPIRAL",      re: -0.1015, im: 0.6337,  zoom: 600 },
+  { name: "FILAMENTS",          re: -1.6744, im: 0.0,     zoom: 900 },
+  { name: "CROWN JEWEL",        re: -0.5275, im: 0.5275,  zoom: 400 },
+  { name: "LIGHTNING",          re: -1.3765, im: 0.0,     zoom: 700 },
+  { name: "STAR BURST",         re: -0.8251, im: 0.2075,  zoom: 1000 },
+  { name: "DEEP SPIRAL",        re: -0.7486, im: 0.0760,  zoom: 2000 },
+  { name: "FEATHER TIPS",       re: -0.5626, im: 0.6427,  zoom: 1500 },
+  { name: "NOVA",               re: 0.4257,  im: 0.2,     zoom: 550 },
+  { name: "MINIBROT",           re: -1.7681, im: 0.0014,  zoom: 1800 },
+  { name: "CAULIFLOWER",        re: -0.1565, im: 1.0322,  zoom: 700 },
+  { name: "ANTENNA",            re: -1.4011,  im: 0.0,    zoom: 1600 },
+  { name: "VOID PETALS",        re: -0.7776, im: 0.1344,  zoom: 3000 },
+];
+
+// ── State ──
+let W, H;
+let cx, cy, zoom;
+let maxIter = 256;
+let rendering = false;
+let renderPending = false;
+let renderTimer = null;
+let imageData = null;
+
+// ── Color palette (HSL-based smooth banding) ──
+function palette(t) {
+  // t in [0,1], returns [r,g,b]
+  const h = (360 * t + 210) % 360;
+  const s = 0.75 + 0.25 * Math.sin(t * Math.PI * 6);
+  const l = 0.35 + 0.3  * Math.sin(t * Math.PI * 3 + 1.2);
+  return hslToRgb(h/360, s, l);
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+function hue2rgb(p, q, t) {
+  if (t < 0) t += 1; if (t > 1) t -= 1;
+  if (t < 1/6) return p+(q-p)*6*t;
+  if (t < 1/2) return q;
+  if (t < 2/3) return p+(q-p)*(2/3-t)*6;
+  return p;
+}
+
+// Pre-bake palette
+const PAL_SIZE = 2048;
+const PAL = new Uint8Array(PAL_SIZE * 3);
+for (let i = 0; i < PAL_SIZE; i++) {
+  const [r,g,b] = palette(i / PAL_SIZE);
+  PAL[i*3]   = r;
+  PAL[i*3+1] = g;
+  PAL[i*3+2] = b;
+}
+
+// ── Resize ──
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  imageData = ctx.createImageData(W, H);
+  scheduleRender();
+}
+
+// ── Render ──
+function scheduleRender(delay = 0) {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(doRender, delay);
+}
+
+function doRender() {
+  if (!imageData) return;
+
+  const data = imageData.data;
+  const scale = 3.5 / (zoom * Math.min(W, H));
+  const reMin = cx - W/2 * scale;
+  const imMin = cy - H/2 * scale;
+  const mi    = maxIter;
+
+  for (let py = 0; py < H; py++) {
+    const im0 = imMin + py * scale;
+    for (let px = 0; px < W; px++) {
+      const re0 = reMin + px * scale;
+      let zr = 0, zi = 0, n = 0;
+      while (n < mi) {
+        const zr2 = zr*zr, zi2 = zi*zi;
+        if (zr2 + zi2 > 4) break;
+        zi = 2*zr*zi + im0;
+        zr = zr2 - zi2 + re0;
+        n++;
+      }
+
+      const idx = (py * W + px) * 4;
+      if (n === mi) {
+        data[idx]=data[idx+1]=data[idx+2]=0; data[idx+3]=255;
+      } else {
+        // Smooth coloring
+        const log2 = Math.log(zr*zr + zi*zi) / (2 * Math.LN2);
+        const smooth = n + 1 - Math.log(log2) / Math.LN2;
+        const t = (smooth % PAL_SIZE + PAL_SIZE) % PAL_SIZE;
+        const ti = Math.floor(t) % PAL_SIZE;
+        const tf = t - Math.floor(t);
+        const ti2 = (ti + 1) % PAL_SIZE;
+        data[idx]   = PAL[ti*3]   + (PAL[ti2*3]   - PAL[ti*3])   * tf | 0;
+        data[idx+1] = PAL[ti*3+1] + (PAL[ti2*3+1] - PAL[ti*3+1]) * tf | 0;
+        data[idx+2] = PAL[ti*3+2] + (PAL[ti2*3+2] - PAL[ti*3+2]) * tf | 0;
+        data[idx+3] = 255;
+      }
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  updateCoords();
+  document.getElementById('loading').classList.add('done');
+}
+
+function updateCoords() {
+  document.getElementById('cx').textContent = cx.toFixed(8);
+  document.getElementById('cy').textContent = cy.toFixed(8);
+  const zStr = zoom >= 1e6 ? (zoom/1e6).toFixed(2)+'M×'
+             : zoom >= 1e3 ? (zoom/1e3).toFixed(2)+'K×'
+             : zoom.toFixed(1)+'×';
+  document.getElementById('cz').textContent = zStr;
+}
+
+// ── Navigation ──
+function pan(dx, dy) {
+  const scale = 3.5 / (zoom * Math.min(W, H));
+  cx += dx * scale * W * 0.12;
+  cy += dy * scale * H * 0.12;
+  scheduleRender();
+}
+
+function zoomBy(factor, pivotX, pivotY) {
+  if (pivotX !== undefined) {
+    const scale = 3.5 / (zoom * Math.min(W, H));
+    const worldX = cx + (pivotX - W/2) * scale;
+    const worldY = cy + (pivotY - H/2) * scale;
+    zoom *= factor;
+    const newScale = 3.5 / (zoom * Math.min(W, H));
+    cx = worldX - (pivotX - W/2) * newScale;
+    cy = worldY - (pivotY - H/2) * newScale;
+  } else {
+    zoom *= factor;
+  }
+  zoom = Math.max(0.5, Math.min(zoom, 1e10));
+  updateMaxIter();
+  scheduleRender();
+}
+
+function updateMaxIter() {
+  maxIter = Math.min(1500, Math.max(128, Math.floor(80 + 40 * Math.log10(zoom + 1))));
+}
+
+// ── Random location ──
+function goToLocation(loc) {
+  cx = loc.re; cy = loc.im; zoom = loc.zoom;
+  updateMaxIter();
+  const badge = document.getElementById('location-badge');
+  badge.textContent = '✦ ' + loc.name;
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 3000);
+  scheduleRender();
+}
+
+function randomLocation() {
+  const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+  // add slight jitter so same location looks different each time
+  const jitter = { ...loc,
+    re: loc.re + (Math.random()-0.5) * 0.002,
+    im: loc.im + (Math.random()-0.5) * 0.002,
+    zoom: loc.zoom * (0.7 + Math.random() * 0.6)
+  };
+  goToLocation(jitter);
+}
+
+// ── Mouse / Touch events ──
+let lastMouseX, lastMouseY, dragging = false;
+
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  lastMouseX = e.clientX; lastMouseY = e.clientY;
+  canvas.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastMouseX;
+  const dy = e.clientY - lastMouseY;
+  lastMouseX = e.clientX; lastMouseY = e.clientY;
+  const scale = 3.5 / (zoom * Math.min(W, H));
+  cx -= dx * scale;
+  cy -= dy * scale;
+  scheduleRender(30);
+});
+window.addEventListener('mouseup', () => { dragging = false; canvas.style.cursor = 'crosshair'; });
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.3 : 1/1.3;
+  zoomBy(factor, e.clientX, e.clientY);
+}, { passive: false });
+
+// Double-click zoom in
+canvas.addEventListener('dblclick', e => {
+  zoomBy(2.5, e.clientX, e.clientY);
+});
+
+// Touch
+let lastTouchDist = null, lastTouchCX, lastTouchCY;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    dragging = true;
+    lastMouseX = e.touches[0].clientX;
+    lastMouseY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    dragging = false;
+    lastTouchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    lastTouchCX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    lastTouchCY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && dragging) {
+    const dx = e.touches[0].clientX - lastMouseX;
+    const dy = e.touches[0].clientY - lastMouseY;
+    lastMouseX = e.touches[0].clientX;
+    lastMouseY = e.touches[0].clientY;
+    const scale = 3.5 / (zoom * Math.min(W, H));
+    cx -= dx * scale;
+    cy -= dy * scale;
+    scheduleRender(30);
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    if (lastTouchDist) {
+      const factor = d / lastTouchDist;
+      zoomBy(factor, midX, midY);
+    }
+    lastTouchDist = d;
+    lastTouchCX = midX; lastTouchCY = midY;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  dragging = false;
+  lastTouchDist = null;
+}, { passive: false });
+
+// ── Buttons ──
+document.getElementById('btn-up').addEventListener('click',      () => pan(0, -1));
+document.getElementById('btn-down').addEventListener('click',    () => pan(0,  1));
+document.getElementById('btn-left').addEventListener('click',    () => pan(-1, 0));
+document.getElementById('btn-right').addEventListener('click',   () => pan( 1, 0));
+document.getElementById('btn-zoomin').addEventListener('click',  () => zoomBy(2));
+document.getElementById('btn-zoomout').addEventListener('click', () => zoomBy(0.5));
+document.getElementById('btn-reset').addEventListener('click',   randomLocation);
+
+// Long-press repeat for pan/zoom buttons
+function addHoldRepeat(id, fn) {
+  const el = document.getElementById(id);
+  let iv;
+  const start = () => { fn(); iv = setInterval(fn, 120); };
+  const stop  = () => clearInterval(iv);
+  el.addEventListener('mousedown',  start);
+  el.addEventListener('touchstart', e => { e.preventDefault(); start(); }, { passive: false });
+  el.addEventListener('mouseup',    stop);
+  el.addEventListener('mouseleave', stop);
+  el.addEventListener('touchend',   stop);
+}
+addHoldRepeat('btn-up',      () => pan(0,-1));
+addHoldRepeat('btn-down',    () => pan(0, 1));
+addHoldRepeat('btn-left',    () => pan(-1,0));
+addHoldRepeat('btn-right',   () => pan( 1,0));
+addHoldRepeat('btn-zoomin',  () => zoomBy(1.15));
+addHoldRepeat('btn-zoomout', () => zoomBy(1/1.15));
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  switch(e.key) {
+    case 'ArrowUp':    pan(0,-1); break;
+    case 'ArrowDown':  pan(0, 1); break;
+    case 'ArrowLeft':  pan(-1,0); break;
+    case 'ArrowRight': pan( 1,0); break;
+    case '+': case '=': zoomBy(1.5); break;
+    case '-':           zoomBy(1/1.5); break;
+    case 'r': case 'R': randomLocation(); break;
+  }
+});
+
+// ── Init ──
+window.addEventListener('resize', resize);
+resize();
+randomLocation();
+</script>
+</body>
+</html>
