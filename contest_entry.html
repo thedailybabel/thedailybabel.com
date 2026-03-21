@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contest Entry Generator — One Shot Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Michroma&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #111820;
+    --amber: #ffb800;
+    --amber-dim: #a07500;
+    --amber-glow: rgba(255,184,0,0.12);
+    --green: #39ff14;
+    --green-glow: rgba(57,255,20,0.1);
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0,229,255,0.1);
+    --magenta: #ff00aa;
+    --red: #ff2244;
+    --text: #c8d8e8;
+    --text-dim: #55687a;
+    --scan-lines: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px
+    );
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: var(--scan-lines);
+    pointer-events: none; z-index: 9999; opacity: 0.35;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none; z-index: 9998;
+  }
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,184,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: drift 25s linear infinite; z-index: 0;
+  }
+  @keyframes drift { from{background-position:0 0} to{background-position:48px 48px} }
+
+  .page {
+    position: relative; z-index: 10;
+    max-width: 860px; margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* BREADCRUMB */
+  .breadcrumb { font-size:.7rem; letter-spacing:.2em; color:var(--text-dim); margin-bottom:3rem; }
+  .breadcrumb a { color:var(--text-dim); text-decoration:none; transition:color .2s; }
+  .breadcrumb a:hover { color:var(--amber); }
+  .breadcrumb .sep { margin:0 .6em; color:var(--amber-dim); }
+  .breadcrumb .current { color:var(--amber); }
+
+  /* HEADER */
+  .header-accent { font-size:.65rem; letter-spacing:.45em; color:var(--amber-dim); text-transform:uppercase; margin-bottom:.6rem; }
+  .page-title {
+    font-family:'Orbitron',monospace; font-weight:900;
+    font-size:clamp(1.8rem,5vw,3.2rem); color:var(--text);
+    line-height:1.1; letter-spacing:.02em;
+    text-shadow:0 0 30px var(--amber-glow),0 0 60px var(--amber-glow);
+    margin-bottom:1rem;
+  }
+  .page-title .accent { color:var(--amber); }
+  .page-subtitle { font-size:.78rem; color:var(--text-dim); line-height:1.8; max-width:600px; }
+  .header-line { margin-top:1.5rem; height:1px; background:linear-gradient(90deg,var(--amber),transparent); opacity:.3; margin-bottom:3rem; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size:.65rem; letter-spacing:.4em; color:var(--text-dim);
+    text-transform:uppercase; margin-bottom:1rem;
+    padding-left:.8rem; border-left:2px solid var(--amber);
+  }
+
+  /* INSTRUCTIONS */
+  .instructions {
+    background:var(--surface); border:1px solid rgba(255,184,0,0.08);
+    border-left:3px solid var(--amber-dim);
+    padding:1.1rem 1.4rem; margin-bottom:2.5rem;
+    font-size:.73rem; line-height:1.9; color:var(--text-dim);
+  }
+  .instructions .step { display:flex; gap:.8em; margin-bottom:.25rem; }
+  .step-num { color:var(--amber); flex-shrink:0; }
+
+  /* FORM CARD */
+  .form-card {
+    background:var(--surface); border:1px solid rgba(255,184,0,0.12);
+    padding:2rem; margin-bottom:1.5rem; position:relative;
+    clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));
+  }
+  .form-card::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid;
+    border-width:0 20px 20px 0;
+    border-color:transparent rgba(255,184,0,0.2) transparent transparent;
+  }
+
+  .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+  @media(max-width:580px) { .field-grid { grid-template-columns:1fr; } }
+  .field-full { grid-column:1/-1; }
+
+  /* FIELD */
+  .field { display:flex; flex-direction:column; gap:.35rem; }
+  .field-label-row { display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
+  .field label { font-size:.62rem; letter-spacing:.3em; color:var(--text-dim); text-transform:uppercase; flex:1; }
+  .field label .req { color:var(--amber); margin-left:.2em; }
+
+  /* INFO BUTTON */
+  .info-btn {
+    flex-shrink:0; width:16px; height:16px; border-radius:50%;
+    border:1px solid var(--text-dim); background:transparent;
+    color:var(--text-dim); font-family:'Share Tech Mono',monospace;
+    font-size:.55rem; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .2s,color .2s,box-shadow .2s; margin-top:.05rem;
+  }
+  .info-btn:hover { border-color:var(--amber); color:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+  .info-btn.active { border-color:var(--amber); color:var(--amber); background:rgba(255,184,0,0.08); }
+
+  /* INFO POPOVER */
+  .info-popover {
+    display:none; background:var(--surface2);
+    border:1px solid rgba(255,184,0,0.25);
+    padding:.8rem 1rem; font-size:.68rem; line-height:1.7;
+    color:var(--text-dim); margin-top:.3rem; position:relative;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+  }
+  .info-popover::before {
+    content:''; position:absolute; top:-6px; right:14px;
+    width:10px; height:10px; background:var(--surface2);
+    border-left:1px solid rgba(255,184,0,0.25);
+    border-top:1px solid rgba(255,184,0,0.25);
+    transform:rotate(45deg);
+  }
+  .info-popover.open { display:block; animation:fadeIn .15s ease forwards; }
+  .info-popover em { color:var(--amber); font-style:normal; }
+
+  /* INPUTS */
+  .field input, .field select, .field textarea {
+    background:var(--surface2); border:1px solid rgba(255,184,0,0.15);
+    color:var(--text); font-family:'Share Tech Mono',monospace;
+    font-size:.78rem; padding:.6rem .8rem; outline:none;
+    transition:border-color .2s,box-shadow .2s; width:100%;
+    -webkit-appearance:none; appearance:none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color:var(--amber); box-shadow:0 0 10px var(--amber-glow);
+  }
+  .field input::placeholder, .field textarea::placeholder { color:var(--text-dim); opacity:.5; }
+  .field select {
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a07500'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right .8rem center;
+    padding-right:2rem; cursor:pointer;
+  }
+  .field select option { background:var(--surface2); color:var(--text); }
+  .field select optgroup { color:var(--amber-dim); font-style:normal; }
+  .field textarea { resize:vertical; min-height:120px; line-height:1.65; }
+  .field textarea.prompt-ta { min-height:240px; font-size:.73rem; }
+  .field textarea.refine-ta { min-height:90px; font-size:.73rem; }
+
+  /* RADIO */
+  .radio-group { display:flex; gap:1rem; flex-wrap:wrap; }
+  .radio-option { display:flex; align-items:center; gap:.5em; cursor:pointer; font-size:.72rem; color:var(--text-dim); transition:color .2s; }
+  .radio-option:hover { color:var(--text); }
+  .radio-option input[type="radio"] { width:auto; accent-color:var(--amber); cursor:pointer; margin:0; }
+  .radio-option input[type="radio"]:checked + span { color:var(--amber); }
+
+  /* VALIDATION */
+  .field.error input, .field.error textarea, .field.error select { border-color:var(--red); box-shadow:0 0 8px rgba(255,34,68,0.2); }
+  .error-msg { font-size:.6rem; color:var(--red); letter-spacing:.1em; display:none; }
+  .field.error .error-msg { display:block; }
+
+  /* EMOJI PALETTE */
+  .emoji-row { display:flex; gap:.5rem; align-items:center; }
+  .emoji-row input { flex:1; }
+  .emoji-palette {
+    display:none; flex-wrap:wrap; gap:.3rem; margin-top:.4rem;
+    padding:.6rem; background:var(--surface2); border:1px solid rgba(255,184,0,0.15);
+  }
+  .emoji-palette.open { display:flex; animation:fadeIn .15s ease; }
+  .emoji-opt {
+    font-size:1.25rem; cursor:pointer; padding:.2rem .35rem;
+    border-radius:2px; transition:background .15s; line-height:1;
+  }
+  .emoji-opt:hover { background:rgba(255,184,0,0.12); }
+
+  /* REFINEMENT */
+  .refine-card {
+    background:var(--surface2); border:1px solid rgba(0,229,255,0.1);
+    padding:1.2rem 1.4rem; margin-bottom:.8rem; position:relative;
+    clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  }
+  .refine-card::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid; border-width:0 12px 12px 0;
+    border-color:transparent rgba(0,229,255,0.2) transparent transparent;
+  }
+  .refine-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.9rem; }
+  .refine-num { font-size:.62rem; letter-spacing:.3em; color:var(--cyan); text-transform:uppercase; }
+  .refine-remove {
+    background:transparent; border:1px solid rgba(255,34,68,0.25);
+    color:var(--text-dim); font-family:'Share Tech Mono',monospace;
+    font-size:.58rem; letter-spacing:.15em; padding:.2em .6em; cursor:pointer; transition:all .2s;
+  }
+  .refine-remove:hover { border-color:var(--red); color:var(--red); }
+
+  .add-refine-btn {
+    display:flex; align-items:center; gap:.6em; background:transparent;
+    border:1px dashed rgba(0,229,255,0.2); color:var(--text-dim);
+    font-family:'Share Tech Mono',monospace; font-size:.68rem; letter-spacing:.2em;
+    padding:.65rem 1.2rem; cursor:pointer; width:100%; transition:all .2s; margin-top:.2rem;
+  }
+  .add-refine-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+  .add-refine-btn .plus { color:var(--cyan); font-size:.9rem; }
+
+  /* SECTION DIVIDER INSIDE FORM */
+  .form-section-title {
+    font-family:'Orbitron',monospace; font-size:.65rem; font-weight:700;
+    color:var(--amber-dim); letter-spacing:.25em; text-transform:uppercase;
+    padding-bottom:.6rem; border-bottom:1px solid rgba(255,184,0,0.1);
+    margin-bottom:1.2rem; margin-top:1.8rem;
+  }
+  .form-section-title:first-child { margin-top:0; }
+
+  /* SUBMIT */
+  .submit-wrap { margin-top:2rem; text-align:center; }
+  .submit-btn {
+    font-family:'Orbitron',monospace; font-size:.85rem; font-weight:700;
+    letter-spacing:.15em; color:var(--bg); background:var(--amber);
+    border:none; padding:.9rem 3rem; cursor:pointer;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    transition:background .2s,box-shadow .2s,transform .15s;
+  }
+  .submit-btn:hover { background:#ffd040; box-shadow:0 0 24px rgba(255,184,0,0.4),0 8px 30px rgba(0,0,0,0.5); transform:translateY(-2px); }
+  .submit-btn:active { transform:translateY(0); }
+
+  /* OUTPUT */
+  #outputPanel { display:none; margin-top:3rem; }
+  .output-card {
+    background:var(--surface); border:1px solid rgba(0,229,255,0.15);
+    clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));
+    position:relative; overflow:hidden;
+  }
+  .output-card::after {
+    content:''; position:absolute; top:0; right:0;
+    width:0; height:0; border-style:solid; border-width:0 20px 20px 0;
+    border-color:transparent rgba(0,229,255,0.3) transparent transparent;
+  }
+  .output-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.7rem 1.4rem;
+    background:linear-gradient(90deg,rgba(0,229,255,0.07),transparent);
+    border-bottom:1px solid rgba(0,229,255,0.1);
+    flex-wrap:wrap; gap:.6rem;
+  }
+  .output-title { font-family:'Orbitron',monospace; font-size:.72rem; font-weight:700; color:var(--cyan); letter-spacing:.08em; }
+  .output-actions { display:flex; gap:.6rem; }
+  .out-btn {
+    background:transparent; border:1px solid rgba(0,229,255,0.3); color:var(--cyan);
+    font-family:'Share Tech Mono',monospace; font-size:.62rem; letter-spacing:.2em;
+    padding:.3em .85em; cursor:pointer; transition:all .2s;
+  }
+  .out-btn:hover { background:rgba(0,229,255,0.08); border-color:var(--cyan); box-shadow:0 0 10px rgba(0,229,255,0.15); }
+  .out-btn.success { border-color:var(--green); color:var(--green); }
+  .output-body {
+    padding:1.4rem; font-family:'Share Tech Mono',monospace;
+    font-size:.72rem; line-height:1.75; color:var(--text);
+    white-space:pre-wrap; word-break:break-word;
+    max-height:520px; overflow-y:auto;
+    scrollbar-width:thin; scrollbar-color:var(--amber-dim) var(--surface2);
+  }
+  .output-body::-webkit-scrollbar { width:4px; }
+  .output-body::-webkit-scrollbar-track { background:var(--surface2); }
+  .output-body::-webkit-scrollbar-thumb { background:var(--amber-dim); }
+
+  .success-strip {
+    display:none; align-items:center; gap:.8rem; padding:.8rem 1.4rem;
+    background:rgba(57,255,20,0.05); border:1px solid rgba(57,255,20,0.2);
+    margin-bottom:1.5rem; font-size:.7rem; color:var(--green);
+    letter-spacing:.15em; animation:fadeIn .4s ease forwards;
+  }
+  .success-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--green); box-shadow:0 0 8px var(--green); flex-shrink:0;
+    animation:dot-pulse 2s ease-in-out infinite;
+  }
+  @keyframes dot-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* FOOTER */
+  .page-footer {
+    border-top:1px solid rgba(255,184,0,0.08); padding-top:2rem; margin-top:4rem;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:1rem; font-size:.65rem; color:var(--text-dim); letter-spacing:.15em;
+  }
+  .page-footer a { color:var(--text-dim); text-decoration:none; transition:color .2s; }
+  .page-footer a:hover { color:var(--amber); }
+  .cursor {
+    display:inline-block; width:7px; height:.9em; background:var(--amber);
+    animation:blink 1.2s step-end infinite; box-shadow:0 0 5px var(--amber);
+    vertical-align:middle; margin-left:2px;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .fade-in { opacity:0; transform:translateY(16px); animation:fadeIn .5s ease forwards; }
+  @keyframes fadeIn { to{opacity:1;transform:translateY(0)} }
+  .fi1{animation-delay:.05s} .fi2{animation-delay:.12s} .fi3{animation-delay:.19s}
+  .fi4{animation-delay:.26s} .fi5{animation-delay:.33s}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="page">
+
+  <nav class="breadcrumb fade-in fi1">
+    <a href="/">THE DAILY BABEL</a>
+    <span class="sep">/</span>
+    <a href="/one-shot-games/">ONE SHOT GAMES</a>
+    <span class="sep">/</span>
+    <span class="current">CONTEST ENTRY</span>
+  </nav>
+
+  <header class="fade-in fi2">
+    <div class="header-accent">// Contest Entry Generator</div>
+    <h1 class="page-title">GENERATE YOUR<br><span class="accent">ENTRY PROMPT</span></h1>
+    <p class="page-subtitle">
+      Fill out the form below. We'll generate a tailored meta-prompt that you feed to your LLM of choice.
+      The LLM output becomes your contest submission page.
+    </p>
+    <div class="header-line"></div>
+  </header>
+
+  <div class="fade-in fi2">
+    <div class="section-label">How This Works</div>
+    <div class="instructions">
+      <div class="step"><span class="step-num">01</span><span>Fill in your entry details. Hit the <strong style="color:var(--amber)">?</strong> buttons for guidance on any field.</span></div>
+      <div class="step"><span class="step-num">02</span><span>Click <strong style="color:var(--amber)">GENERATE ENTRY PROMPT</strong> — your filled-out meta-prompt appears below the form.</span></div>
+      <div class="step"><span class="step-num">03</span><span>Copy the prompt and submit it to the LLM of your choice. One shot. No follow-up prompts.</span></div>
+      <div class="step"><span class="step-num">04</span><span>Save the HTML output as <code style="color:var(--cyan)">entry.html</code>, push to GitHub Pages, submit your URL.</span></div>
+      <div class="step"><span class="step-num">05</span><span>Using other LLMs to help craft or refine your prompt before firing is fair game — and encouraged. The prompt is the craft. Resubmitting until you're happy with the result is fine too.</span></div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="fade-in fi3">
+    <div class="section-label">Your Details</div>
+    <div class="form-card">
+
+      <!-- IDENTITY -->
+      <div class="form-section-title">// Identity</div>
+      <div class="field-grid">
+
+        <div class="field" id="f-handle">
+          <div class="field-label-row">
+            <label for="handle">Entrant Handle <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-handle',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-handle">Your username or public alias — how you'll appear on the leaderboard and entry card. Can be a GitHub handle, a pseudonym, or your real name. <em>No spaces</em> work best for URLs.</div>
+          <input type="text" id="handle" placeholder="e.g. DailyBabel" autocomplete="off">
+          <span class="error-msg">Handle is required.</span>
+        </div>
+
+        <div class="field" id="f-date">
+          <div class="field-label-row">
+            <label for="date">Submission Date <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-date',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-date">The date you're submitting — goes on the entry card. Today is fine. If documenting a past entry, use the original date.</div>
+          <input type="date" id="date">
+          <span class="error-msg">Date is required.</span>
+        </div>
+
+        <div class="field" id="f-ghUser">
+          <div class="field-label-row">
+            <label for="ghUser">GitHub Username <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-ghUser',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-ghUser">Your GitHub username — used to construct your GitHub Pages URL and raw file links. Must match exactly. Find it at <em>github.com/[username]</em>.</div>
+          <input type="text" id="ghUser" placeholder="your-github-username" autocomplete="off">
+          <span class="error-msg">GitHub username is required.</span>
+        </div>
+
+        <div class="field" id="f-ghRepo">
+          <div class="field-label-row">
+            <label for="ghRepo">GitHub Repo Name <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-ghRepo',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-ghRepo">The name of the GitHub repo where your entry is hosted — must have GitHub Pages enabled. Repo name only, not the full URL. E.g. <em>arcade</em>, not <em>github.com/you/arcade</em>.</div>
+          <input type="text" id="ghRepo" placeholder="your-repo-name" autocomplete="off">
+          <span class="error-msg">Repo name is required.</span>
+        </div>
+
+      </div>
+
+      <!-- ENTRY INFO -->
+      <div class="form-section-title">// Entry Info</div>
+      <div class="field-grid">
+
+        <div class="field field-full" id="f-title">
+          <div class="field-label-row">
+            <label for="title">Entry Title <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-title',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-title">The name of your one-shot creation. Doesn't have to be a game — any interactive HTML experience qualifies. It's the headline on your entry card.</div>
+          <input type="text" id="title" placeholder="e.g. Conway's Game Of Life" autocomplete="off">
+          <span class="error-msg">Entry title is required.</span>
+        </div>
+
+        <div class="field" id="f-genre">
+          <div class="field-label-row">
+            <label for="genre">Category <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-genre',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-genre">Pick the category that best fits your entry. Games, tools, apps, visualizations, utilities — all qualify. Affects suggested emojis and how your entry is indexed.</div>
+          <select id="genre" onchange="updateEmojis()">
+            <option value="">— Select category —</option>
+            <optgroup label="── Games ──">
+              <option>Arcade Game</option><option>Puzzle Game</option>
+              <option>Roguelite / Roguelike</option><option>Shooter</option>
+              <option>Platformer</option><option>Strategy Game</option>
+              <option>Simulation Game</option><option>Card Game</option>
+              <option>RPG</option><option>Board Game</option>
+              <option>Word Game</option><option>Trivia / Quiz</option>
+              <option>Horror Game</option><option>Racing Game</option>
+              <option>Sports Game</option><option>Adventure Game</option>
+            </optgroup>
+            <optgroup label="── Interactive ──">
+              <option>Interactive Visualisation</option><option>Data Explorer</option>
+              <option>Generative Art</option><option>Animation / Demo</option>
+              <option>Simulation</option><option>Music / Audio</option>
+            </optgroup>
+            <optgroup label="── Productivity ──">
+              <option>Task Manager</option><option>Note Taking</option>
+              <option>Time Management</option><option>Habit Tracker</option>
+              <option>Project Planning</option><option>Focus / Pomodoro</option>
+            </optgroup>
+            <optgroup label="── Developer Tools ──">
+              <option>Code Editor / Playground</option><option>API Explorer</option>
+              <option>Debug Tool</option><option>Documentation Helper</option>
+              <option>JSON / Data Tool</option><option>Regex Tool</option>
+              <option>Color / Design Tool</option><option>SVG / Graphics Tool</option>
+            </optgroup>
+            <optgroup label="── Business ──">
+              <option>Calculator / Estimator</option><option>Invoice / Finance Tool</option>
+              <option>CRM / Contact Tool</option><option>Analytics Dashboard</option>
+              <option>Presentation Tool</option>
+            </optgroup>
+            <optgroup label="── Health &amp; Fitness ──">
+              <option>Workout Tracker</option><option>Nutrition / Meal Planner</option>
+              <option>Meditation / Mindfulness</option><option>Sleep Tracker</option>
+              <option>Running / Cycling Tool</option>
+            </optgroup>
+            <optgroup label="── Education ──">
+              <option>Flashcard / Study Tool</option><option>Math / Science Tool</option>
+              <option>Language Learning</option><option>Typing Tutor</option>
+              <option>Reference / Encyclopedia</option>
+            </optgroup>
+            <optgroup label="── Lifestyle ──">
+              <option>Recipe / Cooking Tool</option><option>Travel Planner</option>
+              <option>Budget Tracker</option><option>Journaling Tool</option>
+              <option>Shopping / List Tool</option><option>Weather App</option>
+            </optgroup>
+            <optgroup label="── Creative ──">
+              <option>Writing Tool</option><option>Drawing / Painting App</option>
+              <option>Music Composer</option><option>Story Generator</option>
+              <option>Meme / Image Creator</option>
+            </optgroup>
+            <optgroup label="── Utility ──">
+              <option>Unit Converter</option><option>Timer / Clock</option>
+              <option>Password / Security Tool</option><option>QR Code Tool</option>
+              <option>Text Processing Tool</option><option>Other</option>
+            </optgroup>
+          </select>
+          <span class="error-msg">Please select a category.</span>
+        </div>
+
+        <div class="field" id="f-emoji">
+          <div class="field-label-row">
+            <label for="emoji">Entry Emoji</label>
+            <button class="info-btn" onclick="toggleInfo('i-emoji',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-emoji">One emoji representing your entry — shown on the card and in the arcade index. Pick a category first for suggestions, or type any emoji directly into the field.</div>
+          <div class="emoji-row">
+            <input type="text" id="emoji" placeholder="🎮" maxlength="4" autocomplete="off">
+          </div>
+          <div class="emoji-palette" id="emojiPalette"></div>
+        </div>
+
+        <div class="field field-full" id="f-gameFile">
+          <div class="field-label-row">
+            <label for="gameFile">Live URL <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-gameFile',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-gameFile">The full GitHub Pages URL where your entry is live and accessible. Format: <em>https://username.github.io/repo/filename.html</em>. This is the "PLAY / OPEN" button on your entry card.</div>
+          <input type="url" id="gameFile" placeholder="https://username.github.io/repo/entry.html" autocomplete="off">
+          <span class="error-msg">A valid live URL is required.</span>
+        </div>
+
+        <div class="field field-full" id="f-rawUrl">
+          <div class="field-label-row">
+            <label for="rawUrl">Raw HTML URL</label>
+            <button class="info-btn" onclick="toggleInfo('i-rawUrl',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-rawUrl">The <em>raw.githubusercontent.com</em> link to your HTML source — lets judges inspect the output directly. Leave blank and we'll auto-derive it. Only fill in if the auto-guess would be wrong (e.g. non-standard branch or path).</div>
+          <input type="url" id="rawUrl" placeholder="Leave blank to auto-generate" autocomplete="off">
+        </div>
+
+        <div class="field" id="f-llm">
+          <div class="field-label-row">
+            <label for="llm">LLM Used <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-llm',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-llm">The model you submitted the final prompt to — the one that generated your entry's HTML. Using other LLMs to help craft your prompt beforehand is totally fine and doesn't need to be listed here. This is the model that <em>pulled the lever</em>.</div>
+          <select id="llm" onchange="toggleLLMOther()">
+            <option value="">— Select model —</option>
+            <optgroup label="── Anthropic ──">
+              <option>Claude Opus 4</option><option>Claude Sonnet 4.5</option><option>Claude Haiku 4.5</option>
+            </optgroup>
+            <optgroup label="── OpenAI ──">
+              <option>GPT-4o</option><option>GPT-o3</option><option>GPT-o4 mini</option>
+            </optgroup>
+            <optgroup label="── Google ──">
+              <option>Gemini 2.5 Pro</option><option>Gemini 2.0 Flash</option>
+            </optgroup>
+            <optgroup label="── xAI ──">
+              <option>Grok 3</option><option>Grok 3 mini</option>
+            </optgroup>
+            <optgroup label="── Meta ──">
+              <option>Llama 4 Scout</option><option>Llama 4 Maverick</option>
+            </optgroup>
+            <optgroup label="── Other ──">
+              <option>DeepSeek V3</option><option>Mistral Large</option>
+              <option value="other">Other (specify)</option>
+            </optgroup>
+          </select>
+          <span class="error-msg">Please select a model.</span>
+        </div>
+
+        <div class="field" id="f-llmOther" style="display:none">
+          <div class="field-label-row"><label for="llmOther">Specify Model</label></div>
+          <input type="text" id="llmOther" placeholder="Model name + version" autocomplete="off">
+        </div>
+
+        <div class="field field-full" id="f-desc">
+          <div class="field-label-row">
+            <label for="desc">Description <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-desc',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-desc">2–3 sentences on your entry card. Sell it. What does it do? What's the hook? What makes it worth spending 60 seconds on? This is the only marketing copy you get.</div>
+          <textarea id="desc" placeholder="What does it do? What's the hook? Why should someone try it?"></textarea>
+          <span class="error-msg">Description is required.</span>
+        </div>
+
+        <div class="field field-full">
+          <div class="field-label-row">
+            <label>One-Shot Status</label>
+            <button class="info-btn" onclick="toggleInfo('i-oneshot',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-oneshot">Did you take the LLM output as-is, or fix things up afterward? <em>Untouched</em> = pure one-shot output. <em>Minor fixes</em> = one submission, small visual tweaks applied manually. <em>Iterated</em> = you went back and forth with the LLM to refine the output. All three are valid — this is just for the record. How you crafted the <em>prompt itself</em> (including using other LLMs) doesn't factor in here.</div>
+          <div class="radio-group" style="margin-top:.4rem">
+            <label class="radio-option"><input type="radio" name="oneshot" value="YES" checked><span>Untouched output</span></label>
+            <label class="radio-option"><input type="radio" name="oneshot" value="MINOR"><span>Minor UI fixes</span></label>
+            <label class="radio-option"><input type="radio" name="oneshot" value="NO"><span>Iterated with LLM</span></label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PROMPTS -->
+      <div class="form-section-title">// Prompts</div>
+      <div class="field-grid">
+
+        <div class="field field-full" id="f-prompt">
+          <div class="field-label-row">
+            <label for="prompt">Your Submission Prompt <span class="req">✱</span></label>
+            <button class="info-btn" onclick="toggleInfo('i-prompt',this)">?</button>
+          </div>
+          <div class="info-popover" id="i-prompt">The exact prompt you submitted to the LLM — <em>verbatim</em>. This is the centerpiece of your entry card and goes into the public prompt library. The community will read it and learn from it. How you crafted it (including using other LLMs to refine it) is your business — just paste what you actually submitted.</div>
+          <textarea class="prompt-ta" id="prompt" placeholder="Paste your exact submission prompt here — verbatim, as you submitted it to the LLM..."></textarea>
+          <span class="error-msg">Prompt text is required.</span>
+        </div>
+
+      </div>
+
+      <!-- REFINEMENT -->
+      <div class="form-section-title">
+        // Refinement History
+        <span style="color:var(--text-dim);font-size:.7em;letter-spacing:.1em;font-family:'Share Tech Mono',monospace;font-weight:400"> — optional</span>
+      </div>
+
+      <div style="font-size:.7rem;color:var(--text-dim);line-height:1.75;margin-bottom:1.2rem;">
+        Did anything need fixing after the initial output? Document each round here — what broke and what you did about it.
+        This is the most instructive part of the archive: future prompt engineers learn more from your failures than your successes.
+        <span style="color:var(--amber)">Fully optional, but appreciated.</span>
+      </div>
+
+      <div id="refineContainer"></div>
+      <button class="add-refine-btn" onclick="addRefinement()">
+        <span class="plus">+</span> ADD REFINEMENT ROUND
+      </button>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" onclick="generatePrompt()">GENERATE ENTRY PROMPT →</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="outputPanel" class="fade-in">
+    <div class="success-strip" id="successStrip">
+      <div class="success-dot"></div>
+      PROMPT GENERATED — COPY AND SUBMIT TO YOUR LLM OF CHOICE
+    </div>
+    <div class="section-label">Your Meta-Prompt</div>
+    <div class="output-card">
+      <div class="output-header">
+        <span class="output-title">// READY TO SUBMIT TO LLM</span>
+        <div class="output-actions">
+          <button class="out-btn" id="copyOutBtn" onclick="copyOutput()">[ COPY ]</button>
+          <button class="out-btn" onclick="downloadOutput()">[ DOWNLOAD .TXT ]</button>
+        </div>
+      </div>
+      <div class="output-body" id="outputBody"></div>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    <span>ONE SHOT GAMES — CONTEST<span class="cursor"></span></span>
+    <span>
+      <a href="/one-shot-games/">← BACK TO ARCADE</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/thedailybabel" target="_blank">GITHUB</a>
+    </span>
+  </footer>
+
+</div>
+<script>
+// DATE DEFAULT
+document.getElementById('date').value = new Date().toISOString().slice(0,10);
+
+// INFO POPOVERS
+function toggleInfo(id, btn) {
+  const el = document.getElementById(id);
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.info-popover.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+  if (!isOpen) { el.classList.add('open'); btn.classList.add('active'); }
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.field')) {
+    document.querySelectorAll('.info-popover.open').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+  }
+});
+
+// LLM OTHER
+function toggleLLMOther() {
+  document.getElementById('f-llmOther').style.display =
+    document.getElementById('llm').value === 'other' ? 'flex' : 'none';
+}
+
+// EMOJI MAP
+const emojiMap = {
+  'Arcade Game':['🕹️','👾','🎮','💥','⭐','🚀','🏆','🔫'],
+  'Puzzle Game':['🧩','🔐','🧠','💡','🔮','⚙️','🎯','🗺️'],
+  'Roguelite / Roguelike':['⚔️','🎲','💀','🗡️','🏚️','🔱','🧿','🌀'],
+  'Shooter':['🔫','💥','🚀','🛸','🎯','💣','⚡','🪖'],
+  'Platformer':['🏃','🍄','⭐','🌍','🦘','🎪','🏔️','🌈'],
+  'Strategy Game':['♟️','🗺️','🏰','⚔️','🛡️','👑','🧮','🌐'],
+  'Simulation Game':['🦠','🌱','🏙️','🌊','⚙️','🔬','🌍','🧬'],
+  'Card Game':['🃏','🀄','♠️','♥️','🎴','🎰','💎','🃏'],
+  'RPG':['⚔️','🧙','🐉','📜','💍','🏰','🗡️','🧝'],
+  'Board Game':['🎲','♟️','🏆','🎯','🧩','🃏','🎭','🎪'],
+  'Word Game':['📝','🔤','💬','📖','✏️','🔡','🗣️','🧩'],
+  'Trivia / Quiz':['❓','🧠','📚','🏆','💡','🎓','🔔','🎯'],
+  'Horror Game':['👻','🕯️','💀','🕷️','🩸','😱','🌑','🔪'],
+  'Racing Game':['🏎️','🏁','⚡','🚀','🏍️','🏆','🛞','💨'],
+  'Sports Game':['⚽','🏀','🏈','⚾','🎾','🏆','🥊','🏊'],
+  'Adventure Game':['🗺️','⛵','🏔️','🧭','🗡️','🌅','🏕️','🦅'],
+  'Interactive Visualisation':['📊','🌐','✨','💫','🔭','🎨','📈','🌈'],
+  'Data Explorer':['📊','🔍','📈','🗃️','💾','🔬','📉','🧮'],
+  'Generative Art':['🎨','✨','🌀','💫','🖌️','🌈','🔮','🪄'],
+  'Animation / Demo':['✨','🎬','💫','🌀','🎭','⚡','🎠','🎡'],
+  'Simulation':['⚙️','🔬','🌊','🌍','🦠','🧬','🔭','🛸'],
+  'Music / Audio':['🎵','🎸','🎹','🎺','🥁','🎻','🎤','🎧'],
+  'Task Manager':['✅','📋','📌','🗂️','⏰','🎯','📝','🔖'],
+  'Note Taking':['📝','✏️','📓','🗒️','💡','🖊️','📔','📃'],
+  'Time Management':['⏱️','🕐','📅','⌚','⏳','🗓️','⏰','🔔'],
+  'Habit Tracker':['🔥','✅','📈','🎯','💪','🌱','⭐','🏅'],
+  'Project Planning':['📊','🗺️','🏗️','📋','🔧','📌','🧱','🎯'],
+  'Focus / Pomodoro':['🍅','⏱️','🎯','🔕','🧘','💡','⏳','🔇'],
+  'Code Editor / Playground':['💻','⌨️','🔧','⚙️','🖥️','🐛','🔬','🛠️'],
+  'API Explorer':['🔌','🛜','🔍','⚡','📡','🔗','🧪','🔧'],
+  'Debug Tool':['🐛','🔍','🔧','⚙️','💊','🩺','🔬','🧰'],
+  'Documentation Helper':['📚','📖','✍️','🗂️','📝','🔖','📋','💡'],
+  'JSON / Data Tool':['⚙️','📊','🔧','🗃️','🔍','💾','📋','🛠️'],
+  'Regex Tool':['🔍','⚡','🔤','🧩','🔬','⚙️','🎯','✂️'],
+  'Color / Design Tool':['🎨','🖌️','🌈','✨','💎','🎭','🖼️','🔵'],
+  'SVG / Graphics Tool':['✏️','📐','📏','🎨','🖊️','🔺','🖼️','✂️'],
+  'Calculator / Estimator':['🧮','💰','📊','➕','🔢','💹','📐','🔢'],
+  'Invoice / Finance Tool':['💰','🧾','💹','📊','💳','🏦','💵','📈'],
+  'CRM / Contact Tool':['👥','📞','📧','🤝','👤','📇','💼','🗂️'],
+  'Analytics Dashboard':['📊','📈','📉','🔭','💡','🎯','📡','🧮'],
+  'Presentation Tool':['📊','🎤','🖥️','📽️','🎭','📋','💡','🗣️'],
+  'Workout Tracker':['💪','🏋️','🏃','⚡','🔥','🏅','📈','🎽'],
+  'Nutrition / Meal Planner':['🥗','🍎','🍽️','🥦','💪','📊','🫐','🥑'],
+  'Meditation / Mindfulness':['🧘','🌸','☮️','🌊','🕯️','🌿','💆','🌅'],
+  'Sleep Tracker':['😴','🌙','⭐','🌌','💤','🌛','📊','🛌'],
+  'Running / Cycling Tool':['🏃','🚴','⏱️','📍','🗺️','🏅','💨','⚡'],
+  'Flashcard / Study Tool':['🃏','📚','🧠','💡','✏️','📝','🎓','🔄'],
+  'Math / Science Tool':['🔬','🧮','📐','⚗️','🔭','➕','🧬','📏'],
+  'Language Learning':['🌍','💬','🗣️','📖','✏️','🔤','🌐','👂'],
+  'Typing Tutor':['⌨️','💨','🔤','⚡','🎯','✅','📝','🏆'],
+  'Reference / Encyclopedia':['📚','🔍','📖','🌐','💡','🗂️','📜','🔬'],
+  'Recipe / Cooking Tool':['🍳','👨‍🍳','🍕','🥘','📖','🍽️','🫕','🥗'],
+  'Travel Planner':['✈️','🗺️','🏖️','🧳','📍','🌍','🏕️','🗓️'],
+  'Budget Tracker':['💰','📊','💳','🏦','📈','💵','🧮','💹'],
+  'Journaling Tool':['📔','✍️','🖊️','💭','🌅','📖','🌸','💡'],
+  'Shopping / List Tool':['🛒','📋','✅','🏷️','🛍️','📝','💰','🔖'],
+  'Weather App':['🌤️','⛈️','🌡️','🌬️','🌈','☀️','🌧️','⛅'],
+  'Writing Tool':['✍️','📝','🖊️','💬','📚','🖋️','💡','📖'],
+  'Drawing / Painting App':['🖌️','🎨','✏️','🖼️','🖍️','🎭','🌈','✨'],
+  'Music Composer':['🎵','🎹','🎸','🎼','🎺','🥁','🎻','🎤'],
+  'Story Generator':['📖','✍️','🌍','🧙','💭','🗺️','📜','🎭'],
+  'Meme / Image Creator':['😂','🖼️','✂️','🎭','🤣','🎨','📸','😎'],
+  'Unit Converter':['🔄','📏','⚖️','🌡️','💱','📐','🔢','↔️'],
+  'Timer / Clock':['⏱️','🕐','⌚','⏰','🔔','⌛','🕰️','📅'],
+  'Password / Security Tool':['🔐','🛡️','🔑','🔒','👁️','🧱','🔓','🪪'],
+  'QR Code Tool':['⬛','📱','🔗','📷','📲','🔍','✅','🖼️'],
+  'Text Processing Tool':['✂️','📝','🔤','🔍','⚙️','📋','💬','🔧'],
+  'Other':['🔧','⚡','🌐','💡','✨','🎯','🔮','🛠️'],
+};
+
+function updateEmojis() {
+  const genre = document.getElementById('genre').value;
+  const palette = document.getElementById('emojiPalette');
+  const emojis = emojiMap[genre];
+  if (!emojis) { palette.classList.remove('open'); palette.innerHTML=''; return; }
+  palette.innerHTML = emojis.map(e =>
+    `<span class="emoji-opt" onclick="selectEmoji('${e}')">${e}</span>`
+  ).join('');
+  palette.classList.add('open');
+}
+function selectEmoji(e) { document.getElementById('emoji').value = e; }
+
+// REFINEMENT ROUNDS
+let refineCount = 0;
+function addRefinement() {
+  refineCount++;
+  const n = refineCount;
+  const div = document.createElement('div');
+  div.className = 'refine-card'; div.id = `refine-${n}`;
+  div.innerHTML = `
+    <div class="refine-header">
+      <span class="refine-num">// Round ${n}</span>
+      <button class="refine-remove" onclick="removeRefinement(${n})">[ REMOVE ]</button>
+    </div>
+    <div class="field-grid">
+      <div class="field field-full">
+        <div class="field-label-row">
+          <label>What Was Wrong / What You Fixed</label>
+          <button class="info-btn" onclick="toggleInfo('ri-issue-${n}',this)">?</button>
+        </div>
+        <div class="info-popover" id="ri-issue-${n}">
+          Describe what the initial output got wrong — broken layout, missing feature, wrong colors, etc.
+          Be specific. This is the most instructive part of the archive: future prompt engineers learn more from failures than successes.
+        </div>
+        <textarea class="refine-ta" id="r-issue-${n}" placeholder="e.g. Controls panel overlapped the canvas on mobile. Copy button had no feedback. Grid lines were the wrong color."></textarea>
+      </div>
+      <div class="field field-full">
+        <div class="field-label-row">
+          <label>Fix Prompt / Action Taken</label>
+          <button class="info-btn" onclick="toggleInfo('ri-fix-${n}',this)">?</button>
+        </div>
+        <div class="info-popover" id="ri-fix-${n}">
+          What you did to fix it. If you submitted a follow-up prompt to the LLM, paste it verbatim.
+          If you edited the HTML directly, describe what you changed and why. Either way — be honest. This is the good stuff.
+        </div>
+        <textarea class="refine-ta" id="r-fix-${n}" placeholder="e.g. Paste follow-up prompt verbatim, or describe the manual edit you made..."></textarea>
+      </div>
+    </div>`;
+  document.getElementById('refineContainer').appendChild(div);
+  div.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function removeRefinement(n) {
+  const el = document.getElementById(`refine-${n}`);
+  if (el) el.remove();
+}
+function getRefinements() {
+  const rounds = [];
+  document.querySelectorAll('[id^="refine-"]').forEach(card => {
+    const n = card.id.split('-')[1];
+    const issue = (document.getElementById(`r-issue-${n}`)?.value||'').trim();
+    const fix   = (document.getElementById(`r-fix-${n}`)?.value||'').trim();
+    if (issue||fix) rounds.push({n, issue, fix});
+  });
+  return rounds;
+}
+
+// VALIDATION
+const required = [
+  {id:'handle',field:'f-handle'},{id:'date',field:'f-date'},
+  {id:'title',field:'f-title'},{id:'gameFile',field:'f-gameFile'},
+  {id:'ghUser',field:'f-ghUser'},{id:'ghRepo',field:'f-ghRepo'},
+  {id:'llm',field:'f-llm'},{id:'genre',field:'f-genre'},
+  {id:'desc',field:'f-desc'},{id:'prompt',field:'f-prompt'},
+];
+function validate() {
+  let ok = true;
+  required.forEach(({id,field}) => {
+    const el = document.getElementById(id);
+    const wrap = document.getElementById(field);
+    if (!el.value.trim()) { wrap.classList.add('error'); ok=false; }
+    else wrap.classList.remove('error');
+    el.addEventListener('input', () => {
+      if (el.value.trim()) wrap.classList.remove('error');
+    }, {once:true});
+  });
+  return ok;
+}
+
+// HELPERS
+function v(id) { return (document.getElementById(id)?.value||'').trim(); }
+function getLLM() { const s=v('llm'); return s==='other'?(v('llmOther')||'???'):s; }
+function getRawUrl() {
+  const manual=v('rawUrl'); if(manual) return manual;
+  const user=v('ghUser'), repo=v('ghRepo');
+  let filename='entry.html';
+  try {
+    const parts=new URL(v('gameFile')).pathname.split('/');
+    const last=parts[parts.length-1];
+    if(last&&last.endsWith('.html')) filename=last;
+  } catch(e){}
+  return `https://raw.githubusercontent.com/${user}/${repo}/refs/heads/main/${filename}`;
+}
+function getOneShotLabel() {
+  const val=document.querySelector('input[name="oneshot"]:checked').value;
+  if(val==='YES')   return 'YES — untouched output';
+  if(val==='MINOR') return 'YES — with minor UI fixes';
+  return 'NO — iterated with LLM on output';
+}
+function wordCount(t) { return t.trim().split(/\s+/).filter(Boolean).length; }
+
+// PROMPT BUILDER
+function buildPrompt(d) {
+  const refineBlock = d.refinements.length===0 ? '' :
+`
+== REFINEMENT HISTORY ==
+
+The following rounds of fixes were applied after the initial one-shot output.
+Render these as a collapsible "Refinement Log" section after the main prompt block.
+Use a toggle button: "[ SHOW REFINEMENT LOG ]" / "[ HIDE ]"
+Style each round as a card consistent with the rest of the page:
+  - Round number in --cyan
+  - "WHAT WAS WRONG" label + description text
+  - "FIX APPLIED" label + prompt/action text
+Add a dim note at top: "Post-generation fixes applied to this entry."
+
+${d.refinements.map(r=>`ROUND ${r.n}:
+  ISSUE : ${r.issue||(r.fix?'(not specified)':'(none recorded)')}
+  FIX   : ${r.fix||(r.issue?'(not specified)':'(none recorded)')}`).join('\n\n')}
+`;
+
+  const oneShotBadge = d.oneshot.startsWith('YES')
+    ? `   Pulsing amber badge: "ONE-SHOT SUBMISSION — PROMPT → OUTPUT, NO EDITS"
+${d.oneshot.includes('MINOR')?'   Append dim qualifier: "( + MINOR UI FIXES )"':''}`
+    : `   Dim italic note: "// Output refined through multiple LLM rounds — see Refinement Log below"`;
+
+  const footerSection = 8 + (d.refinements.length>0?1:0);
+
+  return `ONE SHOT GAMES — CONTEST SUBMISSION PAGE META-PROMPT
+=====================================================
+Copy everything below the dashed line and submit it to your LLM of choice.
+The output is your contest submission page.
+
+Bonus points if this page is itself a one-shot (no editing after generation).
+Minor UI fixes are allowed and frankly expected — we're not monsters.
+
+────────────────────────────────────────────────────────────────────────────
+
+Generate a complete, single-file HTML contest submission page for the
+"One Shot Games" arcade competition. No external assets. All CSS and
+JavaScript must be inline. It must host correctly on GitHub Pages.
+
+== ENTRANT DETAILS ==
+
+ENTRANT_HANDLE    : ${d.handle}
+ENTRY_TITLE       : ${d.title}
+LIVE_URL          : ${d.gameFile}
+GITHUB_USERNAME   : ${d.ghUser}
+GITHUB_REPO       : ${d.ghRepo}
+RAW_HTML_URL      : ${d.rawUrl}
+LLM_USED          : ${d.llm}
+SUBMISSION_DATE   : ${d.date}
+CATEGORY          : ${d.genre}
+ENTRY_EMOJI       : ${d.emoji}
+PROMPT_WORD_COUNT : ${d.promptWords} words
+ONE_SHOT_STATUS   : ${d.oneshot}
+DESCRIPTION       : ${d.desc}
+
+SUBMISSION_PROMPT : |
+${d.prompt.split('\n').map(l=>'  '+l).join('\n')}
+${refineBlock}
+== VISUAL DESIGN REQUIREMENTS ==
+
+Match this exact design system — consistency across all entries is part of
+the aesthetic. Do not deviate from these values.
+
+Color palette (CSS variables):
+  --bg: #080c10
+  --surface: #0d1117
+  --surface2: #111820
+  --amber: #ffb800
+  --amber-dim: #a07500
+  --amber-glow: rgba(255,184,0,0.12)
+  --green: #39ff14
+  --green-glow: rgba(57,255,20,0.1)
+  --cyan: #00e5ff
+  --cyan-glow: rgba(0,229,255,0.1)
+  --magenta: #ff00aa
+  --text: #c8d8e8
+  --text-dim: #55687a
+
+Fonts (Google Fonts):
+  'Share Tech Mono' — body / monospace text
+  'Orbitron'        — headings and labels (weight 400, 700, 900)
+
+Required background effects:
+  1. CRT scanline overlay: body::before, fixed, full viewport, z-index: 9999,
+     repeating-linear-gradient(0deg, transparent 2px, rgba(0,0,0,0.25) 4px), opacity 0.35.
+  2. Vignette: body::after, fixed, radial-gradient darkening edges, z-index 9998.
+  3. Drifting grid: fixed element, 48×48px, lines in --cyan at ~0.025 opacity,
+     animating background-position 0→48px over 28s.
+
+Entry accent color: --cyan (#00e5ff). Contest entries use cyan to distinguish
+them from the main arcade's amber theme.
+
+Clip-path on cards:
+  polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))
+Corner notch: ::after pseudo element, triangle border trick matching the clip-path corner.
+
+== PAGE STRUCTURE (in order) ==
+
+1. BREADCRUMB NAV
+   ARCADE → https://${d.ghUser}.github.io/${d.ghRepo}/
+   CONTEST → (dead link, placeholder)
+   Current page: ${d.title.toUpperCase()}
+
+2. HEADER
+   Eyebrow: "// Contest Entry — One Shot Games"
+   H1: ${d.title} — Orbitron 900, --cyan accent
+   Meta row: ENTRANT · MODEL · SUBMITTED (small, dim, spaced)
+   Horizontal rule: gradient --cyan → transparent
+
+3. DESCRIPTION BLOCK
+   Styled callout with left border in --cyan.
+   Content: "${d.desc}"
+
+4. ACTION BUTTONS (2-col grid, 1-col on mobile)
+   A — PRIMARY: ${d.emoji} PLAY / OPEN
+     href="${d.gameFile}"
+     Desc: "Launch the one-shot entry. One session. No mercy."
+   B — SECONDARY: 📄 VIEW RAW HTML
+     href="${d.rawUrl}" target="_blank"
+     Desc: "Inspect the full output. Uncut. Unedited. (Allegedly.)"
+   Clip-path style, hover: glow + translateY(-3px) + border brightens + corner notch.
+
+5. ENTRY DATA GRID (2×2, 1-col on mobile)
+   Entry Title   → ${d.title}
+   Model Used    → ${d.llm}
+   Category      → ${d.genre.toUpperCase()}
+   Prompt Length → ${d.promptWords} WORDS
+
+6. ONE-SHOT STATUS BADGE
+${oneShotBadge}
+
+7. PROMPT BLOCK
+   Section label: "The Prompt"
+   Card header: "// VERBATIM PROMPT — AS SUBMITTED TO ${d.llm.toUpperCase()}"
+   Pulsing "ON RECORD" badge in --green.
+   Body: monospace, pre-wrap, line-numbered (dim 2-char line numbers).
+   Syntax: keywords → --cyan, section headers → --magenta,
+           quoted strings → --amber, numbers → --green, comments → --text-dim italic.
+   "[ COPY PROMPT ]" button: copies prompt text to clipboard, shows "[ COPIED ✓ ]" for 2s.
+
+   Prompt content:
+${d.prompt.split('\n').map((l,i)=>`     ${String(i+1).padStart(3,' ')}: ${l}`).join('\n')}
+${d.refinements.length>0?`
+8. REFINEMENT LOG (collapsible — see REFINEMENT HISTORY section above for content)
+`:''}
+${footerSection}. FOOTER
+   Left: "ONE SHOT GAMES — CONTEST ENTRY" + blinking --cyan cursor
+   Right: "← BACK TO ARCADE" → https://${d.ghUser}.github.io/${d.ghRepo}/
+          "· GITHUB" → https://github.com/${d.ghUser}/${d.ghRepo}
+   Dim top border.
+
+== ANIMATION REQUIREMENTS ==
+
+Staggered entrance: .fade-in, fadeIn 0.5s ease forwards,
+  delays: 0.05s, 0.12s, 0.19s, 0.26s, 0.33s, 0.40s, 0.47s
+  keyframes: { opacity:0; translateY(16px) } → { opacity:1; translateY(0) }
+Blinking cursor: 1.2s step-end
+Dot pulse: 2s ease-in-out, opacity 1→0.3→1
+Badge glow: 3s ease-in-out, box-shadow pulse
+Button hover: translateY(-3px) + glow + border brightens
+Emoji hover: scale(1.15)
+
+== OUTPUT ==
+
+Return only the complete HTML file. No explanation, no markdown fences,
+no preamble. File must be ready to save as entry.html and deploy to GitHub Pages.
+
+────────────────────────────────────────────────────────────────────────────
+END OF META-PROMPT`;
+}
+
+// GENERATE
+let generatedText = '';
+function generatePrompt() {
+  if (!validate()) {
+    document.querySelector('.form-card').scrollIntoView({behavior:'smooth'});
+    return;
+  }
+  const d = {
+    handle:      v('handle'),
+    date:        v('date'),
+    title:       v('title'),
+    gameFile:    v('gameFile'),
+    ghUser:      v('ghUser'),
+    ghRepo:      v('ghRepo'),
+    rawUrl:      getRawUrl(),
+    llm:         getLLM(),
+    genre:       v('genre'),
+    emoji:       v('emoji')||'🎮',
+    desc:        v('desc'),
+    oneshot:     getOneShotLabel(),
+    prompt:      v('prompt'),
+    promptWords: wordCount(v('prompt')),
+    refinements: getRefinements(),
+  };
+  generatedText = buildPrompt(d);
+  document.getElementById('outputBody').textContent = generatedText;
+  const panel = document.getElementById('outputPanel');
+  panel.style.display = 'block';
+  document.getElementById('successStrip').style.display = 'flex';
+  setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+function copyOutput() {
+  navigator.clipboard.writeText(generatedText).then(() => {
+    const btn = document.getElementById('copyOutBtn');
+    btn.textContent = '[ COPIED ✓ ]'; btn.classList.add('success');
+    setTimeout(() => { btn.textContent='[ COPY ]'; btn.classList.remove('success'); }, 2000);
+  });
+}
+
+function downloadOutput() {
+  const blob = new Blob([generatedText], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const safe = v('title').toLowerCase().replace(/[^a-z0-9]+/g,'-')||'entry';
+  a.download = `oneshot-entry-prompt-${safe}.txt`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

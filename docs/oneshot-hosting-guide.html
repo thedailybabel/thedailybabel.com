@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Host One-Shot Games on GitHub — The Daily Babel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #111820;
+    --amber: #ffb800;
+    --amber-dim: #a07500;
+    --amber-glow: rgba(255,184,0,0.12);
+    --green: #39ff14;
+    --green-dim: #1f8c0a;
+    --green-glow: rgba(57,255,20,0.1);
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0,229,255,0.1);
+    --magenta: #ff00aa;
+    --red: #ff2244;
+    --text: #c8d8e8;
+    --text-dim: #55687a;
+    --scan-lines: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px
+    );
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--scan-lines);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,184,0,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: drift 30s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes drift {
+    from { background-position: 0 0; }
+    to   { background-position: 48px 48px; }
+  }
+
+  .page {
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* ── Breadcrumb ── */
+  .breadcrumb {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+  }
+  .breadcrumb a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .breadcrumb a:hover { color: var(--amber); }
+  .breadcrumb .sep { margin: 0 0.6em; color: var(--amber-dim); }
+  .breadcrumb .current { color: var(--amber); }
+
+  /* ── Header ── */
+  .header-accent {
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .page-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    color: var(--amber);
+    text-shadow: 0 0 16px rgba(255,184,0,0.4), 0 0 60px rgba(255,184,0,0.12);
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    animation: flicker 12s infinite;
+  }
+
+  @keyframes flicker {
+    0%, 93%, 95.5%, 97%, 100% { opacity: 1; }
+    94%, 96% { opacity: 0.85; }
+  }
+
+  .page-subtitle {
+    margin-top: 0.9rem;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    letter-spacing: 0.07em;
+    line-height: 1.7;
+    max-width: 640px;
+  }
+
+  .header-line {
+    margin-top: 1.5rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--amber), rgba(255,184,0,0.1), transparent);
+    box-shadow: 0 0 8px rgba(255,184,0,0.25);
+    margin-bottom: 3.5rem;
+  }
+
+  /* ── Section labels ── */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,184,0,0.1);
+  }
+
+  /* ── Step cards ── */
+  .steps { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3.5rem; }
+
+  .step {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid rgba(255,184,0,0.13);
+    padding: 0;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+    opacity: 0;
+    transform: translateY(16px);
+    animation: cardIn 0.5s ease forwards;
+  }
+
+  @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+  .step:nth-child(1)  { animation-delay: 0.05s; }
+  .step:nth-child(2)  { animation-delay: 0.12s; }
+  .step:nth-child(3)  { animation-delay: 0.19s; }
+  .step:nth-child(4)  { animation-delay: 0.26s; }
+  .step:nth-child(5)  { animation-delay: 0.33s; }
+  .step:nth-child(6)  { animation-delay: 0.40s; }
+  .step:nth-child(7)  { animation-delay: 0.47s; }
+  .step:nth-child(8)  { animation-delay: 0.54s; }
+
+  /* Corner cut decoration */
+  .step::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 20px 20px 0;
+    border-color: transparent rgba(255,184,0,0.2) transparent transparent;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(90deg, rgba(255,184,0,0.06), transparent);
+    border-bottom: 1px solid rgba(255,184,0,0.1);
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 0.3em;
+    min-width: 3.5rem;
+  }
+
+  .step-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 0.04em;
+  }
+
+  .step-body { padding: 1.4rem 1.5rem 1.5rem; }
+
+  .step-body p {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+
+  .step-body p:last-child { margin-bottom: 0; }
+
+  .step-body ul, .step-body ol {
+    padding-left: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-body li {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.75;
+    margin-bottom: 0.3rem;
+  }
+
+  .step-body li::marker { color: var(--amber-dim); }
+
+  /* Inline code */
+  code {
+    background: rgba(255,184,0,0.08);
+    border: 1px solid rgba(255,184,0,0.2);
+    padding: 0.1em 0.45em;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85em;
+    color: var(--amber);
+    border-radius: 2px;
+  }
+
+  /* Code blocks */
+  .code-block {
+    position: relative;
+    background: #060a0e;
+    border: 1px solid rgba(57,255,20,0.2);
+    border-left: 3px solid var(--green);
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: var(--green);
+    text-shadow: 0 0 6px rgba(57,255,20,0.3);
+  }
+
+  .code-block .label {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.8rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    color: var(--green-dim);
+    text-shadow: none;
+  }
+
+  .code-block .comment { color: var(--text-dim); text-shadow: none; }
+  .code-block .key    { color: var(--cyan); text-shadow: 0 0 5px rgba(0,229,255,0.3); }
+  .code-block .val    { color: var(--amber); text-shadow: 0 0 5px rgba(255,184,0,0.25); }
+  .code-block .str    { color: #ff9e64; }
+
+  /* Note / tip callouts */
+  .callout {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    padding: 0.9rem 1.1rem;
+    border-radius: 2px;
+    margin: 1rem 0;
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+
+  .callout-tip  { background: rgba(57,255,20,0.05);  border: 1px solid rgba(57,255,20,0.2);  color: #b8e0b0; }
+  .callout-warn { background: rgba(255,184,0,0.06);  border: 1px solid rgba(255,184,0,0.25); color: #e0ccaa; }
+  .callout-info { background: rgba(0,229,255,0.05);  border: 1px solid rgba(0,229,255,0.2);  color: #aad4e0; }
+
+  .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
+  .callout-text strong { font-family: 'Orbitron', monospace; font-size: 0.7rem; letter-spacing: 0.15em; display: block; margin-bottom: 0.25rem; }
+
+  /* Quick-reference table */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    margin: 1rem 0;
+  }
+
+  .ref-table th {
+    text-align: left;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--amber-dim);
+    border-bottom: 1px solid rgba(255,184,0,0.2);
+    padding: 0.5rem 0.8rem;
+  }
+
+  .ref-table td {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .ref-table tr:hover td { background: rgba(255,184,0,0.03); }
+  .ref-table td:first-child { color: var(--amber); white-space: nowrap; }
+
+  /* URL pill */
+  .url-pill {
+    display: inline-block;
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.25);
+    color: var(--cyan);
+    padding: 0.15em 0.6em;
+    font-size: 0.82em;
+    text-shadow: 0 0 6px rgba(0,229,255,0.3);
+  }
+
+  /* Progress indicator at top */
+  .progress-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .progress-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+
+  .progress-dot .dot {
+    width: 8px; height: 8px;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber);
+    flex-shrink: 0;
+    animation: pulse 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.3s);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+  }
+
+  .progress-dot .arrow { color: var(--amber-dim); margin: 0 0.1rem; }
+
+  /* Footer */
+  .page-footer {
+    border-top: 1px solid rgba(255,184,0,0.1);
+    padding-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .page-footer a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .page-footer a:hover { color: var(--amber); }
+
+  .prompt-line { display: flex; align-items: center; gap: 0.4em; }
+  .prompt-char { color: var(--amber); }
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 0.9em;
+    background: var(--amber);
+    animation: blink 1.2s step-end infinite;
+    box-shadow: 0 0 5px var(--amber);
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  /* Print / embed friendliness */
+  @media (max-width: 600px) {
+    .page { padding: 2rem 1.2rem 4rem; }
+    .progress-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="page">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="https://thedailybabel.com">THE DAILY BABEL</a>
+    <span class="sep">/</span>
+    <a href="https://thedailybabel.com/oneshot-index.html">ONE SHOT GAMES</a>
+    <span class="sep">/</span>
+    <span class="current">HOSTING GUIDE</span>
+  </div>
+
+  <!-- Header -->
+  <div class="header-accent">// Dev Ops — Field Manual</div>
+  <h1 class="page-title">HOST YOUR OWN<br>ONE-SHOT GAMES</h1>
+  <p class="page-subtitle">
+    A step-by-step walkthrough for getting a single-file HTML game live on the internet
+    using GitHub Pages — free, fast, and zero server required.
+    If you can save a file, you can ship a game.
+  </p>
+  <div class="header-line"></div>
+
+  <!-- Discord callout -->
+  <div class="callout callout-tip" style="margin-bottom: 3rem;">
+    <span class="callout-icon">💬</span>
+    <div class="callout-text">
+      <strong>Community Scoring — Join the Discord</strong>
+      Once your game is live, submit it to the community for scoring and head-to-head comparison
+      against games generated by other LLMs. Players vote, scores accumulate, bragging rights ensue.
+      <br><br>
+      <a href="https://discord.gg/dcSyD75Mas" target="_blank" rel="noopener" style="color: var(--green); text-shadow: 0 0 6px rgba(57,255,20,0.4); text-decoration: none; letter-spacing: 0.05em;">
+        ▶ https://discord.gg/dcSyD75Mas
+      </a>
+    </div>
+  </div>
+
+  <!-- Pipeline overview -->
+  <div class="section-label">Mission Pipeline</div>
+  <div class="progress-bar">
+    <div class="progress-dot" style="--i:0"><div class="dot"></div>SUBMIT PROMPT</div>
+    <div class="progress-dot"><span class="arrow">▶</span></div>
+    <div class="progress-dot" style="--i:1"><div class="dot"></div>GITHUB ACCOUNT</div>
+    <div class="progress-dot"><span class="arrow">▶</span></div>
+    <div class="progress-dot" style="--i:2"><div class="dot"></div>CREATE REPO</div>
+    <div class="progress-dot"><span class="arrow">▶</span></div>
+    <div class="progress-dot" style="--i:3"><div class="dot"></div>ENABLE PAGES</div>
+    <div class="progress-dot"><span class="arrow">▶</span></div>
+    <div class="progress-dot" style="--i:4"><div class="dot"></div>PUSH FILE</div>
+    <div class="progress-dot"><span class="arrow">▶</span></div>
+    <div class="progress-dot" style="--i:5"><div class="dot"></div>GAME LIVE</div>
+  </div>
+
+  <!-- ── STEPS ── -->
+  <div class="section-label">Step-by-Step Instructions</div>
+
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 01</span>
+        <span class="step-title">Submit Your Prompt and Capture the Game</span>
+      </div>
+      <div class="step-body">
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-text">
+            <strong>The One-Shot Rule</strong>
+            One prompt. One LLM run. One HTML output. No follow-up prompts, no refinement, no do-overs.
+            You take what the model gives you and ship it. Craft your prompt carefully before you pull the lever —
+            the prompt is the skill, the game is the prize.
+          </div>
+        </div>
+
+        <p>
+          Go to your LLM of choice — Claude, ChatGPT, Gemini, or any other — and submit your prompt.
+          Here is a proven example prompt for a first game:
+        </p>
+        <div class="code-block">
+          <span class="label">EXAMPLE PROMPT</span>Create a complete single-file HTML5 Snake game. All CSS and
+JavaScript must be inline in one .html file — no external
+libraries, no imports, no dependencies. The game should have
+a dark background, render on an HTML canvas, use arrow keys
+to control the snake, track and display the score, and show
+a game-over screen with the final score when the snake hits
+a wall or itself. Start the game automatically on page load.
+The visual style should feel retro and minimal.
+
+This is a one-shot challenge, so you get one chance to get
+it right. There will be no followup prompt. I will post the
+generated html file to GitHub for scoring and comparison
+against the output from other LLMs. I will submit the game
+to https://discord.gg/dcSyD75Mas for community scoring.</div>
+
+        <p>
+          Most LLMs provide a download link for the generated file — click it and save directly to your machine.
+          If no download link is provided, copy the HTML from the response and paste it into a plain-text editor,
+          then save it manually. Either way, use a descriptive, lowercase, hyphen-separated filename —
+          for example <code>snake.html</code>. Avoid spaces; they cause URL encoding headaches.
+        </p>
+        <ol>
+          <li>Save or download the <code>.html</code> file to your machine.</li>
+          <li>Double-click the file to open it in a browser.</li>
+          <li>Verify it loads and runs.</li>
+        </ol>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">✦</span>
+          <div class="callout-text">
+            <strong>Works Locally = Works on GitHub Pages</strong>
+            If the game runs in your browser from a local file, it will run identically on GitHub Pages.
+            No server-side magic involved. If it's broken — that's the game you're shipping. One shot.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 02</span>
+        <span class="step-title">Create a GitHub Account</span>
+      </div>
+      <div class="step-body">
+        <p>If you already have a GitHub account, skip ahead to Step 3. Otherwise:</p>
+        <ol>
+          <li>Go to <span class="url-pill">https://github.com</span> and click <strong>Sign up</strong>.</li>
+          <li>Enter your email address, create a password, and choose a username. Your username will become part of your game's public URL, so pick something you're happy with.</li>
+          <li>Verify your email address when GitHub sends you a confirmation.</li>
+          <li>Log in. You're now a GitHub citizen.</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-text">
+            <strong>Free Tier Is Enough</strong>
+            GitHub Pages is available on free accounts. You do not need GitHub Pro, Teams, or any paid plan to host static files.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 03</span>
+        <span class="step-title">Create a New Repository</span>
+      </div>
+      <div class="step-body">
+        <p>A repository (repo) is the folder that holds all your game files on GitHub.</p>
+        <ol>
+          <li>Click the <strong>+</strong> icon in the top-right corner of GitHub and choose <strong>New repository</strong>.</li>
+          <li>Give the repo a name. For a dedicated games site, name it exactly:<br>
+              <code>YOUR-USERNAME.github.io</code><br>
+              Replacing <code>YOUR-USERNAME</code> with your actual GitHub username.
+              This special naming convention activates the root GitHub Pages domain for your account.
+          </li>
+          <li>Set visibility to <strong>Public</strong>. GitHub Pages requires public repos on free accounts.</li>
+          <li>Check <strong>Add a README file</strong> — this gives the repo something to start with so it's not empty.</li>
+          <li>Click <strong>Create repository</strong>.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✦</span>
+          <div class="callout-text">
+            <strong>Naming Options</strong>
+            The <code>username.github.io</code> pattern gives you a root URL like <code>https://username.github.io</code>. 
+            If you'd prefer a sub-path (e.g. <code>/games</code>), name the repo anything else and your URL becomes <code>https://username.github.io/repo-name</code>.
+            Either approach works fine for hosting games.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 04</span>
+        <span class="step-title">Enable GitHub Pages</span>
+      </div>
+      <div class="step-body">
+        <p>GitHub Pages is the feature that turns your repo into a live website. It doesn't turn itself on automatically.</p>
+        <ol>
+          <li>Inside your new repo, click the <strong>Settings</strong> tab (top of the repo, right side).</li>
+          <li>In the left sidebar, click <strong>Pages</strong> (under the "Code and automation" section).</li>
+          <li>Under <strong>Source</strong>, select <strong>Deploy from a branch</strong>.</li>
+          <li>Set the branch to <strong>main</strong> and the folder to <strong>/ (root)</strong>.</li>
+          <li>Click <strong>Save</strong>.</li>
+        </ol>
+        <p>After a minute or two, GitHub will display the live URL of your site at the top of the Pages settings panel:</p>
+        <div class="code-block">
+          <span class="label">LIVE URL</span>https://YOUR-USERNAME.github.io
+        </div>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-text">
+            <strong>Propagation Delay</strong>
+            The first deployment takes 1–3 minutes. Subsequent pushes are usually faster but can still take up to a minute to appear live. Don't panic if the URL 404s immediately.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 05</span>
+        <span class="step-title">Upload Your Game to GitHub</span>
+      </div>
+      <div class="step-body">
+        <p>There are two ways to get your file into the repo. Pick the one that matches your comfort level:</p>
+
+        <p><strong>Option A — Browser Upload (No Tools Required)</strong></p>
+        <ol>
+          <li>Go to your repo on GitHub.</li>
+          <li>Click <strong>Add file → Upload files</strong>.</li>
+          <li>Drag your <code>.html</code> file into the upload box, or click to browse for it.</li>
+          <li>Scroll down to the <strong>Commit changes</strong> section. Add a short message like <code>Add snake game</code>.</li>
+          <li>Make sure <strong>Commit directly to the main branch</strong> is selected.</li>
+          <li>Click <strong>Commit changes</strong>.</li>
+        </ol>
+
+        <p><strong>Option B — Git Command Line (Faster for Repeat Uploads)</strong></p>
+        <p>If you have Git installed, clone the repo once and then push files without touching the browser:</p>
+        <div class="code-block">
+          <span class="label">TERMINAL</span><span class="comment"># Clone the repo to your machine (do this once)</span>
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
+cd YOUR-REPO
+
+<span class="comment"># Copy your game file into the repo folder, then:</span>
+git add snake.html
+git commit -m <span class="str">"Add snake one-shot"</span>
+git push origin main</div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-text">
+            <strong>Installing Git</strong>
+            Download Git from <span class="url-pill">https://git-scm.com</span>. 
+            On Windows, use Git Bash. On Mac, the Xcode Command Line Tools include Git 
+            (run <code>git --version</code> in Terminal — it will prompt an install if missing).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 06</span>
+        <span class="step-title">Verify the Game Is Live</span>
+      </div>
+      <div class="step-body">
+        <p>After committing your file, GitHub Pages rebuilds the site automatically. To check the deployment status:</p>
+        <ol>
+          <li>In your repo, click the <strong>Actions</strong> tab.</li>
+          <li>You'll see a workflow called <strong>pages build and deployment</strong> running. A yellow dot means it's still building. A green checkmark means it's live.</li>
+          <li>Once green, visit your game's URL:</li>
+        </ol>
+        <div class="code-block">
+          <span class="label">GAME URL PATTERN</span>https://YOUR-USERNAME.github.io/my-game.html
+
+<span class="comment"># Example:</span>
+https://thedailybabel.github.io/lunar-lander.html</div>
+        <p>
+          Open that URL in any browser. If the game loads — congratulations, you've shipped.
+          Share the link. It works on mobile, tablet, and desktop without any installation.
+        </p>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✦</span>
+          <div class="callout-text">
+            <strong>Custom Domain</strong>
+            GitHub Pages supports custom domains. If you own a domain, go to Settings → Pages → Custom domain, 
+            enter your domain, and update your DNS with a CNAME record pointing to <code>YOUR-USERNAME.github.io</code>. 
+            HTTPS is provisioned automatically via Let's Encrypt.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 07</span>
+        <span class="step-title">Build a Game Index Page (Optional but Recommended)</span>
+      </div>
+      <div class="step-body">
+        <p>
+          Once you have more than one game, create an <code>index.html</code> at the root of your repo.
+          This file is what GitHub Pages serves when someone visits your root URL —
+          it becomes your game launcher, your arcade cabinet menu.
+        </p>
+        <p>
+          A simple index links to each game file by name. When visitors land on your site they see a list
+          of available games rather than a GitHub 404 or directory listing. Add a new link every time you add a game:
+        </p>
+        <div class="code-block">
+          <span class="label">INDEX SNIPPET</span><span class="comment">&lt;!-- index.html (root of your repo) --&gt;</span>
+&lt;<span class="key">a</span> <span class="val">href</span>=<span class="str">"lunar-lander.html"</span>&gt;🚀 Lunar Lander&lt;/<span class="key">a</span>&gt;
+&lt;<span class="key">a</span> <span class="val">href</span>=<span class="str">"lucky-sevens-slots.html"</span>&gt;🎰 Lucky Sevens Slots&lt;/<span class="key">a</span>&gt;
+&lt;<span class="key">a</span> <span class="val">href</span>=<span class="str">"castle-wolfenstein.html"</span>&gt;🏰 Castle Wolfenstein&lt;/<span class="key">a</span>&gt;</div>
+        <p>
+          Style it however you like. The file still follows the same one-shot rule: 
+          pure HTML + CSS + JS, all inline, committed directly to the repo.
+        </p>
+      </div>
+    </div>
+
+    <!-- STEP 8 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">STEP 08</span>
+        <span class="step-title">Quick Reference — The Full Picture</span>
+      </div>
+      <div class="step-body">
+        <p>Here's everything in one place for fast recall or sharing with someone new:</p>
+        <table class="ref-table">
+          <tr><th>What</th><th>Where / How</th></tr>
+          <tr><td>GitHub sign-up</td><td><span class="url-pill">https://github.com</span></td></tr>
+          <tr><td>New repo button</td><td>Top-right <strong>+</strong> → New repository</td></tr>
+          <tr><td>Special repo name for root domain</td><td><code>YOUR-USERNAME.github.io</code></td></tr>
+          <tr><td>Enable GitHub Pages</td><td>Settings → Pages → Source: main / root → Save</td></tr>
+          <tr><td>Your site URL</td><td><code>https://YOUR-USERNAME.github.io</code></td></tr>
+          <tr><td>Individual game URL</td><td><code>https://YOUR-USERNAME.github.io/game-name.html</code></td></tr>
+          <tr><td>Upload a game (browser)</td><td>Add file → Upload files → Commit to main</td></tr>
+          <tr><td>Upload a game (terminal)</td><td><code>git add</code> → <code>git commit</code> → <code>git push</code></td></tr>
+          <tr><td>Check deployment</td><td>Repo → Actions tab → pages build and deployment</td></tr>
+          <tr><td>Custom domain</td><td>Settings → Pages → Custom domain → update DNS CNAME</td></tr>
+          <tr><td>Game file rule</td><td>One <code>.html</code> file. All CSS &amp; JS inline. No build tools.</td></tr>
+        </table>
+
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-text">
+            <strong>One-Shot Rules</strong>
+            The constraint applies to <em>development</em>, not just gameplay. One prompt to the LLM,
+            one output, no follow-up prompts, no refinement passes. Ship what the model gives you.
+            Players get no saves or continues — and you get no second prompt.
+            The prompt is the skill. The game is the prize.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .steps -->
+
+  <!-- Footer -->
+  <footer class="page-footer">
+    <div class="prompt-line">
+      <span class="prompt-char">guide@babel:~$</span>
+      <span class="cursor"></span>
+    </div>
+    <div>
+      <a href="https://thedailybabel.com">← Back to Hub</a>
+      &nbsp;&nbsp;·&nbsp;&nbsp;
+      <a href="https://thedailybabel.com/oneshot-index.html">One-Shot Games</a>
+      &nbsp;&nbsp;·&nbsp;&nbsp;
+      <a href="https://github.com/thedailybabel" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+</div><!-- end .page -->
+
+</body>
+</html>
