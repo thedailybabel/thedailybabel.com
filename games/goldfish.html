@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GoldFish</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    font-family: Georgia, serif;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #tank {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ── Water gradient background ── */
+  #water {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      #0a2a4a 0%,
+      #0d3b6e 18%,
+      #0e4a80 35%,
+      #0b5a8a 55%,
+      #0a6890 75%,
+      #1a7080 90%,
+      #1a6060 100%
+    );
+  }
+
+  /* ── Caustic light ripple layers ── */
+  .caustic {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+  }
+  .caustic-1 {
+    background: radial-gradient(ellipse 80px 40px at 20% 30%, #aef 0%, transparent 70%),
+                radial-gradient(ellipse 60px 30px at 60% 15%, #aef 0%, transparent 70%),
+                radial-gradient(ellipse 100px 50px at 85% 40%, #aef 0%, transparent 70%);
+    animation: caustic1 5s ease-in-out infinite alternate;
+  }
+  .caustic-2 {
+    background: radial-gradient(ellipse 70px 35px at 40% 25%, #9df 0%, transparent 70%),
+                radial-gradient(ellipse 90px 45px at 75% 10%, #9df 0%, transparent 70%);
+    animation: caustic2 7s ease-in-out infinite alternate;
+  }
+  @keyframes caustic1 { from { transform: translateX(-15px) scaleX(1); } to { transform: translateX(15px) scaleX(1.1); } }
+  @keyframes caustic2 { from { transform: translateX(10px) scaleY(1); } to { transform: translateX(-10px) scaleY(1.15); } }
+
+  /* ── Floating bubbles ── */
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.6), rgba(200,240,255,0.1));
+    border: 1px solid rgba(180,230,255,0.4);
+    animation: rise linear infinite;
+    pointer-events: none;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-110vh) translateX(20px); opacity: 0; }
+  }
+
+  /* ── SVG scene canvas ── */
+  #scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Fish wrapper ── */
+  #fish-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #fish {
+    position: absolute;
+    cursor: pointer;
+    pointer-events: all;
+    transform-origin: center center;
+    transition: filter 0.3s;
+    /* start offscreen left */
+    left: -120px;
+  }
+
+  #fish:hover { filter: drop-shadow(0 0 12px rgba(255,200,50,0.9)); }
+  #fish.clicked { filter: drop-shadow(0 0 20px rgba(255,255,100,1)); }
+
+  #fish svg {
+    display: block;
+    filter: drop-shadow(2px 3px 6px rgba(0,0,0,0.5));
+  }
+
+  /* ── Hint text ── */
+  #hint {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(200, 240, 255, 0.75);
+    font-size: clamp(12px, 2.5vw, 16px);
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 4px rgba(0,0,40,0.8);
+    pointer-events: none;
+    white-space: nowrap;
+    animation: hintPulse 3s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%,100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+
+  /* ── Treasure chest lid animation (CSS-driven) ── */
+  #chest-lid {
+    transform-origin: 50% 100%;
+    animation: chestOpen 6s ease-in-out infinite;
+  }
+  @keyframes chestOpen {
+    0%,40%   { transform: rotate(0deg); }
+    50%,60%  { transform: rotate(-28deg); }
+    70%,100% { transform: rotate(0deg); }
+  }
+
+  /* ── Plant sway ── */
+  .plant-g { transform-origin: bottom center; }
+  .plant-1 { animation: sway1 4.5s ease-in-out infinite; }
+  .plant-2 { animation: sway2 5.2s ease-in-out infinite; }
+  .plant-3 { animation: sway3 3.8s ease-in-out infinite; }
+  @keyframes sway1 { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(4deg)} }
+  @keyframes sway2 { 0%,100%{transform:rotate(4deg)}  50%{transform:rotate(-5deg)} }
+  @keyframes sway3 { 0%,100%{transform:rotate(-2deg)} 50%{transform:rotate(6deg)} }
+</style>
+</head>
+<body>
+
+<div id="tank">
+  <div id="water"></div>
+  <div class="caustic caustic-1"></div>
+  <div class="caustic caustic-2"></div>
+
+  <!-- SVG background scene -->
+  <svg id="scene" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Sand gradient -->
+      <linearGradient id="sandGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c8a850"/>
+        <stop offset="40%" stop-color="#b8923a"/>
+        <stop offset="100%" stop-color="#8a6520"/>
+      </linearGradient>
+      <!-- Rock gradient -->
+      <radialGradient id="rockGrad1" cx="40%" cy="35%">
+        <stop offset="0%" stop-color="#7a7a7a"/>
+        <stop offset="100%" stop-color="#404040"/>
+      </radialGradient>
+      <radialGradient id="rockGrad2" cx="40%" cy="35%">
+        <stop offset="0%" stop-color="#666"/>
+        <stop offset="100%" stop-color="#333"/>
+      </radialGradient>
+      <!-- Chest wood -->
+      <linearGradient id="chestBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7a4a10"/>
+        <stop offset="100%" stop-color="#4a2808"/>
+      </linearGradient>
+      <linearGradient id="chestLidGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#8a5510"/>
+        <stop offset="100%" stop-color="#5a3010"/>
+      </linearGradient>
+      <!-- Gold shine -->
+      <radialGradient id="goldShine" cx="35%" cy="30%">
+        <stop offset="0%" stop-color="#ffe066"/>
+        <stop offset="60%" stop-color="#e0a000"/>
+        <stop offset="100%" stop-color="#a06000"/>
+      </radialGradient>
+      <!-- Gem -->
+      <radialGradient id="gemRed" cx="40%" cy="35%">
+        <stop offset="0%" stop-color="#ff8080"/>
+        <stop offset="100%" stop-color="#c00020"/>
+      </radialGradient>
+      <radialGradient id="gemBlue" cx="40%" cy="35%">
+        <stop offset="0%" stop-color="#80c0ff"/>
+        <stop offset="100%" stop-color="#0040a0"/>
+      </radialGradient>
+      <!-- Water surface shimmer -->
+      <linearGradient id="surfaceGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="rgba(180,220,255,0.0)"/>
+        <stop offset="25%" stop-color="rgba(200,235,255,0.35)"/>
+        <stop offset="50%" stop-color="rgba(180,220,255,0.1)"/>
+        <stop offset="75%" stop-color="rgba(200,235,255,0.3)"/>
+        <stop offset="100%" stop-color="rgba(180,220,255,0.0)"/>
+      </linearGradient>
+      <!-- plant leaf gradient -->
+      <linearGradient id="leafGrad1" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stop-color="#1a6e2a"/>
+        <stop offset="100%" stop-color="#3ab850"/>
+      </linearGradient>
+      <linearGradient id="leafGrad2" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stop-color="#2a7e1a"/>
+        <stop offset="100%" stop-color="#60d040"/>
+      </linearGradient>
+      <linearGradient id="leafGrad3" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0a5a3a"/>
+        <stop offset="100%" stop-color="#20a060"/>
+      </linearGradient>
+    </defs>
+
+    <!-- ── Water surface shimmer bar ── -->
+    <rect x="0" y="0" width="1000" height="8" fill="url(#surfaceGrad)" opacity="0.8"/>
+    <rect x="0" y="4" width="1000" height="4" fill="rgba(150,210,255,0.2)"/>
+
+    <!-- ── Sand floor ── -->
+    <rect x="0" y="530" width="1000" height="70" fill="url(#sandGrad)"/>
+    <!-- Sand ripples -->
+    <ellipse cx="150" cy="533" rx="90" ry="4" fill="rgba(200,160,60,0.4)"/>
+    <ellipse cx="380" cy="535" rx="130" ry="3" fill="rgba(180,140,50,0.3)"/>
+    <ellipse cx="650" cy="532" rx="110" ry="4" fill="rgba(200,160,60,0.35)"/>
+    <ellipse cx="850" cy="536" rx="80" ry="3" fill="rgba(180,140,50,0.3)"/>
+    <!-- Pebbles on sand -->
+    <ellipse cx="80"  cy="538" rx="10" ry="6" fill="#8a7050"/>
+    <ellipse cx="220" cy="540" rx="7"  ry="4" fill="#9a8060"/>
+    <ellipse cx="400" cy="537" rx="12" ry="5" fill="#7a6040"/>
+    <ellipse cx="560" cy="539" rx="8"  ry="5" fill="#8a7250"/>
+    <ellipse cx="720" cy="538" rx="11" ry="5" fill="#9a8060"/>
+    <ellipse cx="910" cy="540" rx="9"  ry="4" fill="#7a6040"/>
+
+    <!-- ── Rocks ── -->
+    <!-- Large rock cluster left -->
+    <ellipse cx="70" cy="548" rx="50" ry="28" fill="url(#rockGrad1)"/>
+    <ellipse cx="50" cy="550" rx="30" ry="18" fill="url(#rockGrad2)"/>
+    <ellipse cx="100" cy="545" rx="22" ry="15" fill="#555"/>
+    <!-- Mid rocks -->
+    <ellipse cx="440" cy="550" rx="35" ry="20" fill="url(#rockGrad2)"/>
+    <ellipse cx="460" cy="548" rx="20" ry="12" fill="#4a4a4a"/>
+    <!-- Right rocks -->
+    <ellipse cx="920" cy="548" rx="45" ry="24" fill="url(#rockGrad1)"/>
+    <ellipse cx="900" cy="550" rx="25" ry="16" fill="#505050"/>
+
+    <!-- ── Plastic Plant 1 (left, tall) ── -->
+    <g class="plant-g plant-1" transform="translate(130,540)">
+      <!-- stem -->
+      <rect x="-3" y="-95" width="6" height="95" fill="#2a6018" rx="3"/>
+      <!-- leaves pairs -->
+      <ellipse cx="-18" cy="-80" rx="22" ry="7" fill="url(#leafGrad1)" transform="rotate(-20,-18,-80)"/>
+      <ellipse cx="18"  cy="-70" rx="22" ry="7" fill="url(#leafGrad2)" transform="rotate(20,18,-70)"/>
+      <ellipse cx="-20" cy="-55" rx="25" ry="8" fill="url(#leafGrad1)" transform="rotate(-25,-20,-55)"/>
+      <ellipse cx="20"  cy="-44" rx="25" ry="8" fill="url(#leafGrad2)" transform="rotate(25,20,-44)"/>
+      <ellipse cx="-16" cy="-28" rx="20" ry="7" fill="url(#leafGrad1)" transform="rotate(-18,-16,-28)"/>
+      <ellipse cx="16"  cy="-18" rx="20" ry="7" fill="url(#leafGrad2)" transform="rotate(18,16,-18)"/>
+    </g>
+
+    <!-- ── Plastic Plant 2 (bushy, right-center) ── -->
+    <g class="plant-g plant-2" transform="translate(760,540)">
+      <rect x="-3" y="-75" width="6" height="75" fill="#1a5010" rx="3"/>
+      <rect x="-10" y="-60" width="5" height="50" fill="#1a5010" rx="3" transform="rotate(15,-10,-60)"/>
+      <rect x="8"   y="-55" width="5" height="48" fill="#1a5010" rx="3" transform="rotate(-12,8,-55)"/>
+      <ellipse cx="0"   cy="-72" rx="18" ry="10" fill="url(#leafGrad3)"/>
+      <ellipse cx="-22" cy="-50" rx="20" ry="8"  fill="url(#leafGrad1)" transform="rotate(-30,-22,-50)"/>
+      <ellipse cx="22"  cy="-45" rx="20" ry="8"  fill="url(#leafGrad2)" transform="rotate(30,22,-45)"/>
+      <ellipse cx="-18" cy="-28" rx="22" ry="8"  fill="url(#leafGrad3)" transform="rotate(-20,-18,-28)"/>
+      <ellipse cx="18"  cy="-22" rx="22" ry="8"  fill="url(#leafGrad1)" transform="rotate(20,18,-22)"/>
+      <ellipse cx="0"   cy="-10" rx="16" ry="7"  fill="url(#leafGrad2)"/>
+    </g>
+
+    <!-- ── Plastic Plant 3 (skinny right) ── -->
+    <g class="plant-g plant-3" transform="translate(870,538)">
+      <rect x="-2" y="-55" width="4" height="55" fill="#1a6030" rx="2"/>
+      <ellipse cx="-14" cy="-50" rx="16" ry="5" fill="url(#leafGrad3)" transform="rotate(-22,-14,-50)"/>
+      <ellipse cx="14"  cy="-40" rx="16" ry="5" fill="url(#leafGrad1)" transform="rotate(22,14,-40)"/>
+      <ellipse cx="-12" cy="-27" rx="14" ry="5" fill="url(#leafGrad3)" transform="rotate(-18,-12,-27)"/>
+      <ellipse cx="12"  cy="-16" rx="14" ry="5" fill="url(#leafGrad1)" transform="rotate(18,12,-16)"/>
+    </g>
+
+    <!-- ── Treasure Chest ── -->
+    <g transform="translate(560,490)">
+      <!-- shadow -->
+      <ellipse cx="0" cy="55" rx="58" ry="10" fill="rgba(0,0,0,0.3)"/>
+      <!-- chest body -->
+      <rect x="-50" y="20" width="100" height="36" rx="4" fill="url(#chestBody)"/>
+      <!-- wood bands -->
+      <rect x="-50" y="28" width="100" height="5" fill="#3a1e04" opacity="0.6"/>
+      <rect x="-50" y="42" width="100" height="5" fill="#3a1e04" opacity="0.6"/>
+      <!-- vertical bands -->
+      <rect x="-18" y="20" width="5" height="36" fill="#3a1e04" opacity="0.5"/>
+      <rect x="13"  y="20" width="5" height="36" fill="#3a1e04" opacity="0.5"/>
+      <!-- lock -->
+      <rect x="-8" y="28" width="16" height="12" rx="3" fill="#c8a000"/>
+      <circle cx="0" cy="31" r="4" fill="#e8c000"/>
+      <rect x="-2" y="33" width="4" height="5" rx="1" fill="#a07000"/>
+
+      <!-- gold coins spilling out -->
+      <ellipse cx="-30" cy="24" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(-15,-30,24)"/>
+      <ellipse cx="-20" cy="18" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(-8,-20,18)"/>
+      <ellipse cx="-10" cy="14" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(-2,-10,14)"/>
+      <ellipse cx="5"   cy="12" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(5,5,12)"/>
+      <ellipse cx="20"  cy="15" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(10,20,15)"/>
+      <ellipse cx="32"  cy="22" rx="9" ry="5" fill="url(#goldShine)" transform="rotate(18,32,22)"/>
+      <!-- gems -->
+      <polygon points="-35,16 -30,8 -25,16 -30,20" fill="url(#gemRed)"/>
+      <polygon points="22,10 27,2 32,10 27,14" fill="url(#gemBlue)"/>
+      <polygon points="-5,6 0,-2 5,6 0,10" fill="#80ff80"/>
+
+      <!-- lid group with animation -->
+      <g id="chest-lid" transform="translate(0,20)">
+        <rect x="-50" y="-18" width="100" height="20" rx="4" fill="url(#chestLidGrad)"/>
+        <rect x="-50" y="-10" width="100" height="5" fill="#3a1e04" opacity="0.5"/>
+        <rect x="-18" y="-18" width="5" height="20" fill="#3a1e04" opacity="0.4"/>
+        <rect x="13"  y="-18" width="5" height="20" fill="#3a1e04" opacity="0.4"/>
+        <!-- hinge -->
+        <rect x="-52" y="-4" width="8" height="8" rx="2" fill="#c89000"/>
+        <rect x="44"  y="-4" width="8" height="8" rx="2" fill="#c89000"/>
+      </g>
+    </g>
+
+    <!-- ── Castle/ruin ornament (center-left) ── -->
+    <g transform="translate(300,490)" opacity="0.85">
+      <!-- shadow -->
+      <ellipse cx="0" cy="55" rx="50" ry="8" fill="rgba(0,0,0,0.2)"/>
+      <!-- base -->
+      <rect x="-45" y="15" width="90" height="42" fill="#3a3a4a"/>
+      <rect x="-45" y="15" width="90" height="5" fill="#4a4a5a"/>
+      <!-- arch opening -->
+      <rect x="-14" y="30" width="28" height="27" rx="14" fill="#0a1a2a" opacity="0.9"/>
+      <!-- towers -->
+      <rect x="-52" y="-8" width="22" height="28" fill="#3a3a4a"/>
+      <rect x="30"  y="-8" width="22" height="28" fill="#3a3a4a"/>
+      <!-- battlements left -->
+      <rect x="-52" y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <rect x="-43" y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <rect x="-34" y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <!-- battlements right -->
+      <rect x="30"  y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <rect x="39"  y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <rect x="48"  y="-14" width="6" height="8" fill="#3a3a4a"/>
+      <!-- windows -->
+      <rect x="-44" y="-2" width="7" height="9" rx="3" fill="#0a1a2a"/>
+      <rect x="37"  y="-2" width="7" height="9" rx="3" fill="#0a1a2a"/>
+      <!-- moss tints -->
+      <rect x="-45" y="30" width="8" height="27" fill="#1a5030" opacity="0.4"/>
+      <rect x="37"  y="20" width="8" height="37" fill="#1a5030" opacity="0.3"/>
+    </g>
+
+    <!-- ── Small background fish ── -->
+    <!-- bg fish 1 -->
+    <g opacity="0.35">
+      <ellipse cx="200" cy="180" rx="20" ry="9" fill="#e05080" transform="rotate(-5,200,180)"/>
+      <polygon points="180,180 165,172 165,188" fill="#c04060"/>
+      <circle cx="210" cy="178" r="2" fill="#111"/>
+    </g>
+    <!-- bg fish 2 -->
+    <g opacity="0.25">
+      <ellipse cx="750" cy="250" rx="15" ry="7" fill="#50c0e0" transform="rotate(8,750,250)"/>
+      <polygon points="735,250 722,244 722,256" fill="#30a0c0"/>
+      <circle cx="760" cy="248" r="1.5" fill="#111"/>
+    </g>
+  </svg>
+
+  <!-- Bubbles (injected via JS) -->
+
+  <!-- Hint -->
+  <div id="hint">🐟 Tap the goldfish to send it swimming!</div>
+
+  <!-- Fish element -->
+  <div id="fish-wrapper">
+    <div id="fish">
+      <svg width="110" height="70" viewBox="0 0 110 70" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bodyGrad" cx="45%" cy="42%" r="55%">
+            <stop offset="0%"  stop-color="#ffe680"/>
+            <stop offset="40%" stop-color="#ffaa00"/>
+            <stop offset="75%" stop-color="#e06000"/>
+            <stop offset="100%" stop-color="#b04000"/>
+          </radialGradient>
+          <radialGradient id="bellyGrad" cx="50%" cy="60%" r="50%">
+            <stop offset="0%" stop-color="#fff4c0" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#ffcc60" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="eyeGrad" cx="35%" cy="35%">
+            <stop offset="0%" stop-color="#444"/>
+            <stop offset="50%" stop-color="#111"/>
+            <stop offset="100%" stop-color="#000"/>
+          </radialGradient>
+          <linearGradient id="tailGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"  stop-color="#e06000" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#ff8800" stop-opacity="0.4"/>
+          </linearGradient>
+          <linearGradient id="finGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#ffcc00" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#e07000" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
+        <!-- Tail -->
+        <path d="M20,35 Q5,18 0,8 Q15,32 15,35 Q15,38 0,62 Q5,52 20,35 Z" fill="url(#tailGrad)"/>
+        <!-- Body -->
+        <ellipse cx="60" cy="35" rx="42" ry="24" fill="url(#bodyGrad)"/>
+        <!-- Belly sheen -->
+        <ellipse cx="62" cy="42" rx="30" ry="13" fill="url(#bellyGrad)"/>
+        <!-- Dorsal fin -->
+        <path d="M45,12 Q55,2 70,8 Q68,14 50,16 Z" fill="url(#finGrad)" opacity="0.85"/>
+        <!-- Pectoral fin -->
+        <path d="M65,40 Q72,52 62,56 Q58,48 60,38 Z" fill="url(#finGrad)" opacity="0.75"/>
+        <!-- Scale lines -->
+        <path d="M40,25 Q50,20 60,25" stroke="rgba(180,80,0,0.25)" stroke-width="1.2" fill="none"/>
+        <path d="M50,22 Q60,17 70,22" stroke="rgba(180,80,0,0.25)" stroke-width="1.2" fill="none"/>
+        <path d="M35,32 Q48,27 58,32" stroke="rgba(180,80,0,0.2)" stroke-width="1" fill="none"/>
+        <path d="M55,28 Q67,23 77,28" stroke="rgba(180,80,0,0.2)" stroke-width="1" fill="none"/>
+        <!-- Mouth -->
+        <path d="M100,33 Q103,36 100,38" stroke="#b04000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- Eye -->
+        <circle cx="90" cy="30" r="7" fill="white"/>
+        <circle cx="91" cy="30" r="5" fill="url(#eyeGrad)"/>
+        <circle cx="93" cy="28" r="1.8" fill="white" opacity="0.8"/>
+        <!-- Gill line -->
+        <path d="M78,20 Q75,35 78,48" stroke="rgba(160,60,0,0.4)" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const fish        = document.getElementById('fish');
+  const tank        = document.getElementById('tank');
+  const hint        = document.getElementById('hint');
+
+  const FISH_W      = 110;   // fish SVG width
+  const MARGIN      = 4;     // px from edge
+
+  let swimming      = false;
+  let direction     = 1;     // 1 = right, -1 = left
+  let currentX      = 0;     // fish left position in px
+  let raf           = null;
+
+  // ── Vertical position: roughly 40-65% from top ──
+  const FISH_TOP_PCT = 0.46;
+
+  function positionFishY() {
+    const h = tank.clientHeight;
+    const fishH = 70;
+    fish.style.top  = Math.floor(h * FISH_TOP_PCT - fishH / 2) + 'px';
+  }
+
+  function getMaxX() {
+    return tank.clientWidth - FISH_W - MARGIN;
+  }
+
+  function faceFish(dir) {
+    // dir=1 → facing right (normal), dir=-1 → flip horizontally
+    fish.style.transform = dir === 1 ? 'scaleX(1)' : 'scaleX(-1)';
+  }
+
+  function startSwimRight() {
+    if (swimming) return;
+    swimming  = true;
+    direction = 1;
+    faceFish(1);
+    hint.textContent = '🐟 Tap the goldfish to send it swimming!';
+    animate();
+  }
+
+  function startSwimLeft() {
+    if (swimming) return;
+    swimming  = true;
+    direction = -1;
+    faceFish(-1);
+    animate();
+  }
+
+  const SPEED = 0.9; // px per frame (~55px/s at 60fps)
+
+  function animate() {
+    const maxX = getMaxX();
+
+    if (direction === 1) {
+      currentX += SPEED;
+      if (currentX >= maxX) {
+        currentX = maxX;
+        fish.style.left = currentX + 'px';
+        swimming  = false;
+        hint.textContent = '👆 Tap the fish!';
+        return;
+      }
+    } else {
+      currentX -= SPEED;
+      if (currentX <= MARGIN) {
+        currentX = MARGIN;
+        fish.style.left = currentX + 'px';
+        swimming  = false;
+        hint.textContent = '👆 Tap the fish!';
+        return;
+      }
+    }
+
+    fish.style.left = currentX + 'px';
+    raf = requestAnimationFrame(animate);
+  }
+
+  // Body wobble animation
+  let wobblePhase = 0;
+  function wobble() {
+    if (swimming) {
+      wobblePhase += 0.08;
+      const wy = Math.sin(wobblePhase) * 4;
+      const rot = Math.sin(wobblePhase) * 2;
+      fish.style.marginTop = wy + 'px';
+      // apply wobble without losing the scaleX flip
+      const scaleX = direction === 1 ? 1 : -1;
+      fish.style.transform = `scaleX(${scaleX}) rotate(${rot * scaleX}deg)`;
+    }
+    requestAnimationFrame(wobble);
+  }
+  wobble();
+
+  // ── Click / tap handler ──
+  function onFishClick(e) {
+    e.stopPropagation();
+    if (swimming) return;
+
+    // flash effect
+    fish.classList.add('clicked');
+    setTimeout(() => fish.classList.remove('clicked'), 300);
+
+    if (direction === 1) {
+      // was going right, now go left
+      startSwimLeft();
+    } else {
+      // was going left, now go right
+      startSwimRight();
+    }
+  }
+
+  fish.addEventListener('click', onFishClick);
+  fish.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    onFishClick(e);
+  });
+
+  // ── Init ──
+  function init() {
+    positionFishY();
+    currentX  = MARGIN;
+    fish.style.left = currentX + 'px';
+    direction = 1;
+    faceFish(1);
+    // auto-start swimming right on load
+    setTimeout(startSwimRight, 600);
+  }
+
+  window.addEventListener('resize', () => {
+    positionFishY();
+    // clamp position
+    const maxX = getMaxX();
+    if (currentX > maxX) { currentX = maxX; fish.style.left = currentX + 'px'; }
+  });
+
+  init();
+
+  // ── Bubble generator ──
+  function makeBubble() {
+    const b    = document.createElement('div');
+    b.className = 'bubble';
+    const sz   = 4 + Math.random() * 12;
+    b.style.width  = sz + 'px';
+    b.style.height = sz + 'px';
+    b.style.left   = (5 + Math.random() * 90) + '%';
+    b.style.bottom = '12%';
+    const dur = 6 + Math.random() * 8;
+    const delay = Math.random() * 4;
+    b.style.animationDuration = dur + 's';
+    b.style.animationDelay    = delay + 's';
+    tank.appendChild(b);
+    setTimeout(() => b.remove(), (dur + delay) * 1000 + 200);
+  }
+
+  setInterval(makeBubble, 900);
+  // seed a few immediately
+  for (let i = 0; i < 5; i++) setTimeout(makeBubble, i * 300);
+
+})();
+</script>
+</body>
+</html>
