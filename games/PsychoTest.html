@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PsychoTest™</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #2a2a3a;
+    --text: #e8e0d0;
+    --muted: #888080;
+    --accent: #c0392b;
+    --accent2: #8e44ad;
+    --glow: rgba(192,57,43,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Special Elite', cursive;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Creepy background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(142,68,173,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(192,57,43,0.08) 0%, transparent 50%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.01) 2px,
+        rgba(255,255,255,0.01) 4px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Flickering scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.15) 3px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+    animation: flicker 8s infinite;
+  }
+
+  @keyframes flicker {
+    0%,94%,96%,98%,100% { opacity: 1; }
+    95%,97%,99% { opacity: 0.92; }
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+    z-index: 10;
+  }
+
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── INTRO ── */
+  .intro-card {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .logo {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(3.5rem, 12vw, 6rem);
+    color: var(--accent);
+    text-shadow:
+      0 0 20px var(--glow),
+      0 0 60px var(--glow),
+      2px 2px 0 #6b0c0c;
+    letter-spacing: 4px;
+    line-height: 1;
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%,100% { text-shadow: 0 0 20px var(--glow), 0 0 60px var(--glow), 2px 2px 0 #6b0c0c; }
+    50% { text-shadow: 0 0 30px rgba(192,57,43,0.7), 0 0 90px rgba(192,57,43,0.4), 2px 2px 0 #6b0c0c; }
+  }
+
+  .tm {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.9rem;
+    vertical-align: super;
+    color: var(--muted);
+  }
+
+  .tagline {
+    font-family: 'Courier Prime', monospace;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 12px 0 32px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .disclaimer {
+    background: rgba(192,57,43,0.08);
+    border: 1px solid rgba(192,57,43,0.2);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  .btn-start {
+    font-family: 'Creepster', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: var(--text);
+    background: linear-gradient(135deg, #8b0000, #c0392b);
+    border: none;
+    padding: 16px 48px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(192,57,43,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(192,57,43,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+  .btn-start:active { transform: translateY(1px); }
+
+  /* ── QUESTION ── */
+  .question-wrap {
+    max-width: 560px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .progress-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8e44ad, #c0392b);
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 10px rgba(192,57,43,0.6);
+  }
+
+  .q-counter {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .question-text {
+    font-family: 'Special Elite', cursive;
+    font-size: clamp(1.15rem, 4vw, 1.55rem);
+    line-height: 1.55;
+    color: var(--text);
+    min-height: 80px;
+    margin-bottom: 48px;
+    padding: 0 8px;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .question-text.fade-out {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  .question-text.fade-in {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+
+  .btn-row.hidden { opacity: 0; pointer-events: none; }
+
+  .btn-ans {
+    font-family: 'Creepster', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+    padding: 14px 40px;
+    border: 2px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    min-width: 120px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-yes {
+    color: #5dbb6c;
+    border-color: #2d6b37;
+  }
+  .btn-yes:hover, .btn-yes:focus {
+    background: rgba(93,187,108,0.12);
+    box-shadow: 0 0 20px rgba(93,187,108,0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-no {
+    color: #e05a5a;
+    border-color: #7a2c2c;
+  }
+  .btn-no:hover, .btn-no:focus {
+    background: rgba(224,90,90,0.12);
+    box-shadow: 0 0 20px rgba(224,90,90,0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-ans:active { transform: scale(0.96); }
+
+  /* ── RESULT ── */
+  .result-wrap {
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .result-title {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px var(--glow);
+    margin-bottom: 8px;
+  }
+
+  .result-subtitle {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  /* Dial */
+  .dial-wrap {
+    position: relative;
+    width: 280px;
+    height: 160px;
+    margin: 0 auto 12px;
+  }
+
+  .dial-svg { width: 100%; height: 100%; overflow: visible; }
+
+  .score-display {
+    font-family: 'Creepster', cursive;
+    font-size: 3rem;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--glow);
+    margin-bottom: 4px;
+    transition: opacity 0.4s;
+  }
+
+  .score-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .verdict {
+    font-family: 'Special Elite', cursive;
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    color: #cc8888;
+    line-height: 1.7;
+    padding: 20px 24px;
+    border: 1px solid rgba(192,57,43,0.2);
+    background: rgba(192,57,43,0.05);
+    border-radius: 4px;
+    margin-bottom: 32px;
+    min-height: 80px;
+  }
+
+  .btn-retake {
+    font-family: 'Creepster', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 12px 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-retake:hover {
+    color: var(--text);
+    border-color: var(--muted);
+    box-shadow: 0 0 12px rgba(255,255,255,0.05);
+  }
+
+  /* Needle animation */
+  @keyframes needle-swing {
+    0% { transform: rotate(-90deg); }
+    60% { transform: rotate(var(--needle-overshoot)); }
+    75% { transform: rotate(var(--needle-undershoot)); }
+    88% { transform: rotate(var(--needle-overshoot2)); }
+    100% { transform: rotate(var(--needle-end)); }
+  }
+
+  .needle-group {
+    transform-origin: 140px 140px;
+    animation: needle-swing 2.2s cubic-bezier(.4,0,.2,1) forwards;
+  }
+
+  @media (max-width: 400px) {
+    .btn-ans { padding: 12px 28px; font-size: 1.1rem; min-width: 100px; }
+    .dial-wrap { width: 240px; height: 138px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-card">
+    <div class="logo">PsychoTest<span class="tm">™</span></div>
+    <div class="tagline">Clinically Dubious Personality Assessment</div>
+    <div class="disclaimer">
+      <strong>NOTICE:</strong> This assessment has been calibrated by leading researchers at the Institute for Questionable Psychology (est. 2024). Your responses will be analyzed using our proprietary <em>Chaos Index Algorithm™</em>. Results are completely confidential and scientifically binding in 14 countries.
+    </div>
+    <button class="btn-start" onclick="startTest()">BEGIN ASSESSMENT</button>
+  </div>
+</div>
+
+<!-- QUESTION -->
+<div class="screen" id="screen-question">
+  <div class="question-wrap">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="q-counter" id="q-counter">Question 1 of 20</div>
+    <div class="question-text" id="question-text">Loading...</div>
+    <div class="btn-row" id="btn-row">
+      <button class="btn-ans btn-yes" onclick="answer(true)">YES</button>
+      <button class="btn-ans btn-no" onclick="answer(false)">NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-wrap">
+    <div class="result-title">ANALYSIS COMPLETE</div>
+    <div class="result-subtitle">Psycho-Behavioral Index™ Score</div>
+
+    <div class="dial-wrap">
+      <svg class="dial-svg" viewBox="0 0 280 160" id="dial-svg">
+        <defs>
+          <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#2ecc71"/>
+            <stop offset="35%"  stop-color="#f1c40f"/>
+            <stop offset="60%"  stop-color="#e67e22"/>
+            <stop offset="80%"  stop-color="#c0392b"/>
+            <stop offset="100%" stop-color="#4a0000"/>
+          </linearGradient>
+          <filter id="glow-filter">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Track -->
+        <path d="M 20 140 A 120 120 0 0 1 260 140" fill="none" stroke="#222230" stroke-width="18" stroke-linecap="round"/>
+        <!-- Gradient arc -->
+        <path d="M 20 140 A 120 120 0 0 1 260 140" fill="none" stroke="url(#arcGrad)" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+
+        <!-- Tick marks -->
+        <g id="ticks" stroke="#333344" stroke-width="1.5"></g>
+
+        <!-- Labels -->
+        <text x="14" y="158" font-family="'Courier Prime', monospace" font-size="11" fill="#555566" text-anchor="middle">0</text>
+        <text x="266" y="158" font-family="'Courier Prime', monospace" font-size="11" fill="#555566" text-anchor="middle">100</text>
+        <text x="140" y="28" font-family="'Courier Prime', monospace" font-size="11" fill="#555566" text-anchor="middle">50</text>
+
+        <!-- Needle -->
+        <g class="needle-group" id="needle-group" style="--needle-end: -90deg; --needle-overshoot: -90deg; --needle-undershoot: -90deg; --needle-overshoot2: -90deg;">
+          <line x1="140" y1="140" x2="140" y2="32" stroke="#e8e0d0" stroke-width="2.5" stroke-linecap="round" filter="url(#glow-filter)"/>
+          <circle cx="140" cy="140" r="7" fill="#1a1a24" stroke="#e8e0d0" stroke-width="2"/>
+          <circle cx="140" cy="140" r="3" fill="#c0392b"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="score-display" id="score-display">--</div>
+    <div class="score-label">PSYCHO INDEX RATING</div>
+    <div class="verdict" id="verdict"></div>
+    <button class="btn-retake" onclick="retake()">RETAKE TEST</button>
+  </div>
+</div>
+
+<script>
+const ALL_QUESTIONS = [
+  "Do you like pineapple on pizza?",
+  "Have you ever been to New Jersey?",
+  "Would you go bungee jumping?",
+  "Do you bathe every day?",
+  "Can you name more than 6 U.S. presidents?",
+  "Is 'Anal-Retentive' hyphenated?",
+  "Do you like cats more than dogs?",
+  "Do you own more than one umbrella?",
+  "Do you drink more than two cups of coffee per day?",
+  "Can you juggle 3 items?",
+  "Is red your favorite color?",
+  "Is your mobile phone less than 2 years old?",
+  "Were you breast-fed as a baby?",
+  "Do you use plastic straws?",
+  "Do you have a nose ring or face tattoos?",
+  "Have you ever howled at the moon?",
+  "Do you sort your laundry before washing?",
+  "Have you ever eaten a bug on purpose?",
+  "Do you talk to your houseplants?",
+  "Have you ever licked a battery?",
+  "Do you sleep with a nightlight?",
+  "Have you ever named an inanimate object?",
+  "Do you put ketchup on scrambled eggs?",
+  "Have you ever worn someone else's glasses just to see?",
+  "Do you read the terms and conditions?",
+  "Have you ever sniffed a book for pleasure?",
+  "Do you refrigerate your bread?",
+  "Have you ever argued with a GPS?",
+  "Do you make your bed every morning?",
+  "Have you ever eaten cereal without milk?",
+  "Do you count stairs as you climb them?",
+  "Have you ever pretended to be on the phone to avoid someone?",
+  "Do you eat the crust of your pizza?",
+  "Have you ever bitten into a stick of butter?",
+  "Do you have an irrational fear of balloons?",
+  "Have you ever tried to start a conversation with a robot?",
+  "Do you check your email more than 10 times a day?",
+  "Have you ever eaten a meal straight from the pot?",
+  "Do you talk during movies?",
+  "Have you ever Googled yourself?",
+  "Do you put sugar in your grits?",
+  "Have you ever worn socks with sandals unironically?",
+  "Do you fold your pizza when eating?",
+  "Have you ever used a coupon on a first date?",
+  "Do you have a recurring dream about teeth falling out?",
+  "Have you ever fake-laughed at something for more than 30 seconds?",
+  "Do you eat your corn on the cob in rows?",
+  "Have you ever smelled your own shoe?",
+  "Do you dip your french fries in mayonnaise?",
+  "Have you ever kept a pet rock?",
+  "Do you peel the skin off your grapes before eating them?",
+  "Have you ever had a full conversation with a stranger on an elevator?",
+  "Do you prefer even numbers to odd numbers?",
+  "Have you ever eaten an entire tube of Pringles in one sitting?",
+  "Do you make sounds while eating popcorn on purpose?",
+  "Have you ever drawn a face on your thumb and talked to it?",
+  "Do you match your socks to your outfit?",
+  "Have you ever lied about finishing a book you never started?",
+  "Do you put your shoes on before your pants?",
+  "Have you ever eaten a sandwich diagonally on purpose?",
+  "Do you clap when the plane lands?",
+  "Have you ever memorized a phone number in the last 5 years?",
+  "Do you put ice in your hot drinks?",
+  "Have you ever narrated your own life in third person?",
+  "Do you prefer a shower in the morning or evening?",
+  "Have you ever cried at a commercial?",
+  "Do you step on every crack in the sidewalk deliberately?",
+  "Have you ever stolen a hotel amenity you didn't actually need?",
+  "Do you shake a vending machine when it doesn't dispense?",
+  "Have you ever eaten a full meal in your car?",
+  "Do you peel glue off your hands for fun?",
+  "Have you ever typed LOL while completely stone-faced?",
+  "Do you have a lucky item you carry everywhere?",
+  "Have you ever been in a staring contest with a cat?",
+  "Do you put mustard on your hot dog?",
+  "Have you ever worn a cape at home when no one was watching?",
+  "Do you prefer elevators to escalators even for one floor?",
+  "Have you ever tried to fold a piece of paper more than 7 times?",
+  "Do you eat the corner brownie first?",
+  "Have you ever saved a fortune cookie message?",
+  "Do you re-read your own sent texts for style?",
+  "Have you ever talked back to a commercial on TV?",
+  "Do you eat the same breakfast every single day?",
+  "Have you ever secretly reorganized someone else's bookshelf?",
+  "Do you believe in lucky parking spots?",
+  "Have you ever tasted your own blood and thought it was interesting?",
+  "Do you own more than 3 hats?",
+  "Have you ever Googled the plot of a movie while watching it?",
+  "Do you ever wave back at someone who wasn't waving at you?",
+  "Have you ever rehearsed a conversation in the mirror?",
+  "Do you eat your dessert before your main course?",
+  "Have you ever replied 'you too' when a waiter says 'enjoy your meal'?",
+  "Do you check if the door is locked more than twice?",
+  "Have you ever whispered in a library when there was no one else there?",
+  "Do you dip your toast in your tea or coffee?",
+  "Have you ever carried a non-working pen in your pocket?",
+  "Do you laugh at your own jokes before finishing them?",
+  "Have you ever Googled a word mid-conversation to win an argument?",
+  "Do you save the last bite of food for yourself?"
+];
+
+const VERDICTS = [
+  "Your behavioral profile suggests a fascinating divergence from typical neurotypical patterns. Our algorithm detected several key micro-responses that indicate a highly unique psychological signature. Proceed with caution in social situations.",
+  "The data doesn't lie. Your Chaos Index has breached what we call the 'Interesting Zone.' Subjects in this range often have deeply compelling inner worlds and an unusual relationship with reality. This is not necessarily a bad thing.",
+  "Congratulations — or condolences. Your score places you in the 97th percentile of our global dataset. You experience the world in ways that most people simply cannot access. Cherish that.",
+  "Our panel of imaginary experts reviewed your results and reached a unanimous conclusion: you are, without question, one of the most statistically remarkable individuals ever to complete this assessment.",
+  "Your responses activated several dormant diagnostic pathways in our system that we've never seen triggered simultaneously. We've notified no one. This will remain between us.",
+  "The algorithm flagged your pattern twice during processing — which either means you're uniquely fascinating or you broke our test. Possibly both. We're choosing to believe the former.",
+  "In reviewing thousands of assessments, subjects scoring in your range tend to be remembered long after they leave a room. Whether fondly or with mild alarm varies by context."
+];
+
+let questions = [];
+let current = 0;
+let animating = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startTest() {
+  questions = shuffle(ALL_QUESTIONS).slice(0, 20);
+  current = 0;
+  showScreen('screen-question');
+  setTimeout(() => loadQuestion(0, false), 100);
+}
+
+function loadQuestion(idx, transition) {
+  const el = document.getElementById('question-text');
+  const counter = document.getElementById('q-counter');
+  const progress = document.getElementById('progress-fill');
+  const btnRow = document.getElementById('btn-row');
+
+  if (transition) {
+    el.classList.add('fade-out');
+    btnRow.classList.add('hidden');
+    setTimeout(() => {
+      el.textContent = questions[idx];
+      counter.textContent = `Question ${idx + 1} of 20`;
+      progress.style.width = ((idx / 20) * 100) + '%';
+      el.classList.remove('fade-out');
+      el.classList.add('fade-in');
+      // Force reflow
+      el.offsetHeight;
+      el.classList.remove('fade-in');
+      setTimeout(() => {
+        btnRow.classList.remove('hidden');
+        animating = false;
+      }, 200);
+    }, 450);
+  } else {
+    el.textContent = questions[idx];
+    counter.textContent = `Question ${idx + 1} of 20`;
+    progress.style.width = ((idx / 20) * 100) + '%';
+    animating = false;
+  }
+}
+
+function answer(val) {
+  if (animating) return;
+  animating = true;
+  current++;
+  if (current >= 20) {
+    showResult();
+  } else {
+    loadQuestion(current, true);
+  }
+}
+
+// Score: always 85–99
+function getScore() {
+  return Math.floor(Math.random() * 15) + 85;
+}
+
+// Convert score 0-100 to needle angle: -90deg (left/0) to +90deg (right/100)
+function scoreToAngle(score) {
+  return -90 + (score / 100) * 180;
+}
+
+function buildTicks() {
+  const g = document.getElementById('ticks');
+  g.innerHTML = '';
+  for (let i = 0; i <= 10; i++) {
+    const angle = -180 + (i / 10) * 180; // arc from -180 to 0 in SVG coords, center at 140,140 r=120
+    const rad = (angle * Math.PI) / 180;
+    const cx = 140, cy = 140, r = 120;
+    const x1 = cx + r * Math.cos(rad);
+    const y1 = cy + r * Math.sin(rad);
+    const r2 = r - (i % 5 === 0 ? 14 : 8);
+    const x2 = cx + r2 * Math.cos(rad);
+    const y2 = cy + r2 * Math.sin(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke-width', i % 5 === 0 ? '2' : '1.5');
+    g.appendChild(line);
+  }
+}
+
+function showResult() {
+  buildTicks();
+  const score = getScore();
+  const angle = scoreToAngle(score);
+  const overshoot = angle + 8;
+  const undershoot = angle - 4;
+  const overshoot2 = angle + 2;
+
+  const needle = document.getElementById('needle-group');
+  // Reset animation by cloning
+  const fresh = needle.cloneNode(true);
+  fresh.style.setProperty('--needle-end', angle + 'deg');
+  fresh.style.setProperty('--needle-overshoot', overshoot + 'deg');
+  fresh.style.setProperty('--needle-undershoot', undershoot + 'deg');
+  fresh.style.setProperty('--needle-overshoot2', overshoot2 + 'deg');
+  fresh.style.animation = 'none';
+  needle.parentNode.replaceChild(fresh, needle);
+  // Force reflow then re-animate
+  fresh.offsetHeight;
+  fresh.style.animation = '';
+
+  document.getElementById('score-display').textContent = '--';
+  document.getElementById('verdict').textContent = VERDICTS[Math.floor(Math.random() * VERDICTS.length)];
+
+  showScreen('screen-result');
+
+  // Reveal score number after needle swings
+  setTimeout(() => {
+    let displayed = 0;
+    const target = score;
+    const dur = 800;
+    const step = dur / target;
+    const scoreEl = document.getElementById('score-display');
+    const ticker = setInterval(() => {
+      displayed++;
+      scoreEl.textContent = displayed;
+      if (displayed >= target) clearInterval(ticker);
+    }, step);
+  }, 1600);
+}
+
+function retake() {
+  showScreen('screen-intro');
+}
+
+// Keyboard support
+document.addEventListener('keydown', e => {
+  const qs = document.getElementById('screen-question');
+  if (!qs.classList.contains('active')) return;
+  if (e.key === 'y' || e.key === 'Y' || e.key === 'ArrowRight') answer(true);
+  if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowLeft') answer(false);
+});
+</script>
+</body>
+</html>
