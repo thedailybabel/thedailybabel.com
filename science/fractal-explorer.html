@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractal Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+:root{
+  --bg-void:#05070a;--bg-primary:#0a0d12;--bg-panel:#0e1218;--bg-panel-hi:#141a22;
+  --bg-overlay:rgba(8,11,16,0.95);--border-dim:rgba(255,255,255,0.05);
+  --border-std:rgba(255,255,255,0.10);--border-hi:rgba(255,255,255,0.22);
+  --text-primary:#c8d8e8;--text-secondary:#6a7a8a;--text-dim:#354555;
+  --text-mono:#9ab4cc;--accent:#4488ff;--accent-warm:#ff8844;
+  --accent-green:#44ffaa;--danger:#ff3355;
+  --font-mono:'IBM Plex Mono',monospace;--font-sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:var(--bg-void);color:var(--text-primary);font-family:var(--font-sans);}
+
+#app{display:flex;flex-direction:column;height:100vh;}
+
+/* TOOLBAR */
+#toolbar{
+  height:44px;background:var(--bg-panel);border-bottom:1px solid var(--border-std);
+  display:flex;align-items:center;gap:0;flex-shrink:0;z-index:10;
+  font-family:var(--font-mono);
+}
+.tb-logo{
+  padding:0 16px;font-size:11px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--text-mono);border-right:1px solid var(--border-dim);height:100%;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.tb-logo svg{opacity:.7;}
+.tb-sep{width:1px;height:100%;background:var(--border-dim);}
+.tb-select{
+  height:100%;padding:0 12px;background:transparent;border:none;border-right:1px solid var(--border-dim);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:11px;cursor:pointer;
+  appearance:none;-webkit-appearance:none;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a7a8a' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;
+  min-width:180px;
+}
+.tb-select:hover,.tb-select:focus{background-color:var(--bg-panel-hi);}
+.tb-select option{background:var(--bg-panel);color:var(--text-primary);}
+.tb-btn{
+  height:100%;padding:0 14px;background:transparent;border:none;border-right:1px solid var(--border-dim);
+  color:var(--text-secondary);font-family:var(--font-mono);font-size:10px;
+  letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:color .15s,background .15s;
+  white-space:nowrap;
+}
+.tb-btn:hover{color:var(--text-primary);background:var(--bg-panel-hi);}
+.tb-btn.active{color:var(--accent);border-bottom:2px solid var(--accent);}
+.tb-spacer{flex:1;}
+
+/* MAIN AREA */
+#main{display:flex;flex:1;overflow:hidden;position:relative;}
+
+/* CANVAS AREA */
+#canvas-area{flex:1;position:relative;overflow:hidden;background:var(--bg-void);}
+canvas#fractal-canvas{display:block;width:100%;height:100%;cursor:crosshair;}
+
+/* SPLIT MODE */
+#canvas-area.split-mode{display:flex;}
+#canvas-area.split-mode canvas{flex:1;}
+#split-divider{
+  width:1px;background:var(--border-hi);cursor:col-resize;flex-shrink:0;
+  display:none;position:relative;z-index:2;
+}
+#canvas-area.split-mode #split-divider{display:block;}
+canvas#julia-canvas{display:none;width:50%;height:100%;}
+#canvas-area.split-mode canvas#julia-canvas{display:block;}
+#canvas-area.split-mode canvas#fractal-canvas{width:50%;}
+
+#julia-label,#mandel-label{
+  position:absolute;top:8px;font-family:var(--font-mono);font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--text-secondary);
+  background:var(--bg-overlay);padding:3px 8px;border:1px solid var(--border-dim);
+  pointer-events:none;display:none;
+}
+#mandel-label{left:8px;}
+#julia-label{right:8px;}
+#canvas-area.split-mode #julia-label,#canvas-area.split-mode #mandel-label{display:block;}
+
+/* CROSSHAIR on split mode */
+#crosshair{
+  position:absolute;pointer-events:none;display:none;transform:translate(-50%,-50%);
+}
+#crosshair svg{opacity:.7;}
+
+/* SIDE PANEL */
+#side-panel{
+  width:280px;flex-shrink:0;background:var(--bg-panel);
+  border-left:1px solid var(--border-std);display:flex;flex-direction:column;
+  overflow:hidden;transition:width .2s ease;
+}
+#side-panel.collapsed{width:0;border-left:none;}
+
+.panel-section{
+  border-bottom:1px solid var(--border-dim);flex-shrink:0;
+}
+.panel-header{
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;user-select:none;
+}
+.panel-header span{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  letter-spacing:.25em;text-transform:uppercase;color:var(--text-secondary);
+}
+.panel-header .chevron{color:var(--text-dim);font-size:10px;transition:transform .15s;}
+.panel-header.open .chevron{transform:rotate(90deg);}
+.panel-body{padding:10px 14px 14px;display:none;}
+.panel-body.open{display:block;}
+
+/* FRACTAL BROWSER */
+.fractal-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+}
+.fractal-thumb{
+  aspect-ratio:1;border-radius:2px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--border-dim);transition:border-color .15s,transform .12s;
+  position:relative;
+}
+.fractal-thumb:hover{border-color:var(--border-hi);transform:scale(1.04);}
+.fractal-thumb.active{border-color:var(--accent);}
+.fractal-thumb canvas{width:100%;height:100%;display:block;}
+.fractal-thumb-label{
+  position:absolute;bottom:0;left:0;right:0;
+  font-family:var(--font-mono);font-size:7px;
+  background:rgba(5,7,10,.8);color:var(--text-secondary);
+  padding:2px 3px;text-align:center;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
+}
+
+/* CONTROLS */
+.ctrl-row{margin-bottom:10px;}
+.ctrl-label{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;
+}
+.ctrl-label .val{color:var(--text-mono);}
+input[type=range]{
+  width:100%;height:3px;-webkit-appearance:none;appearance:none;
+  background:var(--bg-panel-hi);border-radius:2px;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg-panel);
+}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg-panel);
+}
+
+.colormap-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
+}
+.cm-btn{
+  height:20px;border-radius:2px;border:2px solid transparent;cursor:pointer;
+  transition:border-color .12s;position:relative;overflow:hidden;
+}
+.cm-btn.active{border-color:var(--text-primary);}
+.cm-btn:hover{border-color:var(--text-secondary);}
+.cm-label{
+  font-family:var(--font-mono);font-size:8px;color:var(--text-dim);
+  text-align:center;margin-top:2px;
+}
+
+/* INFO PANEL */
+#info-overlay{
+  position:absolute;bottom:30px;left:12px;
+  background:var(--bg-overlay);border:1px solid var(--border-std);
+  padding:10px 14px;font-family:var(--font-mono);font-size:10px;
+  pointer-events:none;max-width:320px;
+}
+#info-overlay .info-name{
+  font-size:11px;font-weight:500;color:var(--text-primary);margin-bottom:4px;
+}
+#info-overlay .info-desc{
+  font-size:10px;color:var(--text-secondary);line-height:1.5;
+}
+
+/* STATUS BAR */
+#status-bar{
+  height:22px;background:var(--bg-panel);border-top:1px solid var(--border-dim);
+  display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0;
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+}
+.status-item{display:flex;gap:6px;}
+.status-item .lbl{color:var(--text-dim);}
+.status-item .val{color:var(--text-mono);}
+#status-bar .sep{color:var(--text-dim);}
+
+/* LOADING */
+#loading{
+  position:absolute;inset:0;background:var(--bg-void);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  font-family:var(--font-mono);z-index:100;transition:opacity .3s;
+}
+#loading.hidden{opacity:0;pointer-events:none;}
+.loader-ring{
+  width:40px;height:40px;border:2px solid var(--border-dim);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* COORD INPUT POPUP */
+#coord-popup{
+  display:none;position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  background:var(--bg-overlay);border:1px solid var(--border-hi);
+  padding:12px 16px;font-family:var(--font-mono);font-size:11px;z-index:50;
+  width:340px;
+}
+#coord-popup.show{display:block;}
+#coord-popup label{color:var(--text-secondary);font-size:10px;display:block;margin-bottom:4px;}
+#coord-popup input{
+  width:100%;background:var(--bg-panel-hi);border:1px solid var(--border-std);
+  color:var(--text-primary);padding:5px 8px;font-family:var(--font-mono);font-size:11px;
+  outline:none;margin-bottom:8px;
+}
+#coord-popup input:focus{border-color:var(--accent);}
+.popup-btns{display:flex;gap:8px;justify-content:flex-end;}
+.popup-btn{
+  padding:4px 12px;font-family:var(--font-mono);font-size:10px;cursor:pointer;
+  border:1px solid var(--border-std);background:transparent;color:var(--text-secondary);
+}
+.popup-btn:hover{background:var(--bg-panel-hi);color:var(--text-primary);}
+.popup-btn.primary{border-color:var(--accent);color:var(--accent);}
+.popup-btn.primary:hover{background:rgba(68,136,255,.15);}
+
+/* TOOLTIP */
+.tooltip{
+  position:absolute;background:var(--bg-overlay);border:1px solid var(--border-std);
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  padding:4px 8px;pointer-events:none;white-space:nowrap;z-index:999;
+  opacity:0;transition:opacity .15s;
+}
+.tooltip.show{opacity:1;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg-panel);}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px;}
+
+#side-panel-inner{overflow-y:auto;flex:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div class="tb-logo">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="6" cy="8" r="5" stroke="#4488ff" stroke-width="1.2" fill="none"/>
+        <circle cx="6" cy="8" r="2" fill="#4488ff" opacity=".4"/>
+        <path d="M10 5 Q14 8 10 11" stroke="#4488ff" stroke-width="1" fill="none" opacity=".6"/>
+        <path d="M10 6.5 Q12.5 8 10 9.5" stroke="#4488ff" stroke-width="1" fill="none" opacity=".4"/>
+      </svg>
+      Fractal Explorer
+    </div>
+    <select id="fractal-select" class="tb-select" title="Select Fractal">
+      <optgroup label="Escape-Time">
+        <option value="mandelbrot">Mandelbrot Set</option>
+        <option value="julia">Julia Set</option>
+        <option value="burning_ship">Burning Ship</option>
+        <option value="tricorn">Tricorn (Mandelbar)</option>
+        <option value="multibrot">Multibrot (Power n)</option>
+        <option value="celtic">Celtic Mandelbrot</option>
+      </optgroup>
+      <optgroup label="Root-Finding">
+        <option value="newton3">Newton — z³ − 1</option>
+        <option value="newton4">Newton — z⁴ − 1</option>
+        <option value="nova">Nova (Newton + c)</option>
+      </optgroup>
+      <optgroup label="Attractor">
+        <option value="henon">Hénon Map</option>
+        <option value="clifford">Clifford Attractor</option>
+      </optgroup>
+    </select>
+    <select id="colormap-select" class="tb-select" style="min-width:140px;" title="Colormap">
+      <option value="0">Electric</option>
+      <option value="1">Viridis</option>
+      <option value="2">Inferno</option>
+      <option value="3">Midnight</option>
+      <option value="4">Molten</option>
+      <option value="5">Ice</option>
+      <option value="6">Plasma</option>
+      <option value="7">Neon</option>
+      <option value="8">Gold</option>
+    </select>
+    <button class="tb-btn" id="btn-split" title="Toggle Mandelbrot-Julia Duality Panel [M]">M↔J Duality</button>
+    <button class="tb-btn" id="btn-reset" title="Reset View [R]">Reset</button>
+    <button class="tb-btn" id="btn-goto" title="Jump to Coordinates">⌖ Goto</button>
+    <button class="tb-btn" id="btn-export" title="Export PNG [Ctrl+E]">Export PNG</button>
+    <button class="tb-btn" id="btn-fullscreen" title="Fullscreen [F]">⛶</button>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn" id="btn-panel" title="Toggle Panel" style="border-left:1px solid var(--border-dim);border-right:none;">⊟ Panel</button>
+  </div>
+
+  <div id="main">
+    <div id="canvas-area">
+      <canvas id="fractal-canvas"></canvas>
+      <div id="split-divider"></div>
+      <canvas id="julia-canvas"></canvas>
+      <div id="mandel-label">PARAMETER SPACE</div>
+      <div id="julia-label">JULIA SET</div>
+      <div id="crosshair">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <line x1="10" y1="0" x2="10" y2="20" stroke="#4488ff" stroke-width="1"/>
+          <line x1="0" y1="10" x2="20" y2="10" stroke="#4488ff" stroke-width="1"/>
+          <circle cx="10" cy="10" r="3" stroke="#4488ff" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+
+      <div id="info-overlay">
+        <div class="info-name" id="info-name">Mandelbrot Set</div>
+        <div class="info-desc" id="info-desc">z → z² + c · Benoit Mandelbrot, 1980 · The canonical fractal, boundary dimension 2 (conjectured)</div>
+      </div>
+
+      <div id="loading">
+        <div class="loader-ring"></div>
+        <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-secondary)">Initializing Renderer</div>
+      </div>
+    </div>
+
+    <div id="side-panel">
+      <div id="side-panel-inner">
+        <!-- FRACTAL BROWSER -->
+        <div class="panel-section">
+          <div class="panel-header open" data-target="browser-body">
+            <span>Fractal Library</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body open" id="browser-body">
+            <div class="fractal-grid" id="fractal-grid"></div>
+          </div>
+        </div>
+
+        <!-- PARAMETERS -->
+        <div class="panel-section">
+          <div class="panel-header open" data-target="params-body">
+            <span>Parameters</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body open" id="params-body">
+            <div id="param-max-iter" class="ctrl-row">
+              <div class="ctrl-label"><span>Max Iterations</span><span class="val" id="val-maxiter">256</span></div>
+              <input type="range" id="sl-maxiter" min="32" max="2048" value="256" step="32">
+            </div>
+            <div id="param-power" class="ctrl-row" style="display:none">
+              <div class="ctrl-label"><span>Power n</span><span class="val" id="val-power">2.0</span></div>
+              <input type="range" id="sl-power" min="2" max="8" value="2" step="0.1">
+            </div>
+            <div id="param-julia" style="display:none">
+              <div class="ctrl-row">
+                <div class="ctrl-label"><span>c (real)</span><span class="val" id="val-cre">-0.7269</span></div>
+                <input type="range" id="sl-cre" min="-2" max="2" value="-0.7269" step="0.0001">
+              </div>
+              <div class="ctrl-row">
+                <div class="ctrl-label"><span>c (imag)</span><span class="val" id="val-cim">0.1889</span></div>
+                <input type="range" id="sl-cim" min="-2" max="2" value="0.1889" step="0.0001">
+              </div>
+              <div style="margin-bottom:8px;">
+                <div class="ctrl-label" style="margin-bottom:6px;"><span>Julia Presets</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;" id="julia-presets"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLOR -->
+        <div class="panel-section">
+          <div class="panel-header open" data-target="color-body">
+            <span>Color</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body open" id="color-body">
+            <div class="ctrl-row">
+              <div class="ctrl-label"><span>Color Scale</span><span class="val" id="val-scale">1.0</span></div>
+              <input type="range" id="sl-scale" min="0.1" max="5" value="1" step="0.05">
+            </div>
+            <div class="ctrl-row">
+              <div class="ctrl-label"><span>Offset</span><span class="val" id="val-offset">0.00</span></div>
+              <input type="range" id="sl-offset" min="0" max="1" value="0" step="0.01">
+            </div>
+            <div class="ctrl-row" style="display:flex;align-items:center;gap:8px;">
+              <label style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary)">
+                <input type="checkbox" id="chk-cycling" style="margin-right:4px;">Color Cycling
+              </label>
+              <label style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);margin-left:8px;">
+                <input type="checkbox" id="chk-lighting" style="margin-right:4px;">Normal Map
+              </label>
+            </div>
+            <div class="ctrl-row" id="cycling-speed-row" style="display:none">
+              <div class="ctrl-label"><span>Cycle Speed</span><span class="val" id="val-cycspeed">0.5</span></div>
+              <input type="range" id="sl-cycspeed" min="0.1" max="5" value="0.5" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <!-- RENDER -->
+        <div class="panel-section">
+          <div class="panel-header" data-target="render-body">
+            <span>Render</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body" id="render-body">
+            <div class="ctrl-row">
+              <div class="ctrl-label"><span>Anti-Aliasing</span></div>
+              <select id="sl-aa" style="width:100%;background:var(--bg-panel-hi);border:1px solid var(--border-std);color:var(--text-primary);padding:4px 8px;font-family:var(--font-mono);font-size:10px;outline:none;">
+                <option value="1">None (1×)</option>
+                <option value="2">2×2 SSAA</option>
+                <option value="4">4×4 SSAA</option>
+              </select>
+            </div>
+            <div class="ctrl-row">
+              <div class="ctrl-label"><span>Light Angle</span><span class="val" id="val-lightangle">45°</span></div>
+              <input type="range" id="sl-lightangle" min="0" max="360" value="45" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- INTERESTING LOCATIONS -->
+        <div class="panel-section">
+          <div class="panel-header" data-target="locs-body">
+            <span>Interesting Locations</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body" id="locs-body">
+            <div id="locations-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+        </div>
+
+        <!-- KEYBOARD HELP -->
+        <div class="panel-section">
+          <div class="panel-header" data-target="help-body">
+            <span>Controls</span><span class="chevron">▶</span>
+          </div>
+          <div class="panel-body" id="help-body">
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);line-height:2;">
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:0 12px;">
+                <span style="color:var(--text-dim)">Scroll</span><span>Zoom</span>
+                <span style="color:var(--text-dim)">Drag</span><span>Pan</span>
+                <span style="color:var(--text-dim)">Dbl-click</span><span>Zoom 2×</span>
+                <span style="color:var(--text-dim)">Right-click</span><span>Zoom out</span>
+                <span style="color:var(--text-dim)">Ctrl+Drag</span><span>Rotate</span>
+                <span style="color:var(--text-dim)">R</span><span>Reset view</span>
+                <span style="color:var(--text-dim)">M</span><span>M↔J duality</span>
+                <span style="color:var(--text-dim)">H</span><span>Hide UI</span>
+                <span style="color:var(--text-dim)">F</span><span>Fullscreen</span>
+                <span style="color:var(--text-dim)">+/-</span><span>Zoom in/out</span>
+                <span style="color:var(--text-dim)">Arrows</span><span>Pan</span>
+                <span style="color:var(--text-dim)">Ctrl+E</span><span>Export PNG</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-bar">
+    <div class="status-item"><span class="lbl">FRACTAL</span><span class="val" id="st-fractal">Mandelbrot</span></div>
+    <span class="sep">|</span>
+    <div class="status-item"><span class="lbl">ZOOM</span><span class="val" id="st-zoom">0.40×</span></div>
+    <span class="sep">|</span>
+    <div class="status-item"><span class="lbl">ITER</span><span class="val" id="st-iter">256</span></div>
+    <span class="sep">|</span>
+    <div class="status-item"><span class="lbl">CENTER</span><span class="val" id="st-center">-0.500 + 0.000i</span></div>
+    <span class="sep">|</span>
+    <div class="status-item"><span class="lbl">CURSOR</span><span class="val" id="st-cursor">—</span></div>
+    <span class="sep">|</span>
+    <div class="status-item"><span class="lbl">ROT</span><span class="val" id="st-rot">0.0°</span></div>
+  </div>
+</div>
+
+<div id="coord-popup">
+  <label>Real (Re)</label>
+  <input type="text" id="popup-re" placeholder="-0.5">
+  <label>Imaginary (Im)</label>
+  <input type="text" id="popup-im" placeholder="0.0">
+  <label>Zoom (optional)</label>
+  <input type="text" id="popup-zoom" placeholder="current">
+  <div class="popup-btns">
+    <button class="popup-btn" id="popup-cancel">Cancel</button>
+    <button class="popup-btn primary" id="popup-go">Navigate</button>
+  </div>
+</div>
+
+<script>
+// ========== CONSTANTS & DATA ==========
+const FRACTALS = {
+  mandelbrot:{name:'Mandelbrot Set',short:'Mandelbrot',type:0,desc:'z → z² + c · Benoit Mandelbrot, 1980 · Boundary dim ≈ 2 (conjectured)',defaultView:{re:-0.5,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  julia:{name:'Julia Set',short:'Julia',type:1,desc:'z → z² + c · Gaston Julia, 1918 · Connected iff c ∈ Mandelbrot set',defaultView:{re:0,im:0,zoom:0.4},hasPower:false,hasJulia:true},
+  burning_ship:{name:'Burning Ship',short:'Burning Ship',type:2,desc:'z → (|Re(z)|+i|Im(z)|)² + c · Michelitsch & Rössler, 1992',defaultView:{re:-0.5,im:-0.5,zoom:0.3},hasPower:false,hasJulia:false},
+  tricorn:{name:'Tricorn (Mandelbar)',short:'Tricorn',type:3,desc:'z → z̄² + c · John Milnor, 1992 · Uses complex conjugate',defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  multibrot:{name:'Multibrot Set',short:'Multibrot',type:4,desc:'z → zⁿ + c · Generalization with n-fold symmetry',defaultView:{re:0,im:0,zoom:0.35},hasPower:true,hasJulia:false},
+  celtic:{name:'Celtic Mandelbrot',short:'Celtic',type:5,desc:'z → (|Re(z²)|+iIm(z²)) + c · Celtic variant, crystalline structure',defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  newton3:{name:'Newton z³−1',short:'Newton z³',type:6,desc:"Arthur Cayley, 1879 · Basin boundaries of Newton's method for z³=1",defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  newton4:{name:'Newton z⁴−1',short:'Newton z⁴',type:7,desc:"Newton's method for z⁴=1 · Four basins, fractal boundaries",defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  nova:{name:'Nova Fractal',short:'Nova',type:8,desc:'z → z−(z³−1)/(3z²)+c · Newton with complex parameter',defaultView:{re:0,im:0,zoom:0.4},hasPower:false,hasJulia:false},
+  henon:{name:'Hénon Map',short:'Hénon',type:9,desc:'Michel Hénon, 1976 · Discrete strange attractor, Hausdorff dim ≈ 1.26',defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+  clifford:{name:'Clifford Attractor',short:'Clifford',type:10,desc:'Clifford Pickover · Four-parameter trigonometric attractor',defaultView:{re:0,im:0,zoom:0.35},hasPower:false,hasJulia:false},
+};
+
+const JULIA_PRESETS = [
+  {name:'Douady Rabbit',re:-0.1226,im:0.7449},
+  {name:'Basilica',re:-1.0,im:0.0},
+  {name:'Dendrite',re:0.0,im:1.0},
+  {name:'San Marco',re:-0.75,im:0.0},
+  {name:'Siegel Disk',re:-0.3905,im:-0.5867},
+  {name:'Airplane',re:-1.7548,im:0.0},
+  {name:'Cauliflower',re:0.025,im:0.0},
+  {name:'Snowflake',re:0.45,im:0.1428},
+];
+
+const INTERESTING_LOCATIONS = {
+  mandelbrot:[
+    {name:'Elephant Valley',re:0.27931,im:0.00809,zoom:4.1e9,desc:'Dense minibrot clustering'},
+    {name:'Seahorse Valley',re:-0.7269,im:0.1889,zoom:2e8,desc:'Classic spiral region'},
+    {name:'Period-3 Island',re:-0.12256,im:0.74486,zoom:1e10,desc:'Satellite Mandelbrot'},
+    {name:'Antenna Tip',re:-2.0,im:0.0,zoom:10,desc:'The tip at -2 on the real axis'},
+    {name:'Double Spiral',re:-0.17476,im:1.07164,zoom:1.8e8,desc:'Interacting spiral arms'},
+    {name:'Triple Spiral',re:-0.7476,im:0.1,zoom:1e7,desc:'Three-armed spiral meeting'},
+  ],
+  julia:[
+    {name:'Douady Rabbit',re:-0.1226,im:0.7449,zoom:0.45,desc:'Three-lobed connected Julia set',juliaC:{re:-0.1226,im:0.7449}},
+    {name:'Basilica',re:0,im:0,zoom:0.4,desc:'Two-lobed basilica shape',juliaC:{re:-1.0,im:0.0}},
+    {name:'Dendrite',re:0,im:0,zoom:0.4,desc:'Tree-like fractal dendrite',juliaC:{re:0.0,im:1.0}},
+  ],
+};
+
+const COLORMAPS = [
+  {name:'Electric',id:0},
+  {name:'Viridis',id:1},
+  {name:'Inferno',id:2},
+  {name:'Midnight',id:3},
+  {name:'Molten',id:4},
+  {name:'Ice',id:5},
+  {name:'Plasma',id:6},
+  {name:'Neon',id:7},
+  {name:'Gold',id:8},
+];
+
+// ========== VERTEX SHADER ==========
+const VS = `#version 300 es
+in vec2 a_position;
+out vec2 v_uv;
+void main(){v_uv=a_position*.5+.5;gl_Position=vec4(a_position,0,1);}
+`;
+
+// ========== FRAGMENT SHADER ==========
+const FS = `#version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform vec2 u_resolution;
+uniform vec2 u_center_hi;
+uniform vec2 u_center_lo;
+uniform float u_zoom;
+uniform float u_rotation;
+uniform int u_max_iter;
+uniform int u_fractal_type;
+uniform vec2 u_julia_c;
+uniform float u_power;
+uniform int u_colormap;
+uniform float u_color_scale;
+uniform float u_color_offset;
+uniform int u_aa_samples;
+uniform bool u_lighting;
+uniform float u_light_angle;
+uniform float u_time;
+
+// ---- standard float helpers ----
+vec2 cmul(vec2 a,vec2 b){return vec2(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}
+vec2 cdiv(vec2 a,vec2 b){float d=dot(b,b);return vec2(dot(a,b),a.y*b.x-a.x*b.y)/d;}
+vec2 cpow_f(vec2 z,float n){float r=length(z);if(r<1e-10)return vec2(0);float th=atan(z.y,z.x);return pow(r,n)*vec2(cos(n*th),sin(n*th));}
+
+// ---- double-double (dd) arithmetic ----
+// A dd number is a vec2 where .x is the high word and .y is the low word.
+// True value = .x + .y,  |.y| <= ulp(.x)/2
+vec2 dd_twosum(float a, float b){
+  float s=a+b; float v=s-a; float e=(a-(s-v))+(b-v); return vec2(s,e);
+}
+// Dekker split for twoprod without FMA
+vec2 dd_split(float a){
+  float t=(8193.0)*a; float ah=t-(t-a); float al=a-ah; return vec2(ah,al);
+}
+vec2 dd_twoprod(float a, float b){
+  float p=a*b;
+  vec2 as2=dd_split(a); vec2 bs2=dd_split(b);
+  float e=((as2.x*bs2.x-p)+as2.x*bs2.y+as2.y*bs2.x)+as2.y*bs2.y;
+  return vec2(p,e);
+}
+// dd + dd
+vec2 dd_add(vec2 a, vec2 b){
+  vec2 s=dd_twosum(a.x,b.x); s.y+=a.y+b.y; return dd_twosum(s.x,s.y);
+}
+// dd - dd
+vec2 dd_sub(vec2 a, vec2 b){ return dd_add(a, vec2(-b.x,-b.y)); }
+// dd * dd
+vec2 dd_mul(vec2 a, vec2 b){
+  vec2 p=dd_twoprod(a.x,b.x); p.y+=a.x*b.y+a.y*b.x; return dd_twosum(p.x,p.y);
+}
+// dd * 2  (exact)
+vec2 dd_dbl(vec2 a){ return vec2(a.x*2.0, a.y*2.0); }
+// float -> dd
+vec2 f2dd(float a){ return vec2(a, 0.0); }
+
+// ---- pixel -> complex coordinate (dd output) ----
+// Returns vec4(re.hi, re.lo, im.hi, im.lo)
+vec4 pixel_to_c_dd(vec2 uv){
+  float asp=u_resolution.x/u_resolution.y;
+  vec2 p=(uv-0.5)*vec2(asp,1.0);
+  float cr=cos(u_rotation), sr=sin(u_rotation);
+  // rotate pixel offset (stays float — small value, no cancellation)
+  vec2 rp=vec2(p.x*cr-p.y*sr, p.x*sr+p.y*cr);
+  vec2 delta=rp/u_zoom;
+  // center_hi/lo come from JS Veltkamp split of the JS double
+  // add delta (small) into lo first to avoid cancellation
+  vec2 re_dd=dd_add(vec2(u_center_hi.x,u_center_lo.x), vec2(delta.x,0.0));
+  vec2 im_dd=dd_add(vec2(u_center_hi.y,u_center_lo.y), vec2(delta.y,0.0));
+  return vec4(re_dd, im_dd);
+}
+
+// float version (fast path, low zoom)
+vec2 pixel_to_c_f(vec2 uv){
+  vec4 dd=pixel_to_c_dd(uv);
+  return vec2(dd.x+dd.y, dd.z+dd.w);
+}
+
+// ---- escape-time: float iteration (fast, for zoom < ~1e6) ----
+vec3 escape_f(vec2 c_param, vec2 z_init, int fractype, float pw){
+  vec2 z=z_init; vec2 c=c_param;
+  const float ER=256.0;
+  float log2_er=log2(log2(ER));
+  for(int i=0;i<4096;i++){
+    if(i>=u_max_iter) break;
+    if(fractype==0||fractype==1){
+      z=vec2(z.x*z.x-z.y*z.y+c.x, 2.0*z.x*z.y+c.y);
+    } else if(fractype==2){
+      z=vec2(abs(z.x),abs(z.y));
+      z=vec2(z.x*z.x-z.y*z.y+c.x, 2.0*z.x*z.y+c.y);
+    } else if(fractype==3){
+      z=vec2(z.x*z.x-z.y*z.y, -2.0*z.x*z.y)+c;
+    } else if(fractype==4){
+      z=cpow_f(z,pw)+c;
+    } else if(fractype==5){
+      float re2=z.x*z.x-z.y*z.y; float im2=2.0*z.x*z.y;
+      z=vec2(abs(re2)+c.x, im2+c.y);
+    }
+    float r2=dot(z,z);
+    if(r2>ER*ER){
+      return vec3(float(i)-log2(log2(sqrt(r2)))+log2_er, 1.0, 0.0);
+    }
+  }
+  return vec3(0.0,0.0,1.0);
+}
+
+// ---- escape-time: double-double iteration (deep zoom, Mandelbrot + Julia) ----
+vec3 escape_dd(vec4 c_dd, bool is_julia){
+  // c_dd = (cr.hi, cr.lo, ci.hi, ci.lo)
+  vec2 cr=c_dd.xy; vec2 ci=c_dd.zw;
+  // for Julia: z = c (pixel), iterate z -> z^2 + julia_c
+  vec2 zr, zi, jr, ji;
+  if(is_julia){
+    zr=cr; zi=ci;
+    jr=f2dd(u_julia_c.x); ji=f2dd(u_julia_c.y);
+  } else {
+    zr=f2dd(0.0); zi=f2dd(0.0);
+    jr=cr; ji=ci;
+  }
+  const float ER=256.0;
+  float log2_er=log2(log2(ER));
+  for(int i=0;i<4096;i++){
+    if(i>=u_max_iter) break;
+    // zr2 = zr*zr,  zi2 = zi*zi,  zri = zr*zi
+    vec2 zr2=dd_mul(zr,zr);
+    vec2 zi2=dd_mul(zi,zi);
+    vec2 zri=dd_mul(zr,zi);
+    // new_zr = zr^2 - zi^2 + jr
+    vec2 new_zr=dd_add(dd_sub(zr2,zi2), jr);
+    // new_zi = 2*zr*zi + ji
+    vec2 new_zi=dd_add(dd_dbl(zri), ji);
+    zr=new_zr; zi=new_zi;
+    // escape check — float precision is fine here (values are O(1))
+    float r2=zr.x*zr.x+zi.x*zi.x;
+    if(r2>ER*ER){
+      return vec3(float(i)-log2(log2(sqrt(r2)))+log2_er, 1.0, 0.0);
+    }
+  }
+  return vec3(0.0,0.0,1.0);
+}
+
+// ---- distance estimate (Mandelbrot only, float — used for normal map) ----
+vec3 escape_de(vec2 c){
+  vec2 z=vec2(0); vec2 dz=vec2(0);
+  const float ER=1e8;
+  for(int i=0;i<4096;i++){
+    if(i>=u_max_iter) break;
+    dz=2.0*cmul(z,dz)+vec2(1,0);
+    z=vec2(z.x*z.x-z.y*z.y+c.x, 2.0*z.x*z.y+c.y);
+    float r2=dot(z,z);
+    if(r2>ER*ER){
+      float sval=float(i)-log2(log2(sqrt(r2)))+log2(log2(ER));
+      float de=2.0*sqrt(r2)*log(sqrt(r2))/length(dz);
+      return vec3(sval,1.0,de);
+    }
+  }
+  return vec3(0,0,1e6);
+}
+
+// ---- Newton fractals ----
+vec4 newton_color(vec2 c, int deg){
+  vec2 z=c;
+  vec2 roots[5];
+  for(int k=0;k<5;k++){
+    if(k>=deg) break;
+    float ang=6.28318530*float(k)/float(deg);
+    roots[k]=vec2(cos(ang),sin(ang));
+  }
+  for(int i=0;i<100;i++){
+    vec2 zn=cpow_f(z,float(deg));
+    vec2 znm1=cpow_f(z,float(deg)-1.0);
+    vec2 num=zn-vec2(1,0);
+    vec2 den=float(deg)*znm1;
+    float d2=dot(den,den);
+    if(d2<1e-20) break;
+    z-=cdiv(num,den);
+    for(int k=0;k<5;k++){
+      if(k>=deg) break;
+      if(length(z-roots[k])<1e-4){
+        float tv=1.0-clamp(float(i)/30.0,0.0,0.9);
+        float hue=float(k)/float(deg);
+        float h6=hue*6.0; int hi=int(h6); float ff=h6-float(hi);
+        float qq=tv*(1.0-ff*.7); float tv2=tv*(1.0-(1.0-ff)*.7);
+        vec3 col;
+        if(hi==0)col=vec3(tv,tv2,0.05);else if(hi==1)col=vec3(qq,tv,0.05);
+        else if(hi==2)col=vec3(0.05,tv,tv2);else if(hi==3)col=vec3(0.05,qq,tv);
+        else if(hi==4)col=vec3(tv2,0.05,tv);else col=vec3(tv,0.05,qq);
+        return vec4(col*tv,1.0);
+      }
+    }
+  }
+  return vec4(0.05,0.05,0.1,1.0);
+}
+
+// ---- Nova ----
+vec3 nova_escape(vec2 c){
+  vec2 z=vec2(1,0); const float ER=1e4;
+  for(int i=0;i<4096;i++){
+    if(i>=u_max_iter) break;
+    vec2 z2=cmul(z,z); vec2 z3=cmul(z2,z);
+    vec2 num=z3-vec2(1,0); vec2 den=3.0*z2;
+    if(dot(den,den)<1e-20) break;
+    z=z-cdiv(num,den)+c;
+    if(dot(z,z)>ER*ER){
+      return vec3(float(i)-log2(log2(length(z))),1.0,0.0);
+    }
+  }
+  return vec3(0.0,0.0,1.0);
+}
+
+// ---- Colormaps ----
+vec3 cm_electric(float t){
+  return vec3(.5+.5*sin(t*6.2832),.5+.5*sin(t*6.2832+2.094),.5+.5*sin(t*6.2832+4.189));
+}
+vec3 cm_viridis(float t){
+  t=clamp(t,0.,1.);
+  vec3 v0=vec3(.267,.005,.329),v1=vec3(.282,.141,.458),v2=vec3(.254,.265,.530),
+       v3=vec3(.207,.372,.553),v4=vec3(.164,.471,.558),v5=vec3(.127,.563,.551),
+       v6=vec3(.134,.658,.517),v7=vec3(.267,.749,.441),v8=vec3(.478,.821,.318),
+       v9=vec3(.741,.873,.150),v10=vec3(.993,.906,.144);
+  float sc=t*10.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(v0,v1,fr);if(ix==1)return mix(v1,v2,fr);if(ix==2)return mix(v2,v3,fr);
+  if(ix==3)return mix(v3,v4,fr);if(ix==4)return mix(v4,v5,fr);if(ix==5)return mix(v5,v6,fr);
+  if(ix==6)return mix(v6,v7,fr);if(ix==7)return mix(v7,v8,fr);if(ix==8)return mix(v8,v9,fr);
+  return mix(v9,v10,fr);
+}
+vec3 cm_inferno(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(0,0,0),p1=vec3(.32,.0,.33),p2=vec3(.62,.07,.18),
+       p3=vec3(.9,.35,.07),p4=vec3(.99,.75,.04),p5=vec3(1.,.97,.80);
+  float sc=t*5.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);
+  if(ix==2)return mix(p2,p3,fr);if(ix==3)return mix(p3,p4,fr);return mix(p4,p5,fr);
+}
+vec3 cm_midnight(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(.02,.03,.12),p1=vec3(.08,.05,.35),p2=vec3(.1,.2,.65),
+       p3=vec3(.4,.5,.9),p4=vec3(.8,.9,1.);
+  float sc=t*4.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);
+  if(ix==2)return mix(p2,p3,fr);return mix(p3,p4,fr);
+}
+vec3 cm_molten(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(0,0,0),p1=vec3(.6,.0,.0),p2=vec3(.9,.3,.05),
+       p3=vec3(1.,.65,.1),p4=vec3(1.,1.,.7);
+  float sc=t*4.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);
+  if(ix==2)return mix(p2,p3,fr);return mix(p3,p4,fr);
+}
+vec3 cm_ice(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(0.,.03,.08),p1=vec3(.05,.2,.5),p2=vec3(.3,.65,.9),p3=vec3(.8,.95,1.);
+  float sc=t*3.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);return mix(p2,p3,fr);
+}
+vec3 cm_plasma(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(.05,.03,.53),p1=vec3(.46,.0,.69),p2=vec3(.80,.1,.37),
+       p3=vec3(.98,.47,.08),p4=vec3(.94,.98,.13);
+  float sc=t*4.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);
+  if(ix==2)return mix(p2,p3,fr);return mix(p3,p4,fr);
+}
+vec3 cm_neon(float t){
+  float nr=step(.67,t)*(t-.67)*3.+step(.0,t)*step(t,.33)*t*3.;
+  float ng=step(.33,t)*step(t,.67)*(t-.33)*3.;
+  float nb=1.-step(.67,t)*(t-.67)*3.-step(.33,t)*step(t,.67)*(t-.33)*3.;
+  return clamp(vec3(nr*1.2,ng*.8,nb*1.2)*.9+.05*sin(t*40.),0.,1.);
+}
+vec3 cm_gold(float t){
+  t=clamp(t,0.,1.);
+  vec3 p0=vec3(.05,.02,.0),p1=vec3(.5,.25,.0),p2=vec3(.9,.7,.1),p3=vec3(1.,.95,.6);
+  float sc=t*3.0;int ix=int(sc);float fr=sc-float(ix);
+  if(ix==0)return mix(p0,p1,fr);if(ix==1)return mix(p1,p2,fr);return mix(p2,p3,fr);
+}
+vec3 apply_cm(float t,int cm){
+  if(cm==0)return cm_electric(t);if(cm==1)return cm_viridis(t);if(cm==2)return cm_inferno(t);
+  if(cm==3)return cm_midnight(t);if(cm==4)return cm_molten(t);if(cm==5)return cm_ice(t);
+  if(cm==6)return cm_plasma(t);if(cm==7)return cm_neon(t);if(cm==8)return cm_gold(t);
+  return cm_electric(t);
+}
+
+// ---- main ----
+void main(){
+  vec4 col_acc=vec4(0);
+  int nsamp=u_aa_samples;
+  // Use dd iteration when zoom exceeds float32 safe range (~1e5 is conservative)
+  bool use_dd=(u_fractal_type==0||u_fractal_type==1) && u_zoom>1.0e5;
+
+  for(int si=0;si<16;si++){
+    if(si>=nsamp) break;
+    vec2 jitter=vec2(0);
+    if(nsamp>1){
+      float row=floor(float(si)/sqrt(float(nsamp)));
+      float col2=mod(float(si),sqrt(float(nsamp)));
+      float ss=sqrt(float(nsamp));
+      jitter=(vec2(col2,row)+.5)/ss-1.0/u_resolution;
+    }
+    vec2 pixel_uv=(gl_FragCoord.xy+jitter)/u_resolution;
+
+    vec4 pixel;
+
+    if(u_fractal_type==6){ pixel=newton_color(pixel_to_c_f(pixel_uv),3); }
+    else if(u_fractal_type==7){ pixel=newton_color(pixel_to_c_f(pixel_uv),4); }
+    else if(u_fractal_type==8){
+      vec3 res=nova_escape(pixel_to_c_f(pixel_uv));
+      if(res.z>0.){ pixel=vec4(0,0,0.05,1); }
+      else{
+        float tv=fract(res.x*u_color_scale*.05+u_color_offset+u_time*.1);
+        pixel=vec4(apply_cm(tv,u_colormap),1);
+      }
+    }
+    else if(u_fractal_type==9||u_fractal_type==10){
+      vec3 res=escape_f(pixel_to_c_f(pixel_uv),vec2(0),0,2.);
+      float tv=fract(res.x*u_color_scale*.04+u_color_offset+u_time*.1);
+      pixel=vec4(apply_cm(tv,u_colormap)*(res.z>0.?0.0:0.3),1);
+    }
+    else{
+      // Escape-time: Mandelbrot / Julia and variants
+      vec3 res;
+      if(use_dd){
+        vec4 c_dd=pixel_to_c_dd(pixel_uv);
+        res=escape_dd(c_dd, u_fractal_type==1);
+      } else {
+        vec2 cf=pixel_to_c_f(pixel_uv);
+        vec2 z_init=vec2(0); vec2 c_param=cf;
+        if(u_fractal_type==1){ z_init=cf; c_param=u_julia_c; }
+        if(u_lighting&&u_fractal_type==0){
+          res=escape_de(c_param);
+        } else {
+          res=escape_f(c_param,z_init,u_fractal_type,u_power);
+        }
+      }
+
+      if(res.z>0.0){
+        pixel=vec4(0,0,0,1);
+      } else {
+        float tv=fract(res.x*u_color_scale*.04+u_color_offset+u_time*.1);
+        vec3 col=apply_cm(tv,u_colormap);
+        if(u_lighting&&u_fractal_type==0&&!use_dd){
+          vec2 c_param=pixel_to_c_f(pixel_uv);
+          float eps=2.0/u_resolution.y/u_zoom;
+          float de_r=escape_de(c_param+vec2(eps,0)).x;
+          float de_l=escape_de(c_param-vec2(eps,0)).x;
+          float de_u=escape_de(c_param+vec2(0,eps)).x;
+          float de_d=escape_de(c_param-vec2(0,eps)).x;
+          vec2 nn=normalize(vec2(de_r-de_l,de_u-de_d)+1e-10);
+          float la=u_light_angle*3.14159/180.;
+          col*=.4+.6*max(0.,dot(nn,vec2(cos(la),sin(la))));
+        }
+        pixel=vec4(col,1);
+      }
+    }
+    col_acc+=pixel;
+  }
+  fragColor=col_acc/float(nsamp);
+}
+`;
+
+// ========== ATTRACTOR SHADERS ==========
+const ATTRACTOR_VS = `#version 300 es
+in vec2 a_pos;
+uniform vec2 u_scale;
+uniform vec2 u_offset;
+void main(){
+  vec2 p=(a_pos-u_offset)*u_scale;
+  gl_Position=vec4(p,0,1);
+  gl_PointSize=1.0;
+}`;
+const ATTRACTOR_FS = `#version 300 es
+precision highp float;
+uniform vec4 u_color;
+out vec4 fragColor;
+void main(){fragColor=u_color;}`;
+
+// ========== STATE ==========
+const state = {
+  fractal:'mandelbrot',
+  center:{re:-0.5,im:0.0},
+  zoom:0.35,
+  rotation:0,
+  maxIter:256,
+  escapeRadius:256,
+  power:2,
+  juliaC:{re:-0.7269,im:0.1889},
+  colormap:0,
+  colorScale:1.0,
+  colorOffset:0.0,
+  cycling:false,
+  cyclingSpeed:0.5,
+  lighting:false,
+  lightAngle:45,
+  aa:1,
+  splitMode:false,
+  dragging:false,
+  dragStart:{x:0,y:0},
+  lastCenter:{re:-0.5,im:0},
+  rotating:false,
+  rotStart:0,
+  rotStartAngle:0,
+  time:0,
+  uiHidden:false,
+  renderDirty:true,
+  attractorData:null,
+};
+
+// ========== WEBGL SETUP ==========
+const mainCanvas = document.getElementById('fractal-canvas');
+const juliaCanvas = document.getElementById('julia-canvas');
+let gl, juliaGl;
+let prog, juliaProgProg;
+let uniforms = {}, juliaUniforms = {};
+let attractorGL = null;
+
+function createProgram(glCtx, vsSource, fsSource){
+  const vs = glCtx.createShader(glCtx.VERTEX_SHADER);
+  glCtx.shaderSource(vs, vsSource);
+  glCtx.compileShader(vs);
+  if(!glCtx.getShaderParameter(vs, glCtx.COMPILE_STATUS)){
+    console.error('VS error:', glCtx.getShaderInfoLog(vs));
+    return null;
+  }
+  const fs = glCtx.createShader(glCtx.FRAGMENT_SHADER);
+  glCtx.shaderSource(fs, fsSource);
+  glCtx.compileShader(fs);
+  if(!glCtx.getShaderParameter(fs, glCtx.COMPILE_STATUS)){
+    console.error('FS error:', glCtx.getShaderInfoLog(fs));
+    return null;
+  }
+  const p = glCtx.createProgram();
+  glCtx.attachShader(p, vs);
+  glCtx.attachShader(p, fs);
+  glCtx.linkProgram(p);
+  if(!glCtx.getProgramParameter(p, glCtx.LINK_STATUS)){
+    console.error('Link error:', glCtx.getProgramInfoLog(p));
+    return null;
+  }
+  return p;
+}
+
+function setupQuad(glCtx, program){
+  const buf = glCtx.createBuffer();
+  glCtx.bindBuffer(glCtx.ARRAY_BUFFER, buf);
+  glCtx.bufferData(glCtx.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), glCtx.STATIC_DRAW);
+  const loc = glCtx.getAttribLocation(program, 'a_position');
+  glCtx.enableVertexAttribArray(loc);
+  glCtx.vertexAttribPointer(loc, 2, glCtx.FLOAT, false, 0, 0);
+}
+
+function getUniforms(glCtx, program){
+  return {
+    resolution: glCtx.getUniformLocation(program,'u_resolution'),
+    center_hi: glCtx.getUniformLocation(program,'u_center_hi'),
+    center_lo: glCtx.getUniformLocation(program,'u_center_lo'),
+    zoom: glCtx.getUniformLocation(program,'u_zoom'),
+    rotation: glCtx.getUniformLocation(program,'u_rotation'),
+    max_iter: glCtx.getUniformLocation(program,'u_max_iter'),
+    fractal_type: glCtx.getUniformLocation(program,'u_fractal_type'),
+    julia_c: glCtx.getUniformLocation(program,'u_julia_c'),
+    power: glCtx.getUniformLocation(program,'u_power'),
+    colormap: glCtx.getUniformLocation(program,'u_colormap'),
+    color_scale: glCtx.getUniformLocation(program,'u_color_scale'),
+    color_offset: glCtx.getUniformLocation(program,'u_color_offset'),
+    aa_samples: glCtx.getUniformLocation(program,'u_aa_samples'),
+    lighting: glCtx.getUniformLocation(program,'u_lighting'),
+    light_angle: glCtx.getUniformLocation(program,'u_light_angle'),
+    time: glCtx.getUniformLocation(program,'u_time'),
+  };
+}
+
+// Veltkamp split: decompose JS double into two float32-representable values summing exactly to x
+function splitDouble(x){
+  const SPLITTER = 134217729; // 2^27 + 1
+  const t = SPLITTER * x;
+  const hi = t - (t - x);
+  const lo = x - hi;
+  return [hi, lo];
+}
+
+function initGL(){
+  gl = mainCanvas.getContext('webgl2', {antialias:false, powerPreference:'high-performance'});
+  if(!gl){
+    alert('WebGL 2.0 not available. Please use Chrome, Firefox, or Edge.');
+    return false;
+  }
+  prog = createProgram(gl, VS, FS);
+  if(!prog) return false;
+  gl.useProgram(prog);
+  setupQuad(gl, prog);
+  uniforms = getUniforms(gl, prog);
+  
+  // Julia canvas GL
+  juliaGl = juliaCanvas.getContext('webgl2', {antialias:false, powerPreference:'high-performance'});
+  if(juliaGl){
+    juliaProgProg = createProgram(juliaGl, VS, FS);
+    if(juliaProgProg){
+      juliaGl.useProgram(juliaProgProg);
+      setupQuad(juliaGl, juliaProgProg);
+      juliaUniforms = getUniforms(juliaGl, juliaProgProg);
+    }
+  }
+  return true;
+}
+
+function setUniforms(glCtx, u, s, fracType, center, juliaCOverride){
+  glCtx.uniform2f(u.resolution, glCtx.canvas.width, glCtx.canvas.height);
+  // Emulated double: split each center coordinate into hi+lo
+  const [reHi, reLo] = splitDouble(center.re);
+  const [imHi, imLo] = splitDouble(center.im);
+  glCtx.uniform2f(u.center_hi, reHi, imHi);
+  glCtx.uniform2f(u.center_lo, reLo, imLo);
+  glCtx.uniform1f(u.zoom, s.zoom);
+  glCtx.uniform1f(u.rotation, s.rotation);
+  glCtx.uniform1i(u.max_iter, s.maxIter);
+  glCtx.uniform1i(u.fractal_type, fracType);
+  const jc = juliaCOverride || s.juliaC;
+  glCtx.uniform2f(u.julia_c, jc.re, jc.im);
+  glCtx.uniform1f(u.power, s.power);
+  glCtx.uniform1i(u.colormap, s.colormap);
+  glCtx.uniform1f(u.color_scale, s.colorScale);
+  const offset = s.colorOffset + (s.cycling ? s.time * s.cyclingSpeed * 0.1 : 0);
+  glCtx.uniform1f(u.color_offset, offset);
+  glCtx.uniform1i(u.aa_samples, s.aa * s.aa);
+  glCtx.uniform1i(u.lighting, s.lighting ? 1 : 0);
+  glCtx.uniform1f(u.light_angle, s.lightAngle);
+  glCtx.uniform1f(u.time, s.time);
+}
+
+function resizeCanvas(canvas){
+  const w = canvas.clientWidth * window.devicePixelRatio | 0;
+  const h = canvas.clientHeight * window.devicePixelRatio | 0;
+  if(canvas.width !== w || canvas.height !== h){
+    canvas.width = w; canvas.height = h;
+    return true;
+  }
+  return false;
+}
+
+function renderFrame(){
+  const info = FRACTALS[state.fractal];
+  const fracType = info.type;
+  
+  resizeCanvas(mainCanvas);
+  gl.viewport(0, 0, mainCanvas.width, mainCanvas.height);
+  gl.useProgram(prog);
+  setUniforms(gl, uniforms, state, fracType, state.center, null);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  
+  if(state.splitMode && juliaGl && juliaProgProg){
+    resizeCanvas(juliaCanvas);
+    juliaGl.viewport(0, 0, juliaCanvas.width, juliaCanvas.height);
+    juliaGl.useProgram(juliaProgProg);
+    // Julia panel: show julia set for current hover c
+    const juliaCForPanel = state.hoveredC || state.juliaC;
+    setUniforms(juliaGl, juliaUniforms, {...state, zoom: 0.4}, 1, {re:0,im:0}, juliaCForPanel);
+    juliaGl.drawArrays(juliaGl.TRIANGLE_STRIP, 0, 4);
+  }
+}
+
+// ========== THUMBNAIL RENDERER ==========
+const thumbCanvases = {};
+function renderThumbnail(fractalKey, canvas){
+  const info = FRACTALS[fractalKey];
+  const tgl = canvas.getContext('webgl2');
+  if(!tgl) return;
+  canvas.width = 80; canvas.height = 80;
+  const p = createProgram(tgl, VS, FS);
+  if(!p) return;
+  tgl.useProgram(p);
+  setupQuad(tgl, p);
+  const u = getUniforms(tgl, p);
+  const ts = {
+    zoom: info.defaultView.zoom, maxIter: 128, power: 2.5,
+    juliaC: {re:-0.1226,im:0.7449}, colormap: 0,
+    colorScale: 1.2, colorOffset: 0.2, aa: 1,
+    lighting: false, lightAngle: 45, cycling: false,
+    cyclingSpeed: 0, time: 0,
+  };
+  tgl.viewport(0,0,80,80);
+  setUniforms(tgl, u, ts, info.type, {re:info.defaultView.re, im:info.defaultView.im}, null);
+  tgl.drawArrays(tgl.TRIANGLE_STRIP,0,4);
+  thumbCanvases[fractalKey] = canvas;
+}
+
+// ========== BUILD UI ==========
+function buildFractalBrowser(){
+  const grid = document.getElementById('fractal-grid');
+  grid.innerHTML = '';
+  const fractalKeys = Object.keys(FRACTALS);
+  // Use non-attractor fractals for browser
+  const browserFractals = fractalKeys.filter(k => FRACTALS[k].type < 9);
+  browserFractals.forEach(key => {
+    const info = FRACTALS[key];
+    const div = document.createElement('div');
+    div.className = 'fractal-thumb' + (key === state.fractal ? ' active' : '');
+    div.dataset.key = key;
+    const c = document.createElement('canvas');
+    c.style.width = '100%'; c.style.height = '100%';
+    const label = document.createElement('div');
+    label.className = 'fractal-thumb-label';
+    label.textContent = info.short;
+    div.appendChild(c);
+    div.appendChild(label);
+    grid.appendChild(div);
+    div.addEventListener('click', () => selectFractal(key));
+    setTimeout(() => renderThumbnail(key, c), 50);
+  });
+}
+
+function buildJuliaPresets(){
+  const container = document.getElementById('julia-presets');
+  container.innerHTML = '';
+  JULIA_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'padding:3px 7px;font-family:var(--font-mono);font-size:9px;background:var(--bg-panel-hi);border:1px solid var(--border-std);color:var(--text-secondary);cursor:pointer;';
+    btn.textContent = p.name;
+    btn.addEventListener('mouseover', () => { btn.style.borderColor='var(--accent)'; btn.style.color='var(--text-primary)'; });
+    btn.addEventListener('mouseout', () => { btn.style.borderColor='var(--border-std)'; btn.style.color='var(--text-secondary)'; });
+    btn.addEventListener('click', () => {
+      state.juliaC = {re: p.re, im: p.im};
+      document.getElementById('sl-cre').value = p.re;
+      document.getElementById('sl-cim').value = p.im;
+      document.getElementById('val-cre').textContent = p.re.toFixed(4);
+      document.getElementById('val-cim').textContent = p.im.toFixed(4);
+      state.renderDirty = true;
+    });
+    container.appendChild(btn);
+  });
+}
+
+function buildLocations(){
+  const list = document.getElementById('locations-list');
+  list.innerHTML = '';
+  const locs = INTERESTING_LOCATIONS[state.fractal] || [];
+  if(!locs.length){
+    list.innerHTML = '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">No saved locations for this fractal.</div>';
+    return;
+  }
+  locs.forEach(loc => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:6px 8px;border:1px solid var(--border-dim);cursor:pointer;transition:border-color .12s;';
+    div.innerHTML = `<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-primary);">${loc.name}</div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-secondary);margin-top:2px;">${loc.desc}</div>`;
+    div.addEventListener('mouseover', () => div.style.borderColor = 'var(--accent)');
+    div.addEventListener('mouseout', () => div.style.borderColor = 'var(--border-dim)');
+    div.addEventListener('click', () => {
+      if(loc.juliaC) state.juliaC = loc.juliaC;
+      state.center = {re: loc.re, im: loc.im};
+      state.zoom = loc.zoom || state.zoom;
+      state.renderDirty = true;
+      updateStatusBar();
+    });
+    list.appendChild(div);
+  });
+}
+
+function selectFractal(key){
+  state.fractal = key;
+  const info = FRACTALS[key];
+  state.center = {re: info.defaultView.re, im: info.defaultView.im};
+  state.zoom = info.defaultView.zoom;
+  state.rotation = 0;
+  
+  // Update UI
+  document.getElementById('fractal-select').value = key;
+  document.querySelectorAll('.fractal-thumb').forEach(t => {
+    t.classList.toggle('active', t.dataset.key === key);
+  });
+  
+  document.getElementById('param-power').style.display = info.hasPower ? '' : 'none';
+  document.getElementById('param-julia').style.display = info.hasJulia ? '' : 'none';
+  
+  document.getElementById('info-name').textContent = info.name;
+  document.getElementById('info-desc').textContent = info.desc;
+  document.getElementById('st-fractal').textContent = info.short;
+  
+  buildLocations();
+  state.renderDirty = true;
+}
+
+// ========== COORDINATE TRANSFORMS ==========
+function canvasToComplex(canvas, px, py){
+  const rect = canvas.getBoundingClientRect();
+  const cx = (px - rect.left) / rect.width;
+  const cy = (py - rect.top) / rect.height;
+  const asp = canvas.clientWidth / canvas.clientHeight;
+  const p = {x: (cx - 0.5) * asp, y: -(cy - 0.5)};
+  const cr = Math.cos(state.rotation), sr = Math.sin(state.rotation);
+  return {
+    re: state.center.re + (p.x * cr - p.y * sr) / state.zoom,
+    im: state.center.im + (p.x * sr + p.y * cr) / state.zoom,
+  };
+}
+
+// ========== EVENT HANDLERS ==========
+function setupEvents(){
+  const ca = document.getElementById('canvas-area');
+  
+  mainCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+    const c = canvasToComplex(mainCanvas, e.clientX, e.clientY);
+    state.zoom *= factor;
+    state.center.re += (c.re - state.center.re) * (1 - 1/factor);
+    state.center.im += (c.im - state.center.im) * (1 - 1/factor);
+    state.renderDirty = true;
+    updateStatusBar();
+  }, {passive:false});
+  
+  mainCanvas.addEventListener('mousedown', e => {
+    if(e.ctrlKey){
+      state.rotating = true;
+      state.rotStart = {x:e.clientX, y:e.clientY};
+      state.rotStartAngle = state.rotation;
+    } else {
+      state.dragging = true;
+      state.dragStart = {x:e.clientX, y:e.clientY};
+      state.lastCenter = {...state.center};
+    }
+  });
+  
+  window.addEventListener('mousemove', e => {
+    if(state.dragging){
+      const rect = mainCanvas.getBoundingClientRect();
+      const asp = mainCanvas.clientWidth / mainCanvas.clientHeight;
+      const dx = (e.clientX - state.dragStart.x) / rect.width * asp / state.zoom;
+      const dy = (e.clientY - state.dragStart.y) / rect.height / state.zoom;
+      const cr = Math.cos(state.rotation), sr = Math.sin(state.rotation);
+      state.center.re = state.lastCenter.re - (dx * cr + dy * sr);
+      state.center.im = state.lastCenter.im - (dx * sr - dy * cr);
+      state.renderDirty = true;
+      updateStatusBar();
+    }
+    if(state.rotating){
+      const rect = mainCanvas.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top + rect.height/2;
+      const a0 = Math.atan2(state.rotStart.y - cy, state.rotStart.x - cx);
+      const a1 = Math.atan2(e.clientY - cy, e.clientX - cx);
+      state.rotation = state.rotStartAngle + (a1 - a0);
+      state.renderDirty = true;
+    }
+    // Update cursor display
+    if(mainCanvas.matches(':hover')){
+      const c = canvasToComplex(mainCanvas, e.clientX, e.clientY);
+      document.getElementById('st-cursor').textContent = `${c.re >= 0 ? '' : ''}${c.re.toFixed(6)} ${c.im >= 0 ? '+' : '−'} ${Math.abs(c.im).toFixed(6)}i`;
+      
+      // Update julia crosshair in split mode
+      if(state.splitMode){
+        state.hoveredC = c;
+        const rect = mainCanvas.getBoundingClientRect();
+        const cross = document.getElementById('crosshair');
+        cross.style.display = 'block';
+        cross.style.left = (e.clientX - rect.left) + 'px';
+        cross.style.top = (e.clientY - rect.top) + 'px';
+        state.renderDirty = true; // re-render julia panel
+      }
+    }
+  });
+  
+  window.addEventListener('mouseup', () => {
+    state.dragging = false;
+    state.rotating = false;
+  });
+  
+  mainCanvas.addEventListener('dblclick', e => {
+    const c = canvasToComplex(mainCanvas, e.clientX, e.clientY);
+    state.center = c;
+    state.zoom *= 2;
+    state.renderDirty = true;
+    updateStatusBar();
+  });
+  
+  mainCanvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const c = canvasToComplex(mainCanvas, e.clientX, e.clientY);
+    state.center = c;
+    state.zoom /= 2;
+    state.renderDirty = true;
+    updateStatusBar();
+  });
+  
+  // Touch
+  let lastTouchDist = 0, lastTouchCenter = null;
+  mainCanvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if(e.touches.length === 1){
+      state.dragging = true;
+      state.dragStart = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+      state.lastCenter = {...state.center};
+    } else if(e.touches.length === 2){
+      state.dragging = false;
+      const t1 = e.touches[0], t2 = e.touches[1];
+      lastTouchDist = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      lastTouchCenter = {x:(t1.clientX+t2.clientX)/2, y:(t1.clientY+t2.clientY)/2};
+    }
+  }, {passive:false});
+  
+  mainCanvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if(e.touches.length === 1 && state.dragging){
+      const rect = mainCanvas.getBoundingClientRect();
+      const asp = mainCanvas.clientWidth / mainCanvas.clientHeight;
+      const dx = (e.touches[0].clientX - state.dragStart.x) / rect.width * asp / state.zoom;
+      const dy = (e.touches[0].clientY - state.dragStart.y) / rect.height / state.zoom;
+      state.center.re = state.lastCenter.re - dx;
+      state.center.im = state.lastCenter.im + dy;
+      state.renderDirty = true;
+    } else if(e.touches.length === 2){
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const d = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      const factor = d / lastTouchDist;
+      const tc = canvasToComplex(mainCanvas, lastTouchCenter.x, lastTouchCenter.y);
+      state.zoom *= factor;
+      state.center.re += (tc.re - state.center.re) * (1 - 1/factor);
+      state.center.im += (tc.im - state.center.im) * (1 - 1/factor);
+      lastTouchDist = d;
+      state.renderDirty = true;
+    }
+  }, {passive:false});
+  
+  mainCanvas.addEventListener('touchend', () => { state.dragging = false; });
+  
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    const step = 0.1 / state.zoom;
+    switch(e.key){
+      case '+': case '=': state.zoom *= 1.5; state.renderDirty = true; break;
+      case '-': state.zoom /= 1.5; state.renderDirty = true; break;
+      case 'ArrowLeft': state.center.re -= step; state.renderDirty = true; break;
+      case 'ArrowRight': state.center.re += step; state.renderDirty = true; break;
+      case 'ArrowUp': state.center.im += step; state.renderDirty = true; break;
+      case 'ArrowDown': state.center.im -= step; state.renderDirty = true; break;
+      case 'r': case 'R': resetView(); break;
+      case 'f': case 'F': toggleFullscreen(); break;
+      case 'h': case 'H': toggleUI(); break;
+      case 'm': case 'M': toggleSplit(); break;
+      case 'e': case 'E': if(e.ctrlKey){e.preventDefault();exportPNG();} break;
+    }
+    updateStatusBar();
+  });
+  
+  // Panel controls
+  document.getElementById('fractal-select').addEventListener('change', e => selectFractal(e.target.value));
+  document.getElementById('colormap-select').addEventListener('change', e => {
+    state.colormap = parseInt(e.target.value);
+    state.renderDirty = true;
+  });
+  
+  document.getElementById('sl-maxiter').addEventListener('input', e => {
+    state.maxIter = parseInt(e.target.value);
+    document.getElementById('val-maxiter').textContent = state.maxIter;
+    document.getElementById('st-iter').textContent = state.maxIter;
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-power').addEventListener('input', e => {
+    state.power = parseFloat(e.target.value);
+    document.getElementById('val-power').textContent = state.power.toFixed(1);
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-cre').addEventListener('input', e => {
+    state.juliaC.re = parseFloat(e.target.value);
+    document.getElementById('val-cre').textContent = state.juliaC.re.toFixed(4);
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-cim').addEventListener('input', e => {
+    state.juliaC.im = parseFloat(e.target.value);
+    document.getElementById('val-cim').textContent = state.juliaC.im.toFixed(4);
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-scale').addEventListener('input', e => {
+    state.colorScale = parseFloat(e.target.value);
+    document.getElementById('val-scale').textContent = state.colorScale.toFixed(1);
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-offset').addEventListener('input', e => {
+    state.colorOffset = parseFloat(e.target.value);
+    document.getElementById('val-offset').textContent = state.colorOffset.toFixed(2);
+    state.renderDirty = true;
+  });
+  document.getElementById('chk-cycling').addEventListener('change', e => {
+    state.cycling = e.target.checked;
+    document.getElementById('cycling-speed-row').style.display = state.cycling ? '' : 'none';
+  });
+  document.getElementById('sl-cycspeed').addEventListener('input', e => {
+    state.cyclingSpeed = parseFloat(e.target.value);
+    document.getElementById('val-cycspeed').textContent = state.cyclingSpeed.toFixed(1);
+  });
+  document.getElementById('chk-lighting').addEventListener('change', e => {
+    state.lighting = e.target.checked;
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-lightangle').addEventListener('input', e => {
+    state.lightAngle = parseFloat(e.target.value);
+    document.getElementById('val-lightangle').textContent = state.lightAngle.toFixed(0) + '°';
+    state.renderDirty = true;
+  });
+  document.getElementById('sl-aa').addEventListener('change', e => {
+    state.aa = parseInt(e.target.value);
+    state.renderDirty = true;
+  });
+  
+  // Toolbar buttons
+  document.getElementById('btn-split').addEventListener('click', toggleSplit);
+  document.getElementById('btn-reset').addEventListener('click', resetView);
+  document.getElementById('btn-export').addEventListener('click', exportPNG);
+  document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+  document.getElementById('btn-panel').addEventListener('click', () => {
+    document.getElementById('side-panel').classList.toggle('collapsed');
+    setTimeout(() => { resizeCanvas(mainCanvas); state.renderDirty = true; }, 210);
+  });
+  document.getElementById('btn-goto').addEventListener('click', () => {
+    const p = document.getElementById('coord-popup');
+    p.classList.toggle('show');
+    if(p.classList.contains('show')){
+      document.getElementById('popup-re').value = state.center.re;
+      document.getElementById('popup-im').value = state.center.im;
+      document.getElementById('popup-zoom').value = state.zoom;
+    }
+  });
+  document.getElementById('popup-cancel').addEventListener('click', () => {
+    document.getElementById('coord-popup').classList.remove('show');
+  });
+  document.getElementById('popup-go').addEventListener('click', () => {
+    const re = parseFloat(document.getElementById('popup-re').value);
+    const im = parseFloat(document.getElementById('popup-im').value);
+    const z = parseFloat(document.getElementById('popup-zoom').value);
+    if(!isNaN(re)) state.center.re = re;
+    if(!isNaN(im)) state.center.im = im;
+    if(!isNaN(z) && z > 0) state.zoom = z;
+    document.getElementById('coord-popup').classList.remove('show');
+    state.renderDirty = true;
+    updateStatusBar();
+  });
+  
+  // Panel collapsibles
+  document.querySelectorAll('.panel-header').forEach(h => {
+    h.addEventListener('click', () => {
+      const target = document.getElementById(h.dataset.target);
+      const isOpen = target.classList.contains('open');
+      target.classList.toggle('open', !isOpen);
+      target.style.display = isOpen ? 'none' : 'block';
+      h.classList.toggle('open', !isOpen);
+    });
+  });
+  
+  // Initialize panel body visibility
+  document.querySelectorAll('.panel-body.open').forEach(b => { b.style.display = 'block'; });
+  document.querySelectorAll('.panel-header.open').forEach(h => {
+    document.getElementById(h.dataset.target)?.classList.add('open');
+  });
+}
+
+function resetView(){
+  const info = FRACTALS[state.fractal];
+  state.center = {re: info.defaultView.re, im: info.defaultView.im};
+  state.zoom = info.defaultView.zoom;
+  state.rotation = 0;
+  state.renderDirty = true;
+  updateStatusBar();
+}
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+function toggleUI(){
+  state.uiHidden = !state.uiHidden;
+  document.getElementById('toolbar').style.display = state.uiHidden ? 'none' : '';
+  document.getElementById('side-panel').style.display = state.uiHidden ? 'none' : '';
+  document.getElementById('status-bar').style.display = state.uiHidden ? 'none' : '';
+  document.getElementById('info-overlay').style.display = state.uiHidden ? 'none' : '';
+  setTimeout(() => { resizeCanvas(mainCanvas); state.renderDirty = true; }, 10);
+}
+
+function toggleSplit(){
+  state.splitMode = !state.splitMode;
+  document.getElementById('canvas-area').classList.toggle('split-mode', state.splitMode);
+  document.getElementById('btn-split').classList.toggle('active', state.splitMode);
+  const cross = document.getElementById('crosshair');
+  if(!state.splitMode){
+    cross.style.display = 'none';
+    state.hoveredC = null;
+  }
+  setTimeout(() => { resizeCanvas(mainCanvas); resizeCanvas(juliaCanvas); state.renderDirty = true; }, 10);
+}
+
+function formatZoom(z){
+  if(z < 1000) return z.toFixed(2) + '×';
+  const exp = Math.floor(Math.log10(z));
+  const mantissa = z / Math.pow(10, exp);
+  return `${mantissa.toFixed(2)} × 10<sup>${exp}</sup>`;
+}
+
+function updateStatusBar(){
+  const z = state.zoom;
+  document.getElementById('st-zoom').innerHTML = formatZoom(z);
+  document.getElementById('st-center').textContent = `${state.center.re >= 0 ? '' : ''}${state.center.re.toFixed(8)} ${state.center.im >= 0 ? '+' : '−'} ${Math.abs(state.center.im).toFixed(8)}i`;
+  document.getElementById('st-iter').textContent = state.maxIter;
+  document.getElementById('st-rot').textContent = (state.rotation * 180 / Math.PI).toFixed(1) + '°';
+}
+
+function exportPNG(){
+  const a = document.createElement('a');
+  a.download = `fractal-${state.fractal}-${Date.now()}.png`;
+  a.href = mainCanvas.toDataURL('image/png');
+  a.click();
+}
+
+// ========== MAIN LOOP ==========
+let lastTime = 0;
+function loop(ts){
+  const dt = (ts - lastTime) / 1000;
+  lastTime = ts;
+  state.time += dt;
+  
+  const needsRender = state.renderDirty || state.cycling;
+  if(needsRender){
+    state.renderDirty = false;
+    renderFrame();
+  }
+  
+  requestAnimationFrame(loop);
+}
+
+// ========== INIT ==========
+window.addEventListener('load', () => {
+  const loading = document.getElementById('loading');
+  
+  if(!initGL()){
+    loading.innerHTML = '<div style="color:var(--danger);font-family:var(--font-mono);">WebGL 2.0 initialization failed</div>';
+    return;
+  }
+  
+  setupEvents();
+  buildFractalBrowser();
+  buildJuliaPresets();
+  buildLocations();
+  updateStatusBar();
+  
+  // Initial render
+  state.renderDirty = true;
+  
+  setTimeout(() => {
+    loading.classList.add('hidden');
+    setTimeout(() => loading.style.display = 'none', 300);
+  }, 600);
+  
+  requestAnimationFrame(loop);
+  
+  // Handle resize
+  const ro = new ResizeObserver(() => {
+    resizeCanvas(mainCanvas);
+    resizeCanvas(juliaCanvas);
+    state.renderDirty = true;
+  });
+  ro.observe(document.getElementById('canvas-area'));
+});
+</script>
+</body>
+</html>
