@@ -9,227 +9,273 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:       #070B12;
-  --panel:    #0C1220;
-  --border:   #1A2744;
-  --text:     #C8D4E8;
-  --muted:    #4A6080;
-  --c-income: #F59E0B;
-  --c-filers: #06B6D4;
-  --c-tax:    #F87171;
-  --c-taxf:   #A78BFA;
-  --c-qbi:    #4ADE80;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070B12;--panel:#0C1220;--border:#1A2744;--text:#C8D4E8;--muted:#4A6080;
+  --accent:#06B6D4;--cal-w:272px;
 }
-body { background:var(--bg); color:var(--text); font-family:'Barlow Condensed',sans-serif; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ── Header ── */
-header { background:var(--panel); border-bottom:1px solid var(--border); padding:8px 18px; display:flex; align-items:center; gap:16px; z-index:10; flex-shrink:0; }
-.logo { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; line-height:1.5; letter-spacing:.06em; white-space:nowrap; }
-.logo .l1 { color:var(--c-filers); }
-.logo .l2 { color:var(--muted); font-weight:400; }
-.divider { width:1px; height:32px; background:var(--border); flex-shrink:0; }
-.metric-buttons { display:flex; gap:5px; flex:1; justify-content:center; flex-wrap:wrap; }
-.metric-btn { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:500; letter-spacing:.05em; padding:5px 14px; border-radius:3px; cursor:pointer; transition:border-color .15s,color .15s,background .15s; text-transform:uppercase; white-space:nowrap; }
-.metric-btn:hover:not(.active) { border-color:var(--text); color:var(--text); }
-.metric-btn.active { color:#fff; border-color:transparent; font-weight:700; letter-spacing:.06em; }
-.metric-btn[data-metric="seIncome"].active  { background:var(--c-income); color:#080400; }
-.metric-btn[data-metric="seFilers"].active  { background:var(--c-filers); color:#001820; }
-.metric-btn[data-metric="seTax"].active     { background:var(--c-tax);    color:#1a0000; }
-.metric-btn[data-metric="seTaxFilers"].active { background:var(--c-taxf); color:#0d0020; }
-.metric-btn[data-metric="qbi"].active       { background:var(--c-qbi);    color:#001a08; }
-.source-note { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); line-height:1.5; white-space:nowrap; text-align:right; }
+header{background:var(--panel);border-bottom:1px solid var(--border);z-index:10;flex-shrink:0}
+.hrow{display:flex;align-items:center;gap:8px;padding:5px 14px}
+.hrow1{border-bottom:1px solid var(--border)}
+.hrow2{padding:4px 14px;background:rgba(0,0,0,.22)}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;line-height:1.5;letter-spacing:.06em;white-space:nowrap}
+.logo .l1{color:var(--accent)}.logo .l2{color:var(--muted);font-weight:400}
+.hdivider{width:1px;height:26px;background:var(--border);flex-shrink:0}
+.row-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.metric-buttons{display:flex;gap:3px;flex-wrap:wrap}
+.metric-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:500;letter-spacing:.04em;padding:3px 9px;border-radius:3px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;text-transform:uppercase;white-space:nowrap}
+.metric-btn:hover:not(.active){border-color:var(--text);color:var(--text)}
+.metric-btn.active{color:#fff;border-color:transparent;font-weight:700}
+.metric-btn[data-metric="seIncome"].active    {background:#F59E0B;color:#080400}
+.metric-btn[data-metric="seFilers"].active    {background:#06B6D4;color:#001820}
+.metric-btn[data-metric="seTax"].active       {background:#F87171;color:#1a0000}
+.metric-btn[data-metric="seTaxFilers"].active {background:#A78BFA;color:#0d0020}
+.metric-btn[data-metric="qbi"].active         {background:#4ADE80;color:#001a08}
+.metric-btn[data-metric="fintech"].active     {background:#FF6B35;color:#1a0800}
+.metric-btn[data-metric="retGap"].active      {background:#FBBF24;color:#1a1000}
+.metric-btn[data-metric="volatility"].active  {background:#FCD34D;color:#1a1500}
+.metric-btn[data-metric="qtaxOut"].active     {background:#C084FC;color:#0d0020}
+.metric-btn[data-metric="scorpRate"].active   {background:#2DD4BF;color:#001a18}
+.metric-btn[data-metric="gigPct"].active      {background:#38BDF8;color:#001522}
+.source-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);line-height:1.5;white-space:nowrap;text-align:right;margin-left:auto}
+#cal-toggle{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px;border-radius:3px;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s;flex-shrink:0}
+#cal-toggle:hover,#cal-toggle.active{border-color:var(--accent);color:var(--accent)}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:#F87171;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+
+/* ── Main ── */
+#main-area{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* ── Calendar Panel ── */
+#calendar-panel{width:0;overflow:hidden;transition:width .3s ease;background:var(--panel);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column}
+#calendar-panel.open{width:var(--cal-w)}
+.cal-inner{width:var(--cal-w);padding:12px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px}
+.cal-sec-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding-bottom:7px;border-bottom:1px solid var(--border)}
+.cal-scope{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#fff;line-height:1.1}
+.cal-scope-sub{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.cal-alert{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:5px;padding:9px 11px}
+.cal-alert-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#F87171;margin-bottom:4px}
+.cal-alert-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#fff}
+.cal-alert-sub{font-size:10px;color:rgba(248,113,113,.7);margin-top:2px}
+.q-tile{border:1px solid var(--border);border-radius:4px;padding:8px 10px;transition:border-color .15s}
+.q-tile.urgent{border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.05)}
+.q-tile.upcoming{border-color:rgba(251,191,36,.3)}
+.q-tile.past{opacity:.4}
+.q-tile-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.q-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em}
+.q-tile.urgent .q-label{color:#F87171}
+.q-tile.upcoming .q-label{color:#FBBF24}
+.q-tile:not(.urgent):not(.upcoming):not(.past) .q-label,.q-tile.past .q-label{color:var(--muted)}
+.q-date-str{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)}
+.q-body{display:flex;justify-content:space-between;align-items:flex-end}
+.q-days{font-size:11px;font-weight:600;color:var(--text)}
+.q-tile.urgent .q-days{color:#F87171}
+.q-period{font-size:9px;color:var(--muted);letter-spacing:.04em;margin-top:1px}
+.q-amt{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);text-align:right}
+.q-amt-lbl{font-size:8px;color:var(--muted);text-align:right;letter-spacing:.06em;text-transform:uppercase}
+.cal-summary{border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.cal-sum-row{display:flex;justify-content:space-between;align-items:baseline}
+.cal-sum-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.cal-sum-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--text)}
+.retention-tip{background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.2);border-radius:5px;padding:9px 11px}
+.ret-tip-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.ret-tip-body{font-size:11px;color:var(--text);line-height:1.55}
 
 /* ── Map ── */
-#map { flex:1; position:relative; }
-
-/* ── Back Button ── */
-#back-btn {
-  position:absolute; top:14px; left:14px; z-index:20;
-  display:none; align-items:center; gap:8px;
-  background:rgba(12,18,32,0.95); border:1px solid var(--border);
-  border-radius:5px; padding:7px 14px; cursor:pointer;
-  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:600;
-  letter-spacing:.06em; text-transform:uppercase; color:var(--text);
-  transition:border-color .15s, color .15s; backdrop-filter:blur(12px);
-}
-#back-btn:hover { border-color:var(--text); color:#fff; }
-#back-btn .arrow { font-size:16px; line-height:1; }
-
-/* ── Loading Overlay ── */
-#loading-overlay {
-  position:absolute; inset:0; z-index:30;
-  background:rgba(7,11,18,0.7); backdrop-filter:blur(6px);
-  display:none; flex-direction:column; align-items:center; justify-content:center;
-  gap:14px;
-}
-#loading-overlay.visible { display:flex; }
-.spinner {
-  width:32px; height:32px; border-radius:50%;
-  border:2px solid var(--border); border-top-color:var(--c-filers);
-  animation:spin .7s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-.loading-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
-
-/* ── Breadcrumb ── */
-#breadcrumb {
-  position:absolute; top:14px; left:50%; transform:translateX(-50%);
-  z-index:15; display:none; align-items:center; gap:6px;
-  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted);
-  letter-spacing:.08em; background:rgba(12,18,32,0.85); border:1px solid var(--border);
-  border-radius:4px; padding:5px 12px; pointer-events:none; backdrop-filter:blur(10px);
-}
-#breadcrumb.visible { display:flex; }
-#breadcrumb .sep { color:var(--border); }
-#breadcrumb .crumb-state { color:var(--text); font-weight:600; }
+#map{flex:1;position:relative}
+#back-btn{position:absolute;top:14px;left:14px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(12,18,32,.95);border:1px solid var(--border);border-radius:4px;padding:6px 13px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text);transition:border-color .15s,color .15s;backdrop-filter:blur(12px)}
+#back-btn:hover{border-color:var(--text);color:#fff}
+#breadcrumb{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:15;display:none;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;background:rgba(12,18,32,.88);border:1px solid var(--border);border-radius:4px;padding:4px 11px;pointer-events:none;backdrop-filter:blur(10px)}
+#breadcrumb.visible{display:flex}
+#breadcrumb .crumb-st{color:var(--text);font-weight:600}
+#loading-overlay{position:absolute;inset:0;z-index:30;background:rgba(7,11,18,.7);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#loading-overlay.visible{display:flex}
+.spinner{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 
 /* ── Tooltip ── */
-#tooltip { position:absolute; background:rgba(7,11,18,.94); backdrop-filter:blur(18px); border:1px solid var(--border); border-radius:8px; padding:13px 16px; z-index:20; pointer-events:none; display:none; min-width:216px; box-shadow:0 8px 32px rgba(0,0,0,.6); }
-.tt-header { display:flex; align-items:baseline; gap:8px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-.tt-state { font-size:17px; font-weight:700; letter-spacing:.01em; color:#fff; }
-.tt-badge { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:.06em; padding:2px 5px; border:1px solid var(--border); border-radius:2px; text-transform:uppercase; }
-.tt-row { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:2px 0; }
-.tt-label { font-size:12px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; }
-.tt-val { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:500; color:var(--text); }
-.tt-val.active-val { font-weight:600; font-size:13px; color:#fff; }
+#tooltip{position:absolute;background:rgba(7,11,18,.95);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:7px;padding:12px 14px;z-index:20;pointer-events:none;display:none;width:248px;box-shadow:0 8px 32px rgba(0,0,0,.65)}
+.tt-hdr{display:flex;align-items:baseline;gap:7px;margin-bottom:9px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.tt-name{font-size:16px;font-weight:700;color:#fff}
+.tt-badge{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);padding:2px 5px;border:1px solid var(--border);border-radius:2px;text-transform:uppercase}
+.tt-primary{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.tt-primary-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tt-primary-val{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#fff}
+.tt-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;padding-top:6px;border-top:1px solid var(--border)}
+.tt-cell{display:flex;flex-direction:column;padding:2px 0}
+.tt-cell-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tt-cell-val{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--text)}
+.tt-ind-sec{margin-top:7px;padding-top:7px;border-top:1px solid var(--border)}
+.tt-ind-title{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.ind-row{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.ind-lbl{font-size:9px;color:var(--muted);width:82px;flex-shrink:0}
+.ind-track{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.ind-bar{height:100%;border-radius:2px}
+.ind-pct{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);width:24px;text-align:right;flex-shrink:0}
 
 /* ── Legend ── */
-#legend { position:absolute; bottom:30px; left:16px; background:rgba(12,18,32,.92); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:6px; padding:12px 15px; z-index:5; min-width:185px; }
-#legend-title { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-#legend-bar { width:100%; height:7px; border-radius:4px; margin-bottom:5px; }
-.legend-labels { display:flex; justify-content:space-between; }
-.legend-labels span { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+#legend{position:absolute;bottom:28px;left:14px;background:rgba(12,18,32,.92);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:5px;padding:11px 14px;z-index:5;min-width:180px}
+#legend-title{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+#legend-bar{width:100%;height:6px;border-radius:3px;margin-bottom:4px}
+.legend-labels{display:flex;justify-content:space-between}
+.legend-labels span{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)}
 
 /* ── Stat Card ── */
-#stat-card { position:absolute; bottom:30px; right:16px; background:rgba(12,18,32,.92); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:6px; padding:13px 18px; z-index:5; text-align:right; }
-.stat-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
-#stat-value { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:#fff; line-height:1; transition:color .2s; }
-#stat-sub { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:3px; }
+#stat-card{position:absolute;bottom:28px;right:14px;background:rgba(12,18,32,.92);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:5px;padding:11px 16px;z-index:5;text-align:right}
+.stat-lbl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+#stat-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:#fff;line-height:1;transition:color .2s}
+#stat-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px}
 
-/* ── MapLibre overrides ── */
-.maplibregl-ctrl-top-right { top:12px; right:12px; }
-.maplibregl-ctrl-group { background:rgba(12,18,32,.9)!important; border:1px solid var(--border)!important; }
-.maplibregl-ctrl-group button { background-color:transparent!important; }
-.maplibregl-ctrl-group button span { filter:invert(.8)!important; }
-.maplibregl-ctrl-attrib { background:rgba(7,11,18,.75)!important; color:var(--muted)!important; font-size:9px!important; }
-.maplibregl-ctrl-attrib a { color:var(--muted)!important; }
+/* ── MapLibre ── */
+.maplibregl-ctrl-top-right{top:12px;right:12px}
+.maplibregl-ctrl-group{background:rgba(12,18,32,.9)!important;border:1px solid var(--border)!important}
+.maplibregl-ctrl-group button{background-color:transparent!important}
+.maplibregl-ctrl-group button span{filter:invert(.8)!important}
+.maplibregl-ctrl-attrib{background:rgba(7,11,18,.75)!important;color:var(--muted)!important;font-size:8px!important}
+.maplibregl-ctrl-attrib a{color:var(--muted)!important}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">
-    <div class="l1">SE+MICRO</div>
-    <div class="l2">DEPOSIT INTEL</div>
+  <div class="hrow hrow1">
+    <div class="logo"><div class="l1">SE+MICRO</div><div class="l2">DEPOSIT INTEL</div></div>
+    <div class="hdivider"></div>
+    <span class="row-label">IRS&nbsp;DATA</span>
+    <div class="metric-buttons">
+      <button class="metric-btn active" data-metric="seIncome">SE Income</button>
+      <button class="metric-btn" data-metric="seFilers">SE Filers</button>
+      <button class="metric-btn" data-metric="seTax">SE Tax Liability</button>
+      <button class="metric-btn" data-metric="seTaxFilers">SE Tax Filers</button>
+      <button class="metric-btn" data-metric="qbi">QBI Deduction</button>
+    </div>
+    <div class="hdivider"></div>
+    <button id="cal-toggle"><span class="cal-dot"></span>Q-TAX&nbsp;CALENDAR</button>
+    <div class="source-note">IRS SOI · 2021<br>Illustrative</div>
   </div>
-  <div class="divider"></div>
-  <div class="metric-buttons">
-    <button class="metric-btn active" data-metric="seIncome">Self-Employment Income</button>
-    <button class="metric-btn" data-metric="seFilers">Self-Employed Filers</button>
-    <button class="metric-btn" data-metric="seTax">SE Tax Liability</button>
-    <button class="metric-btn" data-metric="seTaxFilers">SE Tax Filers</button>
-    <button class="metric-btn" data-metric="qbi">QBI Deduction</button>
+  <div class="hrow hrow2">
+    <span class="row-label">INTELLIGENCE</span>
+    <div class="hdivider"></div>
+    <div class="metric-buttons">
+      <button class="metric-btn" data-metric="fintech">Fintech Risk</button>
+      <button class="metric-btn" data-metric="retGap">Retirement Gap</button>
+      <button class="metric-btn" data-metric="volatility">CF Volatility</button>
+      <button class="metric-btn" data-metric="qtaxOut">Q-Tax Outflow</button>
+      <button class="metric-btn" data-metric="scorpRate">S-Corp Rate</button>
+      <button class="metric-btn" data-metric="gigPct">Gig Share</button>
+    </div>
   </div>
-  <div class="divider"></div>
-  <div class="source-note">IRS SOI · 2021<br>Illustrative Est.</div>
 </header>
 
-<div id="map">
-  <!-- Back button -->
-  <button id="back-btn"><span class="arrow">←</span> <span id="back-label">Back to US</span></button>
-
-  <!-- Breadcrumb -->
-  <div id="breadcrumb">
-    <span>US</span>
-    <span class="sep">/</span>
-    <span class="crumb-state" id="crumb-state">—</span>
-    <span class="sep">/</span>
-    <span>Counties</span>
+<div id="main-area">
+  <!-- Calendar Panel -->
+  <div id="calendar-panel">
+    <div class="cal-inner">
+      <div class="cal-sec-title">Estimated Tax Calendar · 2026</div>
+      <div>
+        <div class="cal-scope" id="cal-scope-val">National</div>
+        <div class="cal-scope-sub" id="cal-scope-sub">All 50 States + DC</div>
+      </div>
+      <div class="cal-alert">
+        <div class="cal-alert-lbl">⚠ Next Deadline</div>
+        <div class="cal-alert-val">Q1 · April 15, 2026</div>
+        <div class="cal-alert-sub" id="cal-urgency">20 days · deposits at risk</div>
+      </div>
+      <div id="q-tiles"></div>
+      <div class="cal-summary">
+        <div class="cal-sum-row"><span class="cal-sum-lbl">Annual Outflow</span><span class="cal-sum-val" id="cs-annual">~$170B</span></div>
+        <div class="cal-sum-row"><span class="cal-sum-lbl">Per Quarter</span><span class="cal-sum-val" id="cs-quarter">~$42.5B</span></div>
+        <div class="cal-sum-row"><span class="cal-sum-lbl">Filers Affected</span><span class="cal-sum-val" id="cs-filers">~12.8M</span></div>
+      </div>
+      <div class="retention-tip">
+        <div class="ret-tip-lbl">💡 Retention Opportunity</div>
+        <div class="ret-tip-body" id="cal-tip-body">Proactively contact SE customers before April 15. Offer a dedicated tax-reserve savings account to retain the estimated quarterly outflow in-house. Click a state to see local estimates.</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Loading overlay -->
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <div class="loading-label">Loading county data…</div>
-  </div>
-
-  <div id="tooltip"></div>
-
-  <div id="legend">
-    <div id="legend-title">Self-Employment Income</div>
-    <div id="legend-bar"></div>
-    <div class="legend-labels"><span id="leg-min">$0</span><span id="leg-max">$124B</span></div>
-  </div>
-
-  <div id="stat-card">
-    <div class="stat-label" id="stat-scope">National Total</div>
-    <div id="stat-value">$1.04T</div>
-    <div id="stat-sub">Self-Employment Income · 2021</div>
+  <!-- Map -->
+  <div id="map">
+    <button id="back-btn">← <span id="back-label">United States</span></button>
+    <div id="breadcrumb"><span>US</span><span style="color:var(--border)">/</span><span class="crumb-st" id="crumb-state">—</span><span style="color:var(--border)">/</span><span>Counties</span></div>
+    <div id="loading-overlay"><div class="spinner"></div><div class="loading-label">Loading county data…</div></div>
+    <div id="tooltip"></div>
+    <div id="legend">
+      <div id="legend-title">Self-Employment Income</div>
+      <div id="legend-bar"></div>
+      <div class="legend-labels"><span id="leg-min">$0</span><span id="leg-max">$124B</span></div>
+    </div>
+    <div id="stat-card">
+      <div class="stat-lbl" id="stat-scope">National</div>
+      <div id="stat-value">$1.04T</div>
+      <div id="stat-sub">Self-Employment Income · 2021</div>
+    </div>
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   STATE DATA — Illustrative estimates based on IRS SOI 2021
-   seIncome / seTax / qbi in $M  |  seFilers / seTaxFilers in #
-═══════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   STATE DATA — IRS SOI 2021 (illustrative estimates)
+   Monetary in $M | counts as integers | indices 0-100 | rates %
+════════════════════════════════════════════════════════════ */
 const SD = {
-  'Alabama':              {seFilers:263000,  seIncome:15700,  seTax:1585, seTaxFilers:242000,  qbi:2875  },
-  'Alaska':               {seFilers:36700,   seIncome:2195,   seTax:222,  seTaxFilers:33800,   qbi:402   },
-  'Arizona':              {seFilers:383000,  seIncome:22900,  seTax:2310, seTaxFilers:352000,  qbi:4195  },
-  'Arkansas':             {seFilers:157500,  seIncome:9415,   seTax:950,  seTaxFilers:145000,  qbi:1725  },
-  'California':           {seFilers:2074000, seIncome:123900, seTax:12505,seTaxFilers:1907000, qbi:22715 },
-  'Colorado':             {seFilers:304700,  seIncome:18215,  seTax:1840, seTaxFilers:280000,  qbi:3340  },
-  'Connecticut':          {seFilers:189000,  seIncome:11300,  seTax:1140, seTaxFilers:174000,  qbi:2070  },
-  'Delaware':             {seFilers:52500,   seIncome:3140,   seTax:317,  seTaxFilers:48300,   qbi:576   },
-  'District of Columbia': {seFilers:36700,   seIncome:2195,   seTax:222,  seTaxFilers:33800,   qbi:402   },
-  'Florida':              {seFilers:1129000, seIncome:67500,  seTax:6810, seTaxFilers:1039000, qbi:12380 },
-  'Georgia':              {seFilers:562000,  seIncome:33600,  seTax:3390, seTaxFilers:517000,  qbi:6160  },
-  'Hawaii':               {seFilers:78800,   seIncome:4710,   seTax:475,  seTaxFilers:72500,   qbi:864   },
-  'Idaho':                {seFilers:94600,   seIncome:5655,   seTax:571,  seTaxFilers:87000,   qbi:1036  },
-  'Illinois':             {seFilers:672000,  seIncome:40175,  seTax:4055, seTaxFilers:618000,  qbi:7365  },
-  'Indiana':              {seFilers:357000,  seIncome:21350,  seTax:2155, seTaxFilers:328000,  qbi:3915  },
-  'Iowa':                 {seFilers:168000,  seIncome:10040,  seTax:1014, seTaxFilers:154500,  qbi:1840  },
-  'Kansas':               {seFilers:152500,  seIncome:9110,   seTax:920,  seTaxFilers:140000,  qbi:1670  },
-  'Kentucky':             {seFilers:236500,  seIncome:14130,  seTax:1427, seTaxFilers:217500,  qbi:2590  },
-  'Louisiana':            {seFilers:241500,  seIncome:14430,  seTax:1457, seTaxFilers:222000,  qbi:2645  },
-  'Maine':                {seFilers:73600,   seIncome:4400,   seTax:444,  seTaxFilers:67700,   qbi:807   },
-  'Maryland':             {seFilers:325500,  seIncome:19460,  seTax:1965, seTaxFilers:299500,  qbi:3567  },
-  'Massachusetts':        {seFilers:367800,  seIncome:21985,  seTax:2220, seTaxFilers:338400,  qbi:4030  },
-  'Michigan':             {seFilers:525000,  seIncome:31370,  seTax:3165, seTaxFilers:483000,  qbi:5750  },
-  'Minnesota':            {seFilers:299500,  seIncome:17895,  seTax:1807, seTaxFilers:275500,  qbi:3280  },
-  'Mississippi':          {seFilers:157500,  seIncome:9415,   seTax:950,  seTaxFilers:144800,  qbi:1725  },
-  'Missouri':             {seFilers:325500,  seIncome:19460,  seTax:1965, seTaxFilers:299500,  qbi:3567  },
-  'Montana':              {seFilers:57800,   seIncome:3455,   seTax:349,  seTaxFilers:53200,   qbi:633   },
-  'Nebraska':             {seFilers:105000,  seIncome:6275,   seTax:634,  seTaxFilers:96600,   qbi:1150  },
-  'Nevada':               {seFilers:162900,  seIncome:9735,   seTax:983,  seTaxFilers:149800,  qbi:1785  },
-  'New Hampshire':        {seFilers:73600,   seIncome:4400,   seTax:444,  seTaxFilers:67700,   qbi:807   },
-  'New Jersey':           {seFilers:488500,  seIncome:29200,  seTax:2947, seTaxFilers:449400,  qbi:5355  },
-  'New Mexico':           {seFilers:110300,  seIncome:6595,   seTax:666,  seTaxFilers:101500,  qbi:1210  },
-  'New York':             {seFilers:1061000, seIncome:63400,  seTax:6401, seTaxFilers:976000,  qbi:11625 },
-  'North Carolina':       {seFilers:546000,  seIncome:32625,  seTax:3295, seTaxFilers:502000,  qbi:5985  },
-  'North Dakota':         {seFilers:42000,   seIncome:2510,   seTax:253,  seTaxFilers:38600,   qbi:460   },
-  'Ohio':                 {seFilers:620000,  seIncome:37070,  seTax:3743, seTaxFilers:570000,  qbi:6795  },
-  'Oklahoma':             {seFilers:210000,  seIncome:12550,  seTax:1267, seTaxFilers:193000,  qbi:2300  },
-  'Oregon':               {seFilers:220500,  seIncome:13180,  seTax:1330, seTaxFilers:202900,  qbi:2415  },
-  'Pennsylvania':         {seFilers:683000,  seIncome:40800,  seTax:4120, seTaxFilers:628000,  qbi:7480  },
-  'Rhode Island':         {seFilers:57800,   seIncome:3455,   seTax:349,  seTaxFilers:53200,   qbi:633   },
-  'South Carolina':       {seFilers:273000,  seIncome:16320,  seTax:1648, seTaxFilers:251000,  qbi:2995  },
-  'South Dakota':         {seFilers:47300,   seIncome:2825,   seTax:285,  seTaxFilers:43500,   qbi:518   },
-  'Tennessee':            {seFilers:362500,  seIncome:21670,  seTax:2188, seTaxFilers:333500,  qbi:3975  },
-  'Texas':                {seFilers:1528000, seIncome:91300,  seTax:9215, seTaxFilers:1406000, qbi:16740 },
-  'Utah':                 {seFilers:173500,  seIncome:10370,  seTax:1047, seTaxFilers:159600,  qbi:1901  },
-  'Vermont':              {seFilers:31500,   seIncome:1885,   seTax:190,  seTaxFilers:29000,   qbi:346   },
-  'Virginia':             {seFilers:451800,  seIncome:27000,  seTax:2727, seTaxFilers:415700,  qbi:4955  },
-  'Washington':           {seFilers:404500,  seIncome:24175,  seTax:2442, seTaxFilers:372100,  qbi:4435  },
-  'West Virginia':        {seFilers:94600,   seIncome:5655,   seTax:571,  seTaxFilers:87000,   qbi:1036  },
-  'Wisconsin':            {seFilers:310000,  seIncome:18530,  seTax:1871, seTaxFilers:285000,  qbi:3400  },
-  'Wyoming':              {seFilers:31500,   seIncome:1885,   seTax:190,  seTaxFilers:29000,   qbi:346   }
+  'Alabama':              {seFilers:263000,  seIncome:15700,  seTax:1585, seTaxFilers:242000,  qbi:2875,  fintech:38, retGap:77.0,volatility:48,qtaxOut:2885, scorpRate:9.1, gigPct:22},
+  'Alaska':               {seFilers:36700,   seIncome:2195,   seTax:222,  seTaxFilers:33800,   qbi:402,   fintech:44, retGap:71.0,volatility:72,qtaxOut:404,  scorpRate:8.3, gigPct:19},
+  'Arizona':              {seFilers:383000,  seIncome:22900,  seTax:2310, seTaxFilers:352000,  qbi:4195,  fintech:67, retGap:73.0,volatility:55,qtaxOut:4204, scorpRate:11.2,gigPct:34},
+  'Arkansas':             {seFilers:157500,  seIncome:9415,   seTax:950,  seTaxFilers:145000,  qbi:1725,  fintech:33, retGap:79.0,volatility:47,qtaxOut:1729, scorpRate:8.4, gigPct:20},
+  'California':           {seFilers:2074000, seIncome:123900, seTax:12505,seTaxFilers:1907000, qbi:22715, fintech:82, retGap:68.0,volatility:52,qtaxOut:22759,scorpRate:14.8,gigPct:41},
+  'Colorado':             {seFilers:304700,  seIncome:18215,  seTax:1840, seTaxFilers:280000,  qbi:3340,  fintech:74, retGap:70.0,volatility:58,qtaxOut:3349, scorpRate:13.1,gigPct:36},
+  'Connecticut':          {seFilers:189000,  seIncome:11300,  seTax:1140, seTaxFilers:174000,  qbi:2070,  fintech:63, retGap:70.0,volatility:44,qtaxOut:2075, scorpRate:10.8,gigPct:29},
+  'Delaware':             {seFilers:52500,   seIncome:3140,   seTax:317,  seTaxFilers:48300,   qbi:576,   fintech:55, retGap:72.0,volatility:41,qtaxOut:577,  scorpRate:11.5,gigPct:27},
+  'District of Columbia': {seFilers:36700,   seIncome:2195,   seTax:222,  seTaxFilers:33800,   qbi:402,   fintech:79, retGap:67.0,volatility:38,qtaxOut:404,  scorpRate:15.2,gigPct:38},
+  'Florida':              {seFilers:1129000, seIncome:67500,  seTax:6810, seTaxFilers:1039000, qbi:12380, fintech:69, retGap:74.0,volatility:71,qtaxOut:12394,scorpRate:11.9,gigPct:35},
+  'Georgia':              {seFilers:562000,  seIncome:33600,  seTax:3390, seTaxFilers:517000,  qbi:6160,  fintech:65, retGap:74.0,volatility:52,qtaxOut:6170, scorpRate:11.1,gigPct:33},
+  'Hawaii':               {seFilers:78800,   seIncome:4710,   seTax:475,  seTaxFilers:72500,   qbi:864,   fintech:61, retGap:72.0,volatility:82,qtaxOut:865,  scorpRate:9.8, gigPct:28},
+  'Idaho':                {seFilers:94600,   seIncome:5655,   seTax:571,  seTaxFilers:87000,   qbi:1036,  fintech:52, retGap:73.0,volatility:61,qtaxOut:1039, scorpRate:10.2,gigPct:26},
+  'Illinois':             {seFilers:672000,  seIncome:40175,  seTax:4055, seTaxFilers:618000,  qbi:7365,  fintech:65, retGap:72.0,volatility:48,qtaxOut:7380, scorpRate:11.8,gigPct:31},
+  'Indiana':              {seFilers:357000,  seIncome:21350,  seTax:2155, seTaxFilers:328000,  qbi:3915,  fintech:44, retGap:75.0,volatility:50,qtaxOut:3922, scorpRate:9.7, gigPct:24},
+  'Iowa':                 {seFilers:168000,  seIncome:10040,  seTax:1014, seTaxFilers:154500,  qbi:1840,  fintech:38, retGap:75.0,volatility:56,qtaxOut:1845, scorpRate:9.2, gigPct:22},
+  'Kansas':               {seFilers:152500,  seIncome:9110,   seTax:920,  seTaxFilers:140000,  qbi:1670,  fintech:41, retGap:75.0,volatility:55,qtaxOut:1674, scorpRate:9.4, gigPct:23},
+  'Kentucky':             {seFilers:236500,  seIncome:14130,  seTax:1427, seTaxFilers:217500,  qbi:2590,  fintech:38, retGap:77.0,volatility:51,qtaxOut:2597, scorpRate:9.1, gigPct:22},
+  'Louisiana':            {seFilers:241500,  seIncome:14430,  seTax:1457, seTaxFilers:222000,  qbi:2645,  fintech:42, retGap:78.0,volatility:56,qtaxOut:2652, scorpRate:9.3, gigPct:24},
+  'Maine':                {seFilers:73600,   seIncome:4400,   seTax:444,  seTaxFilers:67700,   qbi:807,   fintech:51, retGap:74.0,volatility:72,qtaxOut:808,  scorpRate:9.9, gigPct:25},
+  'Maryland':             {seFilers:325500,  seIncome:19460,  seTax:1965, seTaxFilers:299500,  qbi:3567,  fintech:61, retGap:71.0,volatility:44,qtaxOut:3576, scorpRate:12.1,gigPct:31},
+  'Massachusetts':        {seFilers:367800,  seIncome:21985,  seTax:2220, seTaxFilers:338400,  qbi:4030,  fintech:72, retGap:68.0,volatility:47,qtaxOut:4040, scorpRate:13.4,gigPct:34},
+  'Michigan':             {seFilers:525000,  seIncome:31370,  seTax:3165, seTaxFilers:483000,  qbi:5750,  fintech:49, retGap:74.0,volatility:51,qtaxOut:5760, scorpRate:10.1,gigPct:26},
+  'Minnesota':            {seFilers:299500,  seIncome:17895,  seTax:1807, seTaxFilers:275500,  qbi:3280,  fintech:57, retGap:70.0,volatility:55,qtaxOut:3289, scorpRate:11.2,gigPct:28},
+  'Mississippi':          {seFilers:157500,  seIncome:9415,   seTax:950,  seTaxFilers:144800,  qbi:1725,  fintech:32, retGap:80.0,volatility:51,qtaxOut:1729, scorpRate:8.2, gigPct:20},
+  'Missouri':             {seFilers:325500,  seIncome:19460,  seTax:1965, seTaxFilers:299500,  qbi:3567,  fintech:48, retGap:75.0,volatility:50,qtaxOut:3576, scorpRate:9.8, gigPct:25},
+  'Montana':              {seFilers:57800,   seIncome:3455,   seTax:349,  seTaxFilers:53200,   qbi:633,   fintech:49, retGap:73.0,volatility:74,qtaxOut:635,  scorpRate:9.5, gigPct:23},
+  'Nebraska':             {seFilers:105000,  seIncome:6275,   seTax:634,  seTaxFilers:96600,   qbi:1150,  fintech:42, retGap:74.0,volatility:57,qtaxOut:1154, scorpRate:9.6, gigPct:23},
+  'Nevada':               {seFilers:162900,  seIncome:9735,   seTax:983,  seTaxFilers:149800,  qbi:1785,  fintech:63, retGap:75.0,volatility:67,qtaxOut:1789, scorpRate:10.9,gigPct:33},
+  'New Hampshire':        {seFilers:73600,   seIncome:4400,   seTax:444,  seTaxFilers:67700,   qbi:807,   fintech:54, retGap:72.0,volatility:59,qtaxOut:808,  scorpRate:10.6,gigPct:27},
+  'New Jersey':           {seFilers:488500,  seIncome:29200,  seTax:2947, seTaxFilers:449400,  qbi:5355,  fintech:61, retGap:71.0,volatility:45,qtaxOut:5364, scorpRate:12.2,gigPct:32},
+  'New Mexico':           {seFilers:110300,  seIncome:6595,   seTax:666,  seTaxFilers:101500,  qbi:1210,  fintech:44, retGap:77.0,volatility:57,qtaxOut:1212, scorpRate:9.3, gigPct:23},
+  'New York':             {seFilers:1061000, seIncome:63400,  seTax:6401, seTaxFilers:976000,  qbi:11625, fintech:79, retGap:70.0,volatility:48,qtaxOut:11650,scorpRate:14.1,gigPct:39},
+  'North Carolina':       {seFilers:546000,  seIncome:32625,  seTax:3295, seTaxFilers:502000,  qbi:5985,  fintech:58, retGap:74.0,volatility:53,qtaxOut:5997, scorpRate:10.9,gigPct:30},
+  'North Dakota':         {seFilers:42000,   seIncome:2510,   seTax:253,  seTaxFilers:38600,   qbi:460,   fintech:39, retGap:73.0,volatility:69,qtaxOut:460,  scorpRate:9.2, gigPct:21},
+  'Ohio':                 {seFilers:620000,  seIncome:37070,  seTax:3743, seTaxFilers:570000,  qbi:6795,  fintech:47, retGap:75.0,volatility:51,qtaxOut:6812, scorpRate:9.9, gigPct:26},
+  'Oklahoma':             {seFilers:210000,  seIncome:12550,  seTax:1267, seTaxFilers:193000,  qbi:2300,  fintech:41, retGap:76.0,volatility:58,qtaxOut:2306, scorpRate:9.5, gigPct:24},
+  'Oregon':               {seFilers:220500,  seIncome:13180,  seTax:1330, seTaxFilers:202900,  qbi:2415,  fintech:64, retGap:70.0,volatility:62,qtaxOut:2421, scorpRate:11.5,gigPct:33},
+  'Pennsylvania':         {seFilers:683000,  seIncome:40800,  seTax:4120, seTaxFilers:628000,  qbi:7480,  fintech:52, retGap:74.0,volatility:50,qtaxOut:7498, scorpRate:10.8,gigPct:27},
+  'Rhode Island':         {seFilers:57800,   seIncome:3455,   seTax:349,  seTaxFilers:53200,   qbi:633,   fintech:57, retGap:73.0,volatility:53,qtaxOut:635,  scorpRate:10.7,gigPct:28},
+  'South Carolina':       {seFilers:273000,  seIncome:16320,  seTax:1648, seTaxFilers:251000,  qbi:2995,  fintech:54, retGap:75.0,volatility:58,qtaxOut:2999, scorpRate:10.4,gigPct:28},
+  'South Dakota':         {seFilers:47300,   seIncome:2825,   seTax:285,  seTaxFilers:43500,   qbi:518,   fintech:41, retGap:74.0,volatility:67,qtaxOut:519,  scorpRate:9.3, gigPct:22},
+  'Tennessee':            {seFilers:362500,  seIncome:21670,  seTax:2188, seTaxFilers:333500,  qbi:3975,  fintech:54, retGap:74.0,volatility:54,qtaxOut:3982, scorpRate:10.6,gigPct:29},
+  'Texas':                {seFilers:1528000, seIncome:91300,  seTax:9215, seTaxFilers:1406000, qbi:16740, fintech:71, retGap:74.0,volatility:57,qtaxOut:16771,scorpRate:12.8,gigPct:37},
+  'Utah':                 {seFilers:173500,  seIncome:10370,  seTax:1047, seTaxFilers:159600,  qbi:1901,  fintech:61, retGap:71.0,volatility:57,qtaxOut:1906, scorpRate:11.8,gigPct:31},
+  'Vermont':              {seFilers:31500,   seIncome:1885,   seTax:190,  seTaxFilers:29000,   qbi:346,   fintech:52, retGap:73.0,volatility:75,qtaxOut:346,  scorpRate:9.7, gigPct:24},
+  'Virginia':             {seFilers:451800,  seIncome:27000,  seTax:2727, seTaxFilers:415700,  qbi:4955,  fintech:64, retGap:71.0,volatility:48,qtaxOut:4963, scorpRate:12.2,gigPct:32},
+  'Washington':           {seFilers:404500,  seIncome:24175,  seTax:2442, seTaxFilers:372100,  qbi:4435,  fintech:77, retGap:68.0,volatility:59,qtaxOut:4444, scorpRate:13.0,gigPct:36},
+  'West Virginia':        {seFilers:94600,   seIncome:5655,   seTax:571,  seTaxFilers:87000,   qbi:1036,  fintech:30, retGap:80.0,volatility:52,qtaxOut:1039, scorpRate:8.1, gigPct:19},
+  'Wisconsin':            {seFilers:310000,  seIncome:18530,  seTax:1871, seTaxFilers:285000,  qbi:3400,  fintech:49, retGap:74.0,volatility:54,qtaxOut:3405, scorpRate:10.3,gigPct:25},
+  'Wyoming':              {seFilers:31500,   seIncome:1885,   seTax:190,  seTaxFilers:29000,   qbi:346,   fintech:42, retGap:73.0,volatility:73,qtaxOut:346,  scorpRate:9.2, gigPct:21}
 };
 
-/* State name → 2-digit FIPS */
 const STATE_FIPS = {
   'Alabama':'01','Alaska':'02','Arizona':'04','Arkansas':'05','California':'06',
   'Colorado':'08','Connecticut':'09','Delaware':'10','District of Columbia':'11',
@@ -244,388 +290,402 @@ const STATE_FIPS = {
   'Washington':'53','West Virginia':'54','Wisconsin':'55','Wyoming':'56'
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   METRIC CONFIG
-═══════════════════════════════════════════════════════════════ */
+/* ════ METRICS CONFIG ════ */
 const METRICS = {
-  seIncome:    {label:'Self-Employment Income', short:'SE Income',   unit:'$M', colorLow:'#100800', colorHigh:'#F59E0B', stateMax:124000, nat:'$1.04T', sub:'Total SE Income · 2021',        legMin:'$0', legMax:'$124B'},
-  seFilers:    {label:'Self-Employed Filers',   short:'SE Filers',  unit:'#',  colorLow:'#001318', colorHigh:'#06B6D4', stateMax:2100000,nat:'17.4M',  sub:'Schedule SE Filers · 2021',    legMin:'0',  legMax:'2.1M' },
-  seTax:       {label:'SE Tax Liability',       short:'SE Tax',     unit:'$M', colorLow:'#150404', colorHigh:'#F87171', stateMax:12600,  nat:'$105B',  sub:'Total SE Tax Owed · 2021',     legMin:'$0', legMax:'$12.5B'},
-  seTaxFilers: {label:'SE Tax Filers',          short:'Tax Filers', unit:'#',  colorLow:'#0A0515', colorHigh:'#A78BFA', stateMax:1950000,nat:'16.0M',  sub:'Filers With SE Tax Due · 2021',legMin:'0',  legMax:'1.9M' },
-  qbi:         {label:'QBI Deduction Value',    short:'QBI Deduct.',unit:'$M', colorLow:'#021008', colorHigh:'#4ADE80', stateMax:23000,  nat:'$190B',  sub:'QBI Deduction Claimed · 2021', legMin:'$0', legMax:'$22.7B'}
+  seIncome:    {label:'SE Income',           full:'Self-Employment Income',       unit:'$M',    colorLow:'#100800',colorHigh:'#F59E0B',stateMin:0,   stateMax:124000, nat:'$1.04T', sub:'Total SE Income · 2021',           legMin:'$0',  legMax:'$124B'},
+  seFilers:    {label:'SE Filers',           full:'Self-Employed Filers',         unit:'#',     colorLow:'#001318',colorHigh:'#06B6D4',stateMin:0,   stateMax:2100000,nat:'17.4M',  sub:'Schedule SE Filers · 2021',        legMin:'0',   legMax:'2.1M' },
+  seTax:       {label:'SE Tax',              full:'SE Tax Liability',             unit:'$M',    colorLow:'#150404',colorHigh:'#F87171',stateMin:0,   stateMax:12600,  nat:'$105B',  sub:'Total SE Tax Owed · 2021',         legMin:'$0',  legMax:'$12.5B'},
+  seTaxFilers: {label:'SE Tax Filers',       full:'SE Tax Filers',                unit:'#',     colorLow:'#0A0515',colorHigh:'#A78BFA',stateMin:0,   stateMax:1950000,nat:'16.0M',  sub:'Filers With SE Tax Due · 2021',    legMin:'0',   legMax:'1.9M' },
+  qbi:         {label:'QBI Deduction',       full:'QBI Deduction Value',          unit:'$M',    colorLow:'#021008',colorHigh:'#4ADE80',stateMin:0,   stateMax:23000,  nat:'$190B',  sub:'QBI Deduction Claimed · 2021',     legMin:'$0',  legMax:'$22.7B'},
+  fintech:     {label:'Fintech Risk',        full:'Fintech Risk Score',           unit:'index', colorLow:'#0D0200',colorHigh:'#FF6B35',stateMin:0,   stateMax:100,    nat:'62/100', sub:'Fintech Vulnerability Index',      legMin:'0',   legMax:'100'  },
+  retGap:      {label:'Retirement Gap',      full:'Retirement Coverage Gap',      unit:'%',     colorLow:'#0A0700',colorHigh:'#FBBF24',stateMin:65,  stateMax:82,     nat:'73%',    sub:'SE Filers w/ No Retirement Acct',  legMin:'65%', legMax:'82%'  },
+  volatility:  {label:'CF Volatility',       full:'Cash Flow Volatility',         unit:'index', colorLow:'#000E00',colorHigh:'#FCD34D',stateMin:0,   stateMax:100,    nat:'55/100', sub:'Seasonal Cash Flow Volatility',    legMin:'0',   legMax:'100'  },
+  qtaxOut:     {label:'Q-Tax Outflow',       full:'Quarterly Tax Outflow at Risk',unit:'$M',    colorLow:'#060018',colorHigh:'#C084FC',stateMin:0,   stateMax:23000,  nat:'~$170B', sub:'Est. Annual Estimated Tax Outflow', legMin:'$0',  legMax:'$22B' },
+  scorpRate:   {label:'S-Corp Rate',         full:'S-Corp Graduation Rate',       unit:'%',     colorLow:'#001410',colorHigh:'#2DD4BF',stateMin:8,   stateMax:16,     nat:'11.2%',  sub:'SE Pop. Converted to S-Corp',      legMin:'8%',  legMax:'16%'  },
+  gigPct:      {label:'Gig Share',           full:'Gig Economy Share',            unit:'%',     colorLow:'#000814',colorHigh:'#38BDF8',stateMin:18,  stateMax:42,     nat:'~30%',   sub:'Gig/1099 Share of SE Filers',      legMin:'18%', legMax:'42%'  },
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   UTILITIES
-═══════════════════════════════════════════════════════════════ */
-function fmt(key, v) {
-  if (v == null) return 'N/A';
-  const m = METRICS[key];
-  if (m.unit === '$M') return v >= 1000 ? `$${(v/1000).toFixed(1)}B` : `$${v.toFixed(0)}M`;
-  return v >= 1000000 ? `${(v/1000000).toFixed(2)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${Math.round(v)}`;
+const INDUSTRIES = [
+  {label:'Construction', baseW:.140,color:'#F59E0B'},
+  {label:'Real Estate',  baseW:.110,color:'#06B6D4'},
+  {label:'Healthcare',   baseW:.120,color:'#F87171'},
+  {label:'Professional', baseW:.180,color:'#A78BFA'},
+  {label:'Personal Svcs',baseW:.150,color:'#4ADE80'},
+  {label:'Retail',       baseW:.090,color:'#FB923C'},
+  {label:'Other',        baseW:.210,color:'#64748B'},
+];
+
+/* ════ UTILITIES ════ */
+function fmt(key,v){
+  if(v==null||v===undefined)return 'N/A';
+  const unit=METRICS[key].unit;
+  if(unit==='$M')return v>=1000?`$${(v/1000).toFixed(1)}B`:`$${v.toFixed(0)}M`;
+  if(unit==='#') return v>=1000000?`${(v/1000000).toFixed(2)}M`:v>=1000?`${(v/1000).toFixed(0)}K`:`${Math.round(v)}`;
+  if(unit==='index')return`${Math.round(v)}/100`;
+  if(unit==='%')return`${typeof v==='number'?v.toFixed(1):v}%`;
+  return String(v);
 }
 
-function hexMix(a, b, t) {
-  const h = s => [parseInt(s.slice(1,3),16), parseInt(s.slice(3,5),16), parseInt(s.slice(5,7),16)];
-  const [r1,g1,b1]=h(a), [r2,g2,b2]=h(b);
-  const c = x => Math.round(x).toString(16).padStart(2,'0');
+function hexMix(a,b,t){
+  const h=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
+  const [r1,g1,b1]=h(a),[r2,g2,b2]=h(b);
+  const c=x=>Math.round(x).toString(16).padStart(2,'0');
   return `#${c(r1+(r2-r1)*t)}${c(g1+(g2-g1)*t)}${c(b1+(b2-b1)*t)}`;
 }
 
-function colorExpr(key, maxVal) {
-  const m = METRICS[key];
-  const mx = maxVal ?? m.stateMax;
-  return ['interpolate',['linear'],['coalesce',['get',key],0],
-    0,          m.colorLow,
-    mx*.03,     hexMix(m.colorLow, m.colorHigh, .08),
-    mx*.12,     hexMix(m.colorLow, m.colorHigh, .28),
-    mx*.30,     hexMix(m.colorLow, m.colorHigh, .52),
-    mx*.60,     hexMix(m.colorLow, m.colorHigh, .76),
+function colorExpr(key,overrideMax){
+  const m=METRICS[key];
+  const mn=m.stateMin??0;
+  const mx=overrideMax??m.stateMax;
+  const rng=mx-mn;
+  return['interpolate',['linear'],['coalesce',['get',key],mn],
+    mn,         m.colorLow,
+    mn+rng*.03, hexMix(m.colorLow,m.colorHigh,.08),
+    mn+rng*.12, hexMix(m.colorLow,m.colorHigh,.28),
+    mn+rng*.30, hexMix(m.colorLow,m.colorHigh,.52),
+    mn+rng*.60, hexMix(m.colorLow,m.colorHigh,.76),
     mx,         m.colorHigh
   ];
 }
 
-/* Xorshift seeded random — stable per county across sessions */
-function seededRand(seed) {
-  let s = (seed ^ 0xDEADBEEF) >>> 0;
-  return () => { s^=s<<13; s^=s>>17; s^=s<<5; return (s>>>0)/0xFFFFFFFF; };
+function seededRand(seed){
+  let s=(seed^0xDEADBEEF)>>>0;
+  return()=>{s^=s<<13;s^=s>>17;s^=s<<5;return(s>>>0)/0xFFFFFFFF};
 }
 
-function genCountyData(stateFips, stateData, countyFipsList) {
-  const rand = seededRand(parseInt(stateFips,10)*7919);
-  // Power-law-ish weights: a few big counties, many small — roughly realistic
-  const weights = countyFipsList.map(() => { const r=rand(); return r*r*(0.4+rand()*0.6); });
-  const total = weights.reduce((a,b)=>a+b,0);
-  const out = {};
-  countyFipsList.forEach((fips,i) => {
-    const w = weights[i]/total;
-    out[fips] = {
-      seIncome:    stateData.seIncome * w,
-      seFilers:    Math.round(stateData.seFilers * w),
-      seTax:       stateData.seTax * w,
-      seTaxFilers: Math.round(stateData.seTaxFilers * w),
-      qbi:         stateData.qbi * w
+function featureBBox(feature){
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  const walk=c=>{
+    if(typeof c[0]==='number'){if(c[0]<x0)x0=c[0];if(c[1]<y0)y0=c[1];if(c[0]>x1)x1=c[0];if(c[1]>y1)y1=c[1];}
+    else c.forEach(walk);
+  };
+  walk(feature.geometry.coordinates);
+  return[[x0,y0],[x1,y1]];
+}
+
+function getIndustryWeights(stateName){
+  const fips=STATE_FIPS[stateName]||'99';
+  const rand=seededRand(parseInt(fips,10)*4999+12345);
+  const w=INDUSTRIES.map(ind=>Math.max(0.02,ind.baseW+(rand()-.5)*.14));
+  const tot=w.reduce((a,b)=>a+b,0);
+  return w.map(x=>x/tot);
+}
+
+function genCountyData(stateFips,sd,fipsList){
+  const rand =seededRand(parseInt(stateFips,10)*7919);
+  const rand2=seededRand(parseInt(stateFips,10)*3571);
+  const wts=fipsList.map(()=>{const r=rand();return r*r*(0.4+rand()*0.6);});
+  const tot=wts.reduce((a,b)=>a+b,0);
+  const out={};
+  const [sf,sg,sv,sc,sk]=[sd.fintech||50,sd.retGap||73,sd.volatility||55,sd.scorpRate||11,sd.gigPct||28];
+  fipsList.forEach((fips,i)=>{
+    const w=wts[i]/tot;
+    out[fips]={
+      seIncome:    sd.seIncome*w, seFilers:Math.round(sd.seFilers*w),
+      seTax:       sd.seTax*w,    seTaxFilers:Math.round(sd.seTaxFilers*w),
+      qbi:         sd.qbi*w,      qtaxOut:sd.qtaxOut*w,
+      fintech:     Math.max(10,Math.min(95,sf+(rand2()-.5)*32)),
+      retGap:      Math.max(60,Math.min(88,sg+(rand2()-.5)*13)),
+      volatility:  Math.max(20,Math.min(95,sv+(rand2()-.5)*28)),
+      scorpRate:   Math.max(5, Math.min(20,sc+(rand2()-.5)*7)),
+      gigPct:      Math.max(10,Math.min(58,sk+(rand2()-.5)*22)),
     };
   });
   return out;
 }
 
-/* Compute WGS84 bounding box from a GeoJSON feature */
-function featureBBox(feature) {
-  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-  const walk = c => {
-    if (typeof c[0]==='number') {
-      if(c[0]<x0)x0=c[0]; if(c[1]<y0)y0=c[1];
-      if(c[0]>x1)x1=c[0]; if(c[1]>y1)y1=c[1];
-    } else c.forEach(walk);
-  };
-  walk(feature.geometry.coordinates);
-  return [[x0,y0],[x1,y1]];
+/* ════ Q-TAX CALENDAR ════ */
+const TODAY=new Date('2026-03-26');
+const QDATES=[
+  {q:'Q1',label:'April 15, 2026', date:new Date('2026-04-15'),period:'Jan–Mar income'},
+  {q:'Q2',label:'June 16, 2026',  date:new Date('2026-06-16'), period:'Apr–May income'},
+  {q:'Q3',label:'Sep 15, 2026',   date:new Date('2026-09-15'),period:'Jun–Aug income'},
+  {q:'Q4',label:'Jan 15, 2027',   date:new Date('2027-01-15'),period:'Sep–Dec income'},
+];
+const NAT_QTAX=169870; // sum of all state qtaxOut values ($M)
+
+function daysUntil(d){return Math.ceil((d-TODAY)/(864e5));}
+
+function fmtMoney(v){
+  if(!v&&v!==0)return'—';
+  if(v>=1000)return`$${(v/1000).toFixed(1)}B`;
+  return`$${v.toFixed(0)}M`;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STATE / UI VARS
-═══════════════════════════════════════════════════════════════ */
-let current     = 'seIncome';
-let inCountyView = false;
-let countyGeoJSON = null;   // cached county GeoJSON after first fetch
-let stateFeatures = {};     // name → feature, populated after state GeoJSON loads
-let countyValues  = [];     // flat array of county data objects for current state
-let hovCountyId   = null;
+function updateCalendar(){
+  const stName=selectedState;
+  const qtaxAnn=stName?(SD[stName]?.qtaxOut||0):NAT_QTAX;
+  const filerCount=stName?(SD[stName]?.seFilers||0):17400000;
 
-const tooltip  = document.getElementById('tooltip');
-const mapEl    = document.getElementById('map');
-const backBtn  = document.getElementById('back-btn');
-const backLabel= document.getElementById('back-label');
-const bcEl     = document.getElementById('breadcrumb');
-const crumbSt  = document.getElementById('crumb-state');
-const loadOverlay = document.getElementById('loading-overlay');
+  document.getElementById('cal-scope-val').textContent=stName||'National';
+  document.getElementById('cal-scope-sub').textContent=stName?`${stName} · SE Customers`:'All 50 States + DC';
 
-/* ═══════════════════════════════════════════════════════════════
-   MAP INIT
-═══════════════════════════════════════════════════════════════ */
-const map = new maplibregl.Map({
-  container: 'map',
-  style: {
-    version:8,
-    glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-    sources: {
-      carto: { type:'raster', tiles:['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'], tileSize:256,
-        attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>' }
-    },
-    layers:[{id:'carto',type:'raster',source:'carto'}]
-  },
-  center:[-98.5,39.5], zoom:3.8, minZoom:2, maxZoom:13,
-  pitchWithRotate:false, dragRotate:false
-});
-map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
+  const q1days=daysUntil(QDATES[0].date);
+  document.getElementById('cal-urgency').textContent=`${q1days} days · est. outflow ${fmtMoney(qtaxAnn/4)}`;
 
-/* ═══════════════════════════════════════════════════════════════
-   TOOLTIP
-═══════════════════════════════════════════════════════════════ */
-function showTip(pt, props, isCounty=false) {
-  const name = isCounty
-    ? (props.NAME||'') + ' ' + (props.LSAD||'County')
-    : (props.name||'—');
-  const badge = isCounty ? `<span class="tt-badge">county</span>` : '';
-  const rows = Object.keys(METRICS).map(k=>`
-    <div class="tt-row">
-      <span class="tt-label">${METRICS[k].short}</span>
-      <span class="tt-val${k===current?' active-val':''}">${fmt(k,props[k])}</span>
-    </div>`).join('');
-  tooltip.innerHTML = `<div class="tt-header"><div class="tt-state">${name}</div>${badge}</div>${rows}`;
+  // Q tiles
+  const container=document.getElementById('q-tiles');
+  let firstFuture=true;
+  container.innerHTML=QDATES.map(qd=>{
+    const days=daysUntil(qd.date);
+    const past=days<=0;
+    const urgent=!past&&days<=30&&firstFuture;
+    const upcoming=!past&&!urgent&&days<=90;
+    if(!past&&firstFuture)firstFuture=false;
+    const cls=past?'past':urgent?'urgent':upcoming?'upcoming':'';
+    const daysStr=past?'PASSED':days===1?'TOMORROW':`${days} DAYS`;
+    return`<div class="q-tile ${cls}">
+      <div class="q-tile-top"><span class="q-label">${qd.q} ${qd.q==='Q4'?'2026/27':'2026'}</span><span class="q-date-str">${qd.label}</span></div>
+      <div class="q-body">
+        <div><div class="q-days">${daysStr}${past?'':' AWAY'}</div><div class="q-period">${qd.period}</div></div>
+        <div><div class="q-amt">${fmtMoney(qtaxAnn/4)}</div><div class="q-amt-lbl">Est. outflow</div></div>
+      </div>
+    </div>`;
+  }).join('');
 
-  let x=pt.x+14, y=pt.y-90;
-  if(x+234>mapEl.offsetWidth)  x=pt.x-248;
-  if(y<0)                       y=pt.y+14;
-  if(y+195>mapEl.offsetHeight)  y=mapEl.offsetHeight-200;
-  tooltip.style.left=`${x}px`; tooltip.style.top=`${y}px`;
-  tooltip.style.display='block';
+  // Summary
+  document.getElementById('cs-annual').textContent=stName?fmtMoney(qtaxAnn)+'yr':'~$170B/yr';
+  document.getElementById('cs-quarter').textContent=stName?fmtMoney(qtaxAnn/4):'~$42.5B';
+  document.getElementById('cs-filers').textContent=stName
+    ?fmt('seFilers',Math.round(filerCount*.74)):'~12.8M';
+
+  // Tip
+  const tip=document.getElementById('cal-tip-body');
+  if(stName){
+    const fK=Math.round(filerCount*.74/1000);
+    tip.textContent=`Contact ~${fK}K SE customers in ${stName} before Apr 15. Offer a tax-reserve savings account to retain the est. ${fmtMoney(qtaxAnn/4)} Q1 outflow in-house.`;
+  } else {
+    tip.textContent='Contact SE customers before April 15. Offer a dedicated tax-reserve savings account to retain the est. quarterly outflow in-house. Click a state for local estimates.';
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LEGEND / STAT CARD
-═══════════════════════════════════════════════════════════════ */
-function updateLegend(key, maxVal, scope) {
-  const m = METRICS[key];
-  document.getElementById('legend-title').textContent = m.label.toUpperCase();
-  document.getElementById('legend-bar').style.background =
+/* ════ STATE VARS ════ */
+let current='seIncome',inCountyView=false,countyGeoJSON=null;
+let stateFeatures={},countyValues=[],hovCountyId=null;
+let calOpen=false,selectedState=null;
+
+const tooltip   =document.getElementById('tooltip');
+const mapEl     =document.getElementById('map');
+const backBtn   =document.getElementById('back-btn');
+const bcEl      =document.getElementById('breadcrumb');
+const crumbSt   =document.getElementById('crumb-state');
+const loadOvl   =document.getElementById('loading-overlay');
+const calPanel  =document.getElementById('calendar-panel');
+const calToggle =document.getElementById('cal-toggle');
+
+/* ════ TOOLTIP ════ */
+function buildIndustryHTML(stateName){
+  const wts=getIndustryWeights(stateName);
+  return`<div class="tt-ind-sec">
+    <div class="tt-ind-title">Industry Mix (Estimated)</div>
+    ${INDUSTRIES.map((ind,i)=>{
+      const pct=Math.round(wts[i]*100);
+      return`<div class="ind-row">
+        <span class="ind-lbl">${ind.label}</span>
+        <div class="ind-track"><div class="ind-bar" style="width:${Math.min(100,pct*2.8)}%;background:${ind.color};opacity:.75"></div></div>
+        <span class="ind-pct">${pct}%</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function showTip(pt,props,isCounty=false){
+  const name=isCounty?`${props.NAME||''} ${props.LSAD||'County'}`:(props.name||'—');
+  const badge=isCounty?`<span class="tt-badge">county</span>`:'';
+  const others=Object.keys(METRICS).filter(k=>k!==current);
+  const grid=`<div class="tt-grid">${others.map(k=>`
+    <div class="tt-cell">
+      <span class="tt-cell-lbl">${METRICS[k].label}</span>
+      <span class="tt-cell-val">${fmt(k,props[k])}</span>
+    </div>`).join('')}</div>`;
+  const industry=!isCounty&&props.name?buildIndustryHTML(props.name):'';
+  tooltip.innerHTML=`
+    <div class="tt-hdr"><div class="tt-name">${name}</div>${badge}</div>
+    <div class="tt-primary">
+      <span class="tt-primary-lbl">${METRICS[current].full||METRICS[current].label}</span>
+      <span class="tt-primary-val">${fmt(current,props[current])}</span>
+    </div>
+    ${grid}${industry}`;
+  const h=isCounty?200:380;
+  let x=pt.x+14,y=pt.y-h/2;
+  if(x+254>mapEl.offsetWidth)x=pt.x-262;
+  if(y<4)y=4;
+  if(y+h>mapEl.offsetHeight-4)y=mapEl.offsetHeight-h-4;
+  tooltip.style.left=`${x}px`;tooltip.style.top=`${y}px`;tooltip.style.display='block';
+}
+
+/* ════ LEGEND + STAT ════ */
+function updateLegend(key,maxVal){
+  const m=METRICS[key];
+  document.getElementById('legend-title').textContent=m.full.toUpperCase();
+  document.getElementById('legend-bar').style.background=
     `linear-gradient(to right,${m.colorLow},${hexMix(m.colorLow,m.colorHigh,.45)},${m.colorHigh})`;
-  document.getElementById('leg-min').textContent = m.legMin;
-  if(maxVal!=null) {
-    document.getElementById('leg-max').textContent = fmt(key, maxVal);
+  document.getElementById('leg-min').textContent=m.legMin;
+  document.getElementById('leg-max').textContent=maxVal!=null?fmt(key,maxVal):m.legMax;
+}
+
+function updateStatCard(key,stName){
+  const m=METRICS[key];
+  if(stName){
+    document.getElementById('stat-scope').textContent=stName;
+    document.getElementById('stat-value').textContent=fmt(key,(SD[stName]||{})[key]);
+    document.getElementById('stat-sub').textContent=m.full+' · 2021';
   } else {
-    document.getElementById('leg-max').textContent = m.legMax;
+    document.getElementById('stat-scope').textContent='National';
+    document.getElementById('stat-value').textContent=m.nat;
+    document.getElementById('stat-sub').textContent=m.sub;
   }
 }
 
-function updateStatCard(key, stateName) {
-  const m = METRICS[key];
-  if(stateName) {
-    const sd = SD[stateName]||{};
-    document.getElementById('stat-scope').textContent = stateName;
-    document.getElementById('stat-value').textContent = fmt(key, sd[key]);
-    document.getElementById('stat-sub').textContent = m.label+' · 2021';
-  } else {
-    document.getElementById('stat-scope').textContent = 'National Total';
-    document.getElementById('stat-value').textContent = m.nat;
-    document.getElementById('stat-sub').textContent = m.sub;
-  }
+/* ════ METRIC SWITCH ════ */
+function countyP95(){
+  const proportional=['$M','#'].includes(METRICS[current].unit);
+  if(!proportional)return METRICS[current].stateMax;
+  const vals=countyValues.map(v=>v[current]).filter(v=>v!=null).sort((a,b)=>a-b);
+  return vals[Math.floor(vals.length*.95)]||vals[vals.length-1]||1;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   METRIC SWITCH
-═══════════════════════════════════════════════════════════════ */
-function setMetric(key) {
-  current = key;
+function setMetric(key){
+  current=key;
   document.querySelectorAll('.metric-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector(`[data-metric="${key}"]`).classList.add('active');
-
-  if(inCountyView) {
-    if(map.getLayer('counties-fill') && countyValues.length) {
-      const vals = countyValues.map(v=>v[key]).sort((a,b)=>a-b);
-      const p95  = vals[Math.floor(vals.length*.95)]||vals[vals.length-1]||1;
-      map.setPaintProperty('counties-fill','fill-color',colorExpr(key,p95));
-      updateLegend(key, p95);
-      updateStatCard(key, crumbSt.textContent);
-    }
-  } else {
-    if(map.getLayer('states-fill')) map.setPaintProperty('states-fill','fill-color',colorExpr(key));
+  const stName=inCountyView?crumbSt.textContent:null;
+  if(inCountyView&&map.getLayer('counties-fill')&&countyValues.length){
+    map.setPaintProperty('counties-fill','fill-color',colorExpr(key,countyP95()));
+    updateLegend(key,countyP95());
+  } else if(!inCountyView&&map.getLayer('states-fill')){
+    map.setPaintProperty('states-fill','fill-color',colorExpr(key));
     updateLegend(key);
-    updateStatCard(key, null);
   }
+  updateStatCard(key,stName);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COUNTY FETCH (cached)
-═══════════════════════════════════════════════════════════════ */
-async function fetchCounties() {
-  if(countyGeoJSON) return countyGeoJSON;
-  const r = await fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json');
-  countyGeoJSON = await r.json();
+/* ════ FETCH COUNTIES ════ */
+async function fetchCounties(){
+  if(countyGeoJSON)return countyGeoJSON;
+  const r=await fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json');
+  countyGeoJSON=await r.json();
   return countyGeoJSON;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SHOW COUNTY VIEW
-═══════════════════════════════════════════════════════════════ */
-async function showCountyView(stateName, stateFeature) {
-  inCountyView = true;
+/* ════ COUNTY VIEW ════ */
+async function showCountyView(stateName,stFeature){
+  inCountyView=true; selectedState=stateName;
   tooltip.style.display='none';
-
-  const stateFips = STATE_FIPS[stateName];
-  if(!stateFips) { inCountyView=false; return; }
-
-  // Fly to state bounding box
-  const bbox = featureBBox(stateFeature);
-  map.fitBounds(bbox, {padding:48, duration:750, maxZoom:9});
-
-  // Show loading
-  loadOverlay.classList.add('visible');
-
+  const sfips=STATE_FIPS[stateName];
+  if(!sfips){inCountyView=false;return;}
+  map.fitBounds(featureBBox(stFeature),{padding:46,duration:700,maxZoom:9});
+  loadOvl.classList.add('visible');
   let geo;
-  try { geo = await fetchCounties(); }
-  catch(e) { loadOverlay.classList.remove('visible'); inCountyView=false; return; }
-
-  // Filter counties for this state, inject data
-  const stateCounties = geo.features.filter(f => f.properties.STATE === stateFips);
-  const stateData     = SD[stateName]||{};
-  const fipsList      = stateCounties.map(f=>f.id);
-  const cdm           = genCountyData(stateFips, stateData, fipsList);
-  countyValues        = Object.values(cdm);
-
-  // Compute 95th-pct max for color scaling
-  const activeVals = countyValues.map(v=>v[current]).sort((a,b)=>a-b);
-  const p95 = activeVals[Math.floor(activeVals.length*.95)]||activeVals[activeVals.length-1]||1;
-
-  const countyGeo = {
-    type:'FeatureCollection',
-    features: stateCounties.map(f=>({...f, properties:{...f.properties,...(cdm[f.id]||{})}}))
-  };
-
-  // Source + layers
-  if(map.getSource('counties')) {
+  try{geo=await fetchCounties();}catch(e){loadOvl.classList.remove('visible');inCountyView=false;return;}
+  const sc=geo.features.filter(f=>f.properties.STATE===sfips);
+  const cdm=genCountyData(sfips,SD[stateName]||{},sc.map(f=>f.id));
+  countyValues=Object.values(cdm);
+  const p95=countyP95();
+  const cGeo={type:'FeatureCollection',features:sc.map(f=>({...f,properties:{...f.properties,...(cdm[f.id]||{})}}))};
+  if(map.getSource('counties')){
     hovCountyId=null;
-    map.getSource('counties').setData(countyGeo);
+    map.getSource('counties').setData(cGeo);
     map.setPaintProperty('counties-fill','fill-color',colorExpr(current,p95));
   } else {
-    map.addSource('counties',{type:'geojson',data:countyGeo,generateId:true});
-
-    map.addLayer({id:'counties-fill',type:'fill',source:'counties',
-      paint:{'fill-color':colorExpr(current,p95),'fill-opacity':.82}});
-    map.addLayer({id:'counties-border',type:'line',source:'counties',
-      paint:{'line-color':'#162840','line-width':.6,'line-opacity':.85}});
-    map.addLayer({id:'counties-hover',type:'fill',source:'counties',
-      paint:{'fill-color':'#ffffff','fill-opacity':['case',['boolean',['feature-state','hovered'],false],.08,0]}});
-    map.addLayer({id:'counties-hover-border',type:'line',source:'counties',
-      paint:{'line-color':'#ffffff','line-width':1.4,'line-opacity':['case',['boolean',['feature-state','hovered'],false],.45,0]}});
-
+    map.addSource('counties',{type:'geojson',data:cGeo,generateId:true});
+    map.addLayer({id:'counties-fill',  type:'fill',source:'counties',paint:{'fill-color':colorExpr(current,p95),'fill-opacity':.83}});
+    map.addLayer({id:'counties-border',type:'line',source:'counties',paint:{'line-color':'#162840','line-width':.55,'line-opacity':.85}});
+    map.addLayer({id:'counties-hover', type:'fill',source:'counties',paint:{'fill-color':'#fff','fill-opacity':['case',['boolean',['feature-state','hovered'],false],.08,0]}});
+    map.addLayer({id:'counties-hover-border',type:'line',source:'counties',paint:{'line-color':'#fff','line-width':1.3,'line-opacity':['case',['boolean',['feature-state','hovered'],false],.4,0]}});
     map.on('mousemove','counties-fill',e=>{
-      if(hovCountyId!==null) map.setFeatureState({source:'counties',id:hovCountyId},{hovered:false});
+      if(hovCountyId!==null)map.setFeatureState({source:'counties',id:hovCountyId},{hovered:false});
       hovCountyId=e.features[0].id;
       map.setFeatureState({source:'counties',id:hovCountyId},{hovered:true});
       showTip(e.point,e.features[0].properties,true);
       map.getCanvas().style.cursor='crosshair';
     });
     map.on('mouseleave','counties-fill',()=>{
-      if(hovCountyId!==null) map.setFeatureState({source:'counties',id:hovCountyId},{hovered:false});
-      hovCountyId=null;
-      tooltip.style.display='none';
-      map.getCanvas().style.cursor='';
+      if(hovCountyId!==null)map.setFeatureState({source:'counties',id:hovCountyId},{hovered:false});
+      hovCountyId=null;tooltip.style.display='none';map.getCanvas().style.cursor='';
     });
   }
-
-  // Show county layers, dim state fill
-  map.setPaintProperty('states-fill','fill-opacity',.0);
-  map.setPaintProperty('states-border','line-opacity',.0);
+  map.setPaintProperty('states-fill','fill-opacity',0);
+  map.setPaintProperty('states-border','line-opacity',0);
   ['counties-fill','counties-border','counties-hover','counties-hover-border']
-    .forEach(id=>{ if(map.getLayer(id)) map.setLayoutProperty(id,'visibility','visible'); });
-
-  // Update legend, stat card, breadcrumb, back btn
-  updateLegend(current, p95);
-  updateStatCard(current, stateName);
-  crumbSt.textContent = stateName;
-  bcEl.classList.add('visible');
-  backLabel.textContent = '← United States';
+    .forEach(id=>{if(map.getLayer(id))map.setLayoutProperty(id,'visibility','visible');});
+  updateLegend(current,p95); updateStatCard(current,stateName);
+  crumbSt.textContent=stateName; bcEl.classList.add('visible');
   backBtn.style.display='flex';
-
-  loadOverlay.classList.remove('visible');
-  map.getCanvas().style.cursor='';
+  if(calOpen)updateCalendar();
+  loadOvl.classList.remove('visible'); map.getCanvas().style.cursor='';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SHOW STATE VIEW (back)
-═══════════════════════════════════════════════════════════════ */
-function showStateView() {
-  inCountyView=false;
-  tooltip.style.display='none';
-  hovCountyId=null;
-
-  // Hide county layers
+/* ════ STATE VIEW ════ */
+function showStateView(){
+  inCountyView=false; selectedState=null;
+  tooltip.style.display='none'; hovCountyId=null;
   ['counties-fill','counties-border','counties-hover','counties-hover-border']
-    .forEach(id=>{ if(map.getLayer(id)) map.setLayoutProperty(id,'visibility','none'); });
-
-  // Restore state layers
+    .forEach(id=>{if(map.getLayer(id))map.setLayoutProperty(id,'visibility','none');});
   map.setPaintProperty('states-fill','fill-opacity',.80);
   map.setPaintProperty('states-border','line-opacity',.9);
-
-  // Fly back
   map.flyTo({center:[-98.5,39.5],zoom:3.8,duration:700});
-
-  backBtn.style.display='none';
-  bcEl.classList.remove('visible');
-  countyValues=[];
-
-  updateLegend(current);
-  updateStatCard(current,null);
+  backBtn.style.display='none'; bcEl.classList.remove('visible'); countyValues=[];
+  updateLegend(current); updateStatCard(current,null);
+  if(calOpen)updateCalendar();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MAP LOAD
-═══════════════════════════════════════════════════════════════ */
-map.on('load', async()=>{
-  const res = await fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json');
-  const geojson = await res.json();
+/* ════ CALENDAR TOGGLE ════ */
+function toggleCalendar(){
+  calOpen=!calOpen;
+  calPanel.classList.toggle('open',calOpen);
+  calToggle.classList.toggle('active',calOpen);
+  if(calOpen)updateCalendar();
+  setTimeout(()=>map.resize(),310);
+}
+calToggle.addEventListener('click',toggleCalendar);
 
-  // Inject state data
-  geojson.features.forEach(f=>{
-    const d = SD[f.properties.name]||{};
-    Object.assign(f.properties,d);
-    stateFeatures[f.properties.name]=f; // cache for bbox lookup
-  });
+/* ════ MAP INIT ════ */
+const map=new maplibregl.Map({
+  container:'map',
+  style:{version:8,glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources:{carto:{type:'raster',tiles:['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],tileSize:256,
+      attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>'}},
+    layers:[{id:'carto',type:'raster',source:'carto'}]},
+  center:[-98.5,39.5],zoom:3.8,minZoom:2,maxZoom:13,pitchWithRotate:false,dragRotate:false
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
 
-  map.addSource('states',{type:'geojson',data:geojson,generateId:true});
-
-  map.addLayer({id:'states-fill',type:'fill',source:'states',
-    paint:{'fill-color':colorExpr(current),'fill-opacity':.80}});
-  map.addLayer({id:'states-border',type:'line',source:'states',
-    paint:{'line-color':'#162840','line-width':.8,'line-opacity':.9}});
-  map.addLayer({id:'states-hover',type:'fill',source:'states',
-    paint:{'fill-color':'#ffffff','fill-opacity':['case',['boolean',['feature-state','hovered'],false],.07,0]}});
-  map.addLayer({id:'states-hover-border',type:'line',source:'states',
-    paint:{'line-color':'#ffffff','line-width':1.5,'line-opacity':['case',['boolean',['feature-state','hovered'],false],.45,0]}});
-
-  let hovStateId=null;
-
+map.on('load',async()=>{
+  const res=await fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json');
+  const gj=await res.json();
+  gj.features.forEach(f=>{Object.assign(f.properties,SD[f.properties.name]||{});stateFeatures[f.properties.name]=f;});
+  map.addSource('states',{type:'geojson',data:gj,generateId:true});
+  map.addLayer({id:'states-fill',type:'fill',source:'states',paint:{'fill-color':colorExpr(current),'fill-opacity':.80}});
+  map.addLayer({id:'states-border',type:'line',source:'states',paint:{'line-color':'#162840','line-width':.8,'line-opacity':.9}});
+  map.addLayer({id:'states-hover',type:'fill',source:'states',paint:{'fill-color':'#fff','fill-opacity':['case',['boolean',['feature-state','hovered'],false],.07,0]}});
+  map.addLayer({id:'states-hover-border',type:'line',source:'states',paint:{'line-color':'#fff','line-width':1.5,'line-opacity':['case',['boolean',['feature-state','hovered'],false],.45,0]}});
+  let hovSt=null;
   map.on('mousemove','states-fill',e=>{
-    if(inCountyView) return;
-    if(hovStateId!==null) map.setFeatureState({source:'states',id:hovStateId},{hovered:false});
-    hovStateId=e.features[0].id;
-    map.setFeatureState({source:'states',id:hovStateId},{hovered:true});
-    showTip(e.point,e.features[0].properties,false);
-    map.getCanvas().style.cursor='pointer';
+    if(inCountyView)return;
+    if(hovSt!==null)map.setFeatureState({source:'states',id:hovSt},{hovered:false});
+    hovSt=e.features[0].id; map.setFeatureState({source:'states',id:hovSt},{hovered:true});
+    showTip(e.point,e.features[0].properties,false); map.getCanvas().style.cursor='pointer';
   });
   map.on('mouseleave','states-fill',()=>{
-    if(inCountyView) return;
-    if(hovStateId!==null) map.setFeatureState({source:'states',id:hovStateId},{hovered:false});
-    hovStateId=null;
-    tooltip.style.display='none';
-    map.getCanvas().style.cursor='';
+    if(inCountyView)return;
+    if(hovSt!==null)map.setFeatureState({source:'states',id:hovSt},{hovered:false});
+    hovSt=null; tooltip.style.display='none'; map.getCanvas().style.cursor='';
   });
-
-  // Click → drill to county
   map.on('click','states-fill',e=>{
-    if(inCountyView) return;
-    const stateName = e.features[0].properties.name;
-    const sf = stateFeatures[stateName];
-    if(sf) showCountyView(stateName,sf);
+    if(inCountyView)return;
+    const name=e.features[0].properties.name;
+    const sf=stateFeatures[name]; if(sf)showCountyView(name,sf);
   });
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   UI EVENT HANDLERS
-═══════════════════════════════════════════════════════════════ */
-document.querySelectorAll('.metric-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>setMetric(btn.dataset.metric));
-});
+/* ════ BUTTONS ════ */
+document.querySelectorAll('.metric-btn').forEach(btn=>btn.addEventListener('click',()=>setMetric(btn.dataset.metric)));
 backBtn.addEventListener('click',showStateView);
 
-/* Init legend gradient */
-(()=>{
-  const m=METRICS[current];
-  document.getElementById('legend-bar').style.background=
-    `linear-gradient(to right,${m.colorLow},${hexMix(m.colorLow,m.colorHigh,.45)},${m.colorHigh})`;
-})();
+/* ════ INIT LEGEND ════ */
+(()=>{const m=METRICS[current];document.getElementById('legend-bar').style.background=
+  `linear-gradient(to right,${m.colorLow},${hexMix(m.colorLow,m.colorHigh,.45)},${m.colorHigh})`;})();
 </script>
 </body>
 </html>
