@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSM Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<style>
+:root {
+  --bg: #050c18;
+  --surface: #0b1828;
+  --panel: #071320;
+  --panel2: #0a1a2e;
+  --border: rgba(0,140,255,0.16);
+  --border-hi: rgba(0,170,255,0.45);
+  --accent: #00aaff;
+  --accent-dim: rgba(0,170,255,0.18);
+  --accept: #00e5a0;
+  --accept-dim: rgba(0,229,160,0.15);
+  --amber: #ffb300;
+  --amber-dim: rgba(255,179,0,0.18);
+  --red: #ff4466;
+  --red-dim: rgba(255,68,102,0.15);
+  --purple: #b48aff;
+  --purple-dim: rgba(180,138,255,0.15);
+  --text: #ccddf0;
+  --text-mid: #6a90b5;
+  --text-dim: #3a5570;
+  --r: 5px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+  --state-r: 42;
+  --toolbar-h: 46px;
+  --sidebar-w: 210px;
+  --props-w: 272px;
+  --sim-h: 210px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;-webkit-font-smoothing:antialiased}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100vh}
+#workspace{display:flex;flex:1;overflow:hidden}
+
+/* ── Toolbar ── */
+#toolbar{
+  height:var(--toolbar-h);background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:3px;padding:0 10px;
+  flex-shrink:0;z-index:100;
+}
+.logo{
+  font-size:13px;font-weight:600;color:var(--accent);
+  letter-spacing:2.5px;margin-right:12px;white-space:nowrap;
+  text-shadow:0 0 20px rgba(0,170,255,0.4);
+}
+.logo span{opacity:.5}
+.tb-sep{width:1px;height:22px;background:var(--border);margin:0 5px;flex-shrink:0}
+.tb-btn{
+  background:transparent;border:1px solid transparent;
+  color:var(--text-mid);padding:4px 9px;border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:10px;
+  letter-spacing:.5px;display:flex;align-items:center;gap:5px;
+  transition:all .13s;white-space:nowrap;
+}
+.tb-btn:hover{background:var(--accent-dim);border-color:var(--border-hi);color:var(--text)}
+.tb-btn.danger:hover{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.tb-group{display:flex;align-items:center;gap:2px}
+#mode-sel{
+  background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);padding:4px 7px;border-radius:var(--r);
+  font-family:var(--mono);font-size:10px;cursor:pointer;
+}
+#mode-sel:focus{outline:none;border-color:var(--accent)}
+#complexity{
+  display:flex;align-items:center;gap:1px;margin-left:auto;
+  background:rgba(0,0,0,0.35);border:1px solid var(--border);
+  border-radius:var(--r);padding:2px;
+}
+.cx-opt{
+  font-size:9px;padding:3px 9px;border-radius:4px;cursor:pointer;
+  color:var(--text-dim);transition:all .13s;letter-spacing:.8px;
+}
+.cx-opt.on{background:var(--accent);color:#000;font-weight:600}
+.cx-opt:hover:not(.on){color:var(--text)}
+#project-name-input{
+  background:transparent;border:none;border-bottom:1px solid var(--border);
+  color:var(--text-mid);font-family:var(--mono);font-size:11px;
+  padding:2px 4px;width:130px;
+}
+#project-name-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:var(--sidebar-w);background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.sb-hdr{
+  padding:7px 10px;font-size:9px;letter-spacing:1.8px;
+  color:var(--text-dim);text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sb-hdr .iadd{
+  background:none;border:none;color:var(--accent);
+  cursor:pointer;font-size:15px;line-height:1;padding:0 2px;
+  transition:opacity .13s;
+}
+.sb-hdr .iadd:hover{opacity:.6}
+
+/* Tools */
+#toolbox{padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tool-btn{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-mid);padding:7px 4px;border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:9px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  transition:all .13s;letter-spacing:.5px;
+}
+.tool-btn .ti{font-size:15px;line-height:1}
+.tool-btn:hover{background:var(--accent-dim);border-color:var(--border-hi);color:var(--text)}
+.tool-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+
+/* Machine list */
+#machine-list{flex:1;overflow-y:auto;padding:4px}
+.m-item{
+  padding:6px 9px;border-radius:var(--r);cursor:pointer;
+  display:flex;align-items:center;gap:7px;transition:background .12s;
+  margin-bottom:2px;
+}
+.m-item:hover{background:rgba(255,255,255,0.04)}
+.m-item.on{background:var(--accent-dim);color:var(--accent)}
+.m-badge{
+  font-size:8px;padding:1px 5px;border-radius:3px;
+  background:var(--accent-dim);color:var(--accent);
+  letter-spacing:.3px;flex-shrink:0;
+}
+.m-item.on .m-badge{background:rgba(0,170,255,0.3)}
+.m-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.m-del{
+  background:none;border:none;color:var(--text-dim);cursor:pointer;
+  font-size:11px;opacity:0;transition:opacity .12s;padding:0 2px;
+}
+.m-item:hover .m-del{opacity:1}
+.m-del:hover{color:var(--red)}
+
+/* Vars */
+#vars-section{border-top:1px solid var(--border);max-height:140px;overflow-y:auto;display:none}
+#vars-list{padding:5px 7px}
+.var-row{
+  display:flex;align-items:center;gap:4px;margin-bottom:4px;
+}
+.var-row input{
+  background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);border-radius:3px;font-family:var(--mono);font-size:10px;
+  padding:3px 5px;
+}
+.var-row .vname{width:70px}
+.var-row .vval{flex:1}
+.var-row .vdel{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px}
+.var-row .vdel:hover{color:var(--red)}
+
+/* ── Editor area ── */
+#editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* Breadcrumb */
+#bc-bar{
+  height:30px;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px;gap:5px;font-size:10px;flex-shrink:0;
+}
+.bc{color:var(--accent);cursor:pointer;transition:opacity .13s}
+.bc:hover{opacity:.7;text-decoration:underline}
+.bc.cur{color:var(--text-mid);cursor:default}
+.bc.cur:hover{opacity:1;text-decoration:none}
+.bc-sep{color:var(--text-dim)}
+#canvas-hint{margin-left:auto;font-size:9px;color:var(--text-dim);letter-spacing:.3px}
+
+/* Canvas */
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg)}
+#canvas-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(0,120,220,0.13) 1px,transparent 1px);
+  background-size:30px 30px;z-index:0;
+}
+svg#cvs{width:100%;height:100%;position:relative;z-index:1;display:block}
+
+/* SVG Elements */
+.s-group{cursor:pointer}
+.s-circle{fill:var(--surface);stroke:var(--accent);stroke-width:1.5;transition:fill .15s}
+.s-accept{fill:none;stroke:var(--accept);stroke-width:1.2;display:none}
+.s-label{fill:var(--text);font-family:var(--mono);font-size:13px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.s-sub{fill:var(--text-dim);font-family:var(--mono);font-size:9px;text-anchor:middle;pointer-events:none}
+.s-group.sel .s-circle{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 8px rgba(0,170,255,0.6))}
+.s-group.accepting .s-circle{stroke:var(--accept)}
+.s-group.accepting .s-accept{display:block;opacity:0.5}
+.s-group.sim-on .s-circle{
+  fill:rgba(0,170,255,0.22);
+  stroke:var(--accent);stroke-width:2.5;
+  filter:drop-shadow(0 0 18px rgba(0,170,255,0.7));
+}
+.s-group.accepting.sim-on .s-circle{
+  fill:rgba(0,229,160,0.22);
+  stroke:var(--accept);stroke-width:2.5;
+  filter:drop-shadow(0 0 18px rgba(0,229,160,0.7));
+}
+.s-group.sim-on.accepting .s-circle{stroke:var(--accept)}
+.init-arrow{stroke:var(--accent);fill:var(--accent)}
+
+.t-group{cursor:pointer}
+.t-path{fill:none;stroke:var(--text-dim);stroke-width:1.5;pointer-events:none}
+.t-hit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer}
+.t-label{fill:var(--text-mid);font-family:var(--mono);font-size:11px;text-anchor:middle;pointer-events:none}
+.t-group:hover .t-path{stroke:var(--text)}
+.t-group:hover .t-label{fill:var(--text)}
+.t-group.sel .t-path{stroke:var(--accent);stroke-width:2}
+.t-group.sel .t-label{fill:var(--accent)}
+.t-group.has-sub .t-path{stroke:var(--purple);stroke-dasharray:7,3}
+.t-group.has-sub .t-label{fill:var(--purple)}
+.t-group.sim-on .t-path{stroke:var(--amber);stroke-width:2.5;filter:drop-shadow(0 0 5px rgba(255,179,0,0.5))}
+
+/* ── Properties ── */
+#props{
+  width:var(--props-w);background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+#props-hdr{padding:7px 11px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:1.8px;color:var(--text-dim);text-transform:uppercase;flex-shrink:0}
+#props-body{flex:1;overflow-y:auto;padding:11px}
+.ph{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-dim);gap:8px;text-align:center;padding:20px}
+.ph-ico{font-size:28px;opacity:.25}
+.ph p{font-size:10px;line-height:1.7;opacity:.7}
+
+.p-sec{margin-bottom:14px}
+.p-lbl{font-size:9px;letter-spacing:1.3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.code-badge{font-size:8px;padding:1px 5px;border-radius:3px;background:var(--purple-dim);color:var(--purple);letter-spacing:.2px}
+.p-inp{
+  width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);padding:6px 8px;border-radius:var(--r);
+  font-family:var(--mono);font-size:11px;transition:border-color .13s;
+}
+.p-inp:focus{outline:none;border-color:var(--accent)}
+.p-inp[type=checkbox]{width:auto}
+.p-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.p-row label{font-size:11px;color:var(--text-mid);cursor:pointer}
+.p-row input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.cm-wrap{border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.CodeMirror{height:78px!important;font-family:var(--mono)!important;font-size:10.5px!important;background:rgba(0,0,0,0.5)!important}
+.CodeMirror-scroll{min-height:58px!important}
+
+.swatches{display:flex;gap:5px;flex-wrap:wrap}
+.swatch{width:19px;height:19px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:border-color .12s}
+.swatch.on{border-color:#fff}
+
+.zoom-btn{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--purple);padding:6px 10px;border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:10px;
+  display:flex;align-items:center;gap:5px;width:100%;
+  transition:all .13s;margin-top:4px;letter-spacing:.3px;
+}
+.zoom-btn:hover{border-color:var(--purple);background:var(--purple-dim)}
+.zoom-btn.del{color:var(--red);border-color:transparent}
+.zoom-btn.del:hover{border-color:var(--red);background:var(--red-dim)}
+
+/* ── Sim panel ── */
+#sim-resize{height:4px;background:transparent;cursor:ns-resize;border-top:1px solid var(--border);flex-shrink:0}
+#sim-resize:hover{background:rgba(0,170,255,0.18)}
+#sim-panel{
+  height:var(--sim-h);background:var(--panel);
+  border-top:1px solid var(--border);display:flex;flex-shrink:0;overflow:hidden;
+}
+#sim-ctrl{
+  width:230px;border-right:1px solid var(--border);
+  padding:10px;display:flex;flex-direction:column;gap:7px;flex-shrink:0;overflow-y:auto;
+}
+#sim-ctrl h3{font-size:9px;letter-spacing:1.8px;color:var(--text-dim);text-transform:uppercase}
+.s-inp-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:3px}
+#tape-in{
+  background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);padding:5px 7px;border-radius:var(--r);
+  font-family:var(--mono);font-size:11px;width:100%;
+}
+#tape-in:focus{outline:none;border-color:var(--accent)}
+.sim-btns{display:flex;gap:3px;flex-wrap:wrap}
+.sb{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-mid);padding:4px 8px;border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:10px;
+  transition:all .13s;display:flex;align-items:center;gap:4px;
+}
+.sb:hover{background:var(--accent-dim);color:var(--text);border-color:var(--border-hi)}
+.sb.run{border-color:var(--accept);color:var(--accept)}
+.sb.run:hover{background:var(--accept-dim)}
+.sb.stop{border-color:var(--red);color:var(--red)}
+.sb.stop:hover{background:var(--red-dim)}
+.sb:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.spd-row{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--text-dim)}
+.spd-row input{flex:1;accent-color:var(--accent)}
+.sim-stat{
+  font-size:10px;padding:4px 8px;border-radius:4px;
+  border:1px solid var(--border);text-align:center;letter-spacing:.5px;
+}
+.sim-stat.running{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.sim-stat.accepted{border-color:var(--accept);color:var(--accept);background:var(--accept-dim)}
+.sim-stat.rejected{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.sim-stat.idle{color:var(--text-dim)}
+
+#log-area{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0}
+#log-area h4,#out-area h4{
+  font-size:9px;letter-spacing:1.5px;color:var(--text-dim);
+  padding:7px 11px;text-transform:uppercase;border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+#sim-log{flex:1;overflow-y:auto;padding:5px 11px;font-size:10px}
+.le{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.025);display:flex;gap:7px;align-items:baseline}
+.le-n{color:var(--text-dim);min-width:26px;font-size:9px}
+.le-s{color:var(--accent)}
+.le-sym{color:var(--amber)}
+.le-arr{color:var(--text-dim)}
+.le-ns{color:var(--accept)}
+.le-err{color:var(--red)}
+.le-ok{color:var(--accept);font-weight:600}
+
+#out-area{width:170px;display:flex;flex-direction:column;flex-shrink:0}
+#sim-out{flex:1;overflow-y:auto;padding:7px 11px;font-size:11px;font-family:var(--mono);color:var(--accept);word-break:break-all;line-height:1.8}
+
+/* ── TM Tape overlay ── */
+#tm-tape{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  display:none;align-items:center;background:var(--panel);
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;z-index:10;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+.tc{
+  width:34px;height:34px;border-right:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;color:var(--text);transition:background .2s;
+}
+.tc:last-child{border-right:none}
+.tc.hd{background:var(--amber-dim);color:var(--amber);border-color:var(--amber)}
+.tc.hd::after{content:'▲';position:absolute;font-size:7px;color:var(--amber);margin-top:26px}
+.tc{position:relative}
+
+/* ── Modal ── */
+#modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.72);
+  display:none;align-items:center;justify-content:center;z-index:1000;
+}
+#modal-bg.show{display:flex}
+#modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:22px;min-width:300px;max-width:460px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+#modal h2{font-size:12px;color:var(--accent);margin-bottom:14px;letter-spacing:1.5px}
+.m-inp{
+  width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);padding:7px 9px;border-radius:var(--r);
+  font-family:var(--mono);font-size:12px;margin-bottom:10px;
+}
+.m-inp:focus{outline:none;border-color:var(--accent)}
+.m-sel{
+  width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);
+  color:var(--text);padding:7px 9px;border-radius:var(--r);
+  font-family:var(--mono);font-size:11px;margin-bottom:10px;
+}
+.m-lbl{font-size:9px;letter-spacing:1.2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px}
+.m-btns{display:flex;gap:7px;justify-content:flex-end;margin-top:6px}
+.m-btn{
+  padding:6px 14px;border-radius:var(--r);cursor:pointer;
+  font-family:var(--mono);font-size:11px;border:1px solid var(--border);
+  background:transparent;color:var(--text-mid);transition:all .13s;
+}
+.m-btn.ok{border-color:var(--accent);color:var(--accent)}
+.m-btn.ok:hover{background:var(--accent-dim)}
+.m-btn:not(.ok):hover{border-color:var(--text-mid);color:var(--text)}
+
+/* ── Notification ── */
+#notif{
+  position:fixed;top:56px;right:14px;z-index:9999;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:9px 14px;font-size:11px;color:var(--text);
+  transform:translateX(130%);transition:transform .22s;
+  pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+#notif.show{transform:translateX(0)}
+#notif.ok{border-color:var(--accept);color:var(--accept)}
+#notif.err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="logo">⬡<span> </span>HSM STUDIO</div>
+  <div class="tb-sep"></div>
+  <input id="project-name-input" value="Untitled Project" title="Project name">
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-new">⊕ NEW</button>
+    <button class="tb-btn" id="btn-save">↓ SAVE</button>
+    <button class="tb-btn" id="btn-load">↑ LOAD</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-layout">⊞ LAYOUT</button>
+    <button class="tb-btn" id="btn-fit">⊡ FIT</button>
+    <button class="tb-btn" id="btn-dot">↗ DOT</button>
+  </div>
+  <div class="tb-sep"></div>
+  <select id="mode-sel" title="Machine mode">
+    <option>DFA</option><option>NFA</option>
+    <option>Mealy</option><option>Moore</option><option>TM</option>
+  </select>
+  <div id="complexity">
+    <div class="cx-opt" data-c="simple">SIMPLE</div>
+    <div class="cx-opt on" data-c="standard">STANDARD</div>
+    <div class="cx-opt" data-c="advanced">ADVANCED</div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-hdr" style="border-bottom:none">TOOLS</div>
+    <div id="toolbox">
+      <button class="tool-btn on" data-t="select"><span class="ti">↖</span>SELECT</button>
+      <button class="tool-btn" data-t="state"><span class="ti">◯</span>STATE</button>
+      <button class="tool-btn" data-t="transition"><span class="ti">⟶</span>TRANS</button>
+      <button class="tool-btn" data-t="delete"><span class="ti">✕</span>DELETE</button>
+    </div>
+    <div class="sb-hdr">
+      MACHINES
+      <button class="iadd" id="btn-add-m" title="Add machine">+</button>
+    </div>
+    <div id="machine-list"></div>
+    <div id="vars-section">
+      <div class="sb-hdr" style="border-bottom:none">
+        VARIABLES
+        <button class="iadd" id="btn-add-var">+</button>
+      </div>
+      <div id="vars-list"></div>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="editor-area">
+    <div id="bc-bar">
+      <span id="bc"></span>
+      <span id="canvas-hint">Click canvas to add state · Drag state→state for transition</span>
+    </div>
+    <div id="canvas-wrap">
+      <svg id="cvs">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,9 3,0 6" fill="#3a5570"/>
+          </marker>
+          <marker id="ah-sel" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,9 3,0 6" fill="#00aaff"/>
+          </marker>
+          <marker id="ah-sim" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,9 3,0 6" fill="#ffb300"/>
+          </marker>
+          <marker id="ah-sub" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,9 3,0 6" fill="#b48aff"/>
+          </marker>
+        </defs>
+        <g id="lyr-bg"></g>
+        <g id="lyr-t"></g>
+        <g id="lyr-s"></g>
+        <g id="lyr-ov"></g>
+      </svg>
+      <div id="tm-tape"></div>
+    </div>
+  </div>
+
+  <!-- PROPERTIES -->
+  <div id="props">
+    <div id="props-hdr">PROPERTIES</div>
+    <div id="props-body">
+      <div class="ph"><div class="ph-ico">◻</div><p>Select a state or transition to inspect and edit properties.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIM RESIZE -->
+<div id="sim-resize"></div>
+
+<!-- SIM PANEL -->
+<div id="sim-panel">
+  <div id="sim-ctrl">
+    <h3>SIMULATION</h3>
+    <div>
+      <div class="s-inp-lbl">INPUT TAPE / TOKENS</div>
+      <input id="tape-in" value="a b" placeholder="a b b a ε ...">
+    </div>
+    <div class="sim-btns">
+      <button class="sb run" id="sb-run">▶ RUN</button>
+      <button class="sb" id="sb-step">⏭ STEP</button>
+      <button class="sb stop" id="sb-stop">■ STOP</button>
+      <button class="sb" id="sb-reset">↺ RESET</button>
+    </div>
+    <div class="spd-row">
+      <span>SPEED</span>
+      <input type="range" id="sim-spd" min="1" max="20" value="5">
+      <span id="spd-val">5</span>
+    </div>
+    <div class="sim-stat idle" id="sim-stat">IDLE</div>
+    <!-- Current state display -->
+    <div style="border-top:1px solid var(--border);padding-top:7px">
+      <div class="s-inp-lbl">CURRENT STATE</div>
+      <div id="sim-cur-state" style="font-size:15px;font-weight:600;color:var(--accent);min-height:22px;letter-spacing:1px">—</div>
+      <div class="s-inp-lbl" style="margin-top:6px">CURRENT SYMBOL</div>
+      <div id="sim-cur-sym" style="font-size:13px;color:var(--amber);min-height:18px;font-weight:500">—</div>
+      <div class="s-inp-lbl" style="margin-top:6px">TAPE</div>
+      <div id="sim-tape-vis" style="font-size:11px;min-height:16px;line-height:1.5;word-break:break-all;color:var(--text-mid)">—</div>
+    </div>
+  </div>
+  <div id="log-area">
+    <h4>EXECUTION LOG</h4>
+    <div id="sim-log"></div>
+  </div>
+  <div id="out-area">
+    <h4>OUTPUT</h4>
+    <div id="sim-out"></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- MODAL -->
+<div id="modal-bg">
+  <div id="modal">
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <div class="m-btns">
+      <button class="m-btn" id="modal-cancel">CANCEL</button>
+      <button class="m-btn ok" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF -->
+<div id="notif"></div>
+<input type="file" id="file-in" accept=".json" style="display:none">
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════
+//  HSM STUDIO — Core
+// ═══════════════════════════════════════════════════════════
+
+// ── Utils ────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).substr(2,9);
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const dist = (a,b) => Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+const norm = v => { const l=Math.sqrt(v.x**2+v.y**2)||1; return {x:v.x/l,y:v.y/l}; };
+const sub  = (a,b) => ({x:a.x-b.x,y:a.y-b.y});
+const add  = (a,b) => ({x:a.x+b.x,y:a.y+b.y});
+const mul  = (v,s) => ({x:v.x*s,y:v.y*s});
+const lerp = (a,b,t) => a+(b-a)*t;
+const bezier = (p0,p1,p2,p3,t) => {
+  const u=1-t;
+  return {
+    x: u**3*p0.x+3*u**2*t*p1.x+3*u*t**2*p2.x+t**3*p3.x,
+    y: u**3*p0.y+3*u**2*t*p1.y+3*u*t**2*p2.y+t**3*p3.y
+  };
+};
+
+// ── Constants ────────────────────────────────────────────
+const SR = 42;          // state radius
+const LOOP_H = 65;      // self-loop height
+const PARA_OFF = 52;    // parallel transition offset
+const OBS_R = 110;      // obstacle avoidance radius
+const OBS_F = 75;       // obstacle force
+const COLORS = ['#00aaff','#00e5a0','#ffb300','#ff4466','#b48aff','#f97316','#06b6d4','#84cc16'];
+
+// ── Data Factories ────────────────────────────────────────
+function mkState(x,y,lbl) {
+  return { id:uid(), label:lbl||'S', x, y,
+    isInitial:false, isAccepting:false,
+    onEntry:'', onExit:'', output:'', color:null, notes:'' };
+}
+function mkTrans(from,to,sym) {
+  return { id:uid(), from, to, symbol:sym||'a', output:'',
+    guard:'', action:'', direction:'R', subMachineId:null,
+    cp1:null, cp2:null };
+}
+function mkMachine(name,mode) {
+  return { id:uid(), name:name||'Machine', mode:mode||'DFA',
+    states:{}, transitions:{}, alphabet:['a','b'], variables:{} };
+}
+function mkProject(name) {
+  return { name:name||'Untitled', machines:{}, version:'1.1' };
+}
+
+// ── App State ─────────────────────────────────────────────
+const App = {
+  project: null,
+  machId: null,        // current machine id
+  navStack: [],        // [{machineId, label, transId}]
+  tool: 'select',
+  sel: null,           // {type:'state'|'transition', id}
+  cx: 'standard',     // complexity
+  xf: {x:0,y:0,k:1}, // canvas transform
+  drawing: null,       // {fromId, mx, my}
+  cms: {},             // codemirror instances by key
+  stateCount: 0,
+  sim: {
+    running:false, iid:null,
+    stateIds:[], tape:[], pos:0,
+    steps:0, output:[], status:'idle',
+    lastTid:null
+  }
+};
+
+// ── Routing ──────────────────────────────────────────────
+function autoCP(from, to, allStates, idx, total) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  const len=Math.sqrt(dx**2+dy**2)||1;
+  const px=-dy/len, py=dx/len; // perpendicular unit
+
+  const offset = total>1 ? (idx-(total-1)/2)*PARA_OFF : 0;
+
+  // midpoint with parallel offset
+  let mx=(from.x+to.x)/2+px*offset, my=(from.y+to.y)/2+py*offset;
+
+  // obstacle repulsion
+  let rx=0, ry=0;
+  allStates.forEach(s => {
+    if(s===from||s===to) return;
+    const d=dist({x:mx,y:my},s);
+    if(d<OBS_R) {
+      const f=(OBS_R-d)/OBS_R*OBS_F;
+      const dir=norm(sub({x:mx,y:my},s));
+      rx+=dir.x*f; ry+=dir.y*f;
+    }
+  });
+
+  return [
+    {x:from.x+dx*.25+px*offset+rx*.6, y:from.y+dy*.25+py*offset+ry*.6},
+    {x:from.x+dx*.75+px*offset+rx*.6, y:from.y+dy*.75+py*offset+ry*.6}
+  ];
+}
+
+function loopPath(s, idx) {
+  const ang = -Math.PI/2 + idx*0.45;
+  const cx=s.x+Math.cos(ang)*(SR+LOOP_H);
+  const cy=s.y+Math.sin(ang)*(SR+LOOP_H);
+  const a1=ang-0.68, a2=ang+0.68;
+  const x1=s.x+Math.cos(a1)*SR, y1=s.y+Math.sin(a1)*SR;
+  const x2=s.x+Math.cos(a2)*SR, y2=s.y+Math.sin(a2)*SR;
+  return `M${x1},${y1} C${cx-5},${cy-32} ${cx+5},${cy+32} ${x2},${y2}`;
+}
+
+function loopMid(s, idx) {
+  const ang=-Math.PI/2+idx*0.45;
+  return {x:s.x+Math.cos(ang)*(SR+LOOP_H)-5, y:s.y+Math.sin(ang)*(SR+LOOP_H)-18};
+}
+
+function getPath(t, mach) {
+  const from=mach.states[t.from], to=mach.states[t.to];
+  if(!from||!to) return '';
+  if(t.from===t.to) {
+    const loops=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
+    return loopPath(from, loops.indexOf(t));
+  }
+  const sameDir=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
+  const idx=sameDir.indexOf(t);
+  const ss=Object.values(mach.states);
+  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,idx,sameDir.length);
+  const d1=norm(sub(c1,from)), d2=norm(sub(c2,to));
+  return `M${from.x+d1.x*SR},${from.y+d1.y*SR} C${c1.x},${c1.y} ${c2.x},${c2.y} ${to.x+d2.x*SR},${to.y+d2.y*SR}`;
+}
+
+function getMid(t, mach) {
+  const from=mach.states[t.from], to=mach.states[t.to];
+  if(!from||!to) return {x:0,y:0};
+  if(t.from===t.to) {
+    const loops=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
+    return loopMid(from, loops.indexOf(t));
+  }
+  const sameDir=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
+  const idx=sameDir.indexOf(t);
+  const ss=Object.values(mach.states);
+  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,idx,sameDir.length);
+  const d1=norm(sub(c1,from)), d2=norm(sub(c2,to));
+  const p0={x:from.x+d1.x*SR,y:from.y+d1.y*SR};
+  const p3={x:to.x+d2.x*SR,y:to.y+d2.y*SR};
+  const mid=bezier(p0,c1,c2,p3,.5);
+  return {x:mid.x, y:mid.y-11};
+}
+
+// ── Canvas Setup ──────────────────────────────────────────
+let svg, lBg, lT, lS, lOv, zoomBeh;
+
+function initCanvas() {
+  svg=d3.select('#cvs');
+  lBg=d3.select('#lyr-bg');
+  lT=d3.select('#lyr-t');
+  lS=d3.select('#lyr-s');
+  lOv=d3.select('#lyr-ov');
+
+  zoomBeh=d3.zoom().scaleExtent([0.08,5]).on('zoom',ev=>{
+    App.xf=ev.transform;
+    [lBg,lT,lS,lOv].forEach(l=>l.attr('transform',ev.transform));
+  });
+  svg.call(zoomBeh).on('dblclick.zoom',null);
+
+  // canvas click → add state
+  svg.on('click', function(ev) {
+    if(App.tool!=='state') return;
+    const tag=ev.target.tagName;
+    if(tag!=='svg'&&tag!=='rect'&&!ev.target.id.startsWith('lyr')) return;
+    const [x,y]=s2c(ev.clientX,ev.clientY);
+    addState(x,y);
+  });
+
+  // deselect on canvas click (select tool)
+  svg.on('click.desel', function(ev) {
+    if(App.tool!=='select') return;
+    if(ev.target.id==='cvs'||ev.target.tagName==='svg') {
+      App.sel=null; renderAll(); renderProps();
+    }
+  });
+
+  svg.on('mousemove', function(ev) {
+    if(!App.drawing) return;
+    const [x,y]=s2c(ev.clientX,ev.clientY);
+    App.drawing.mx=x; App.drawing.my=y;
+    renderOv();
+  });
+
+  svg.on('mouseup.draw', function(ev) {
+    if(!App.drawing) return;
+    const [x,y]=s2c(ev.clientX,ev.clientY);
+    const mach=curMach();
+    if(mach) {
+      const tgt=stateAt(x,y,mach);
+      if(tgt) showTransModal(App.drawing.fromId,tgt.id);
+    }
+    App.drawing=null; renderOv();
+  });
+
+  d3.select(document).on('keydown.hsm', ev => {
+    const tag=document.activeElement.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||document.activeElement.classList.contains('CodeMirror-code')) {
+      if(ev.key==='Escape') document.activeElement.blur();
+      return;
+    }
+    if(ev.key==='Escape') { App.drawing=null; App.sel=null; renderAll(); renderProps(); }
+    if((ev.key==='Delete'||ev.key==='Backspace')&&App.sel) delSel();
+    if(ev.ctrlKey&&ev.key==='s') { ev.preventDefault(); saveProject(); }
+    if(ev.ctrlKey&&ev.key==='z') { /* undo stub */ }
+  });
+}
+
+function s2c(sx,sy) {
+  const r=document.getElementById('canvas-wrap').getBoundingClientRect();
+  const {x,y,k}=App.xf;
+  return [(sx-r.left-x)/k,(sy-r.top-y)/k];
+}
+
+function stateAt(x,y,mach) {
+  return Object.values(mach.states).find(s=>dist({x,y},s)<=SR+4);
+}
+
+// ── Render ────────────────────────────────────────────────
+function renderAll() {
+  const mach=curMach(); if(!mach) return;
+  renderTransitions(mach);
+  renderStates(mach);
+  renderOv();
+  renderBC();
+  renderMachList();
+  updateSimStat();
+  updateTape();
+}
+
+function renderStates(mach) {
+  const data=Object.values(mach.states);
+  const groups=lS.selectAll('.s-group').data(data,d=>d.id);
+  groups.exit().remove();
+
+  const enter=groups.enter().append('g').attr('class','s-group');
+  enter.append('circle').attr('class','s-circle').attr('r',SR);
+  enter.append('circle').attr('class','s-accept').attr('r',SR-7);
+  enter.append('text').attr('class','s-label');
+  enter.append('text').attr('class','s-sub').attr('y',SR-12);
+
+  const all=enter.merge(groups);
+  all.attr('transform',d=>`translate(${d.x},${d.y})`);
+  all.attr('class',d=>{
+    let c='s-group';
+    if(d.isAccepting) c+=' accepting';
+    if(App.sel?.type==='state'&&App.sel.id===d.id) c+=' sel';
+    if(App.sim.stateIds?.includes(d.id)) c+=' sim-on';
+    return c;
+  });
+  all.select('.s-circle')
+    .style('fill',d=>d.color?d.color+'1a':null)
+    .style('stroke',d=>d.color||null);
+  all.select('.s-label').text(d=>d.label);
+  all.select('.s-sub').text(d=>{
+    if(App.cx==='simple') return '';
+    const p=[];
+    if(d.onEntry) p.push('⇒');
+    if(d.onExit) p.push('⇐');
+    if(d.notes) p.push('✎');
+    if(mach.mode==='Moore'&&d.output) p.push('/'+d.output);
+    return p.join(' ');
+  });
+
+  // initial arrow
+  all.selectAll('.init-arr').remove();
+  all.filter(d=>d.isInitial).append('line').attr('class','init-arr init-arrow')
+    .attr('x1',-SR-28).attr('y1',0).attr('x2',-SR-2).attr('y2',0)
+    .attr('stroke-width',1.5).attr('marker-end','url(#ah-sel)');
+
+  // drag
+  const drg=d3.drag()
+    .filter(ev=>App.tool==='select'||App.tool==='transition')
+    .on('start',(ev,d)=>{
+      if(App.tool==='transition') {
+        App.drawing={fromId:d.id,mx:d.x,my:d.y};
+        ev.sourceEvent.stopPropagation(); return;
+      }
+      d3.select(ev.currentTarget).raise();
+      App.sel={type:'state',id:d.id};
+      renderAll(); renderProps();
+    })
+    .on('drag',(ev,d)=>{
+      if(App.tool!=='select') return;
+      d.x+=ev.dx; d.y+=ev.dy;
+      Object.values(mach.transitions).forEach(t=>{
+        if(t.from===d.id||t.to===d.id) { t.cp1=null; t.cp2=null; }
+      });
+      renderAll();
+    })
+    .on('end',(ev,d)=>{
+      if(App.tool==='transition'&&App.drawing) {
+        const [x,y]=s2c(ev.sourceEvent.clientX,ev.sourceEvent.clientY);
+        const tgt=stateAt(x,y,mach);
+        if(tgt) showTransModal(App.drawing.fromId,tgt.id);
+        App.drawing=null; renderOv();
+      }
+    });
+
+  all.call(drg);
+  all.on('click',(ev,d)=>{
+    ev.stopPropagation();
+    if(App.tool==='delete') { delState(d.id); return; }
+    if(App.tool==='select') { App.sel={type:'state',id:d.id}; renderAll(); renderProps(); }
+  });
+}
+
+function renderTransitions(mach) {
+  const data=Object.values(mach.transitions);
+  const groups=lT.selectAll('.t-group').data(data,d=>d.id);
+  groups.exit().remove();
+
+  const enter=groups.enter().append('g').attr('class','t-group');
+  enter.append('path').attr('class','t-hit');
+  enter.append('path').attr('class','t-path');
+  enter.append('text').attr('class','t-label');
+
+  const all=enter.merge(groups);
+  all.attr('class',d=>{
+    let c='t-group';
+    if(App.sel?.type==='transition'&&App.sel.id===d.id) c+=' sel';
+    if(App.sim.lastTid===d.id) c+=' sim-on';
+    if(d.subMachineId) c+=' has-sub';
+    return c;
+  });
+
+  all.select('.t-path').attr('d',d=>getPath(d,mach))
+    .attr('marker-end',d=>{
+      if(App.sim.lastTid===d.id) return 'url(#ah-sim)';
+      if(App.sel?.type==='transition'&&App.sel.id===d.id) return 'url(#ah-sel)';
+      if(d.subMachineId) return 'url(#ah-sub)';
+      return 'url(#ah)';
+    });
+  all.select('.t-hit').attr('d',d=>getPath(d,mach));
+  all.select('.t-label').each(function(d){
+    const m=getMid(d,mach);
+    const isTM=mach.mode==='TM';
+    const isMealy=mach.mode==='Mealy';
+    let lbl=d.symbol||'ε';
+    if((isMealy||isTM)&&d.output&&App.cx!=='simple') lbl+=` / ${d.output}`;
+    if(isTM&&d.direction&&App.cx==='advanced') lbl+=` (${d.direction})`;
+    if(d.guard&&App.cx==='advanced') lbl+=` [${d.guard.substring(0,10)}…]`;
+    d3.select(this).attr('x',m.x).attr('y',m.y).text(lbl);
+  });
+
+  all.on('click',(ev,d)=>{
+    ev.stopPropagation();
+    if(App.tool==='delete') { delTrans(d.id); return; }
+    App.sel={type:'transition',id:d.id};
+    renderAll(); renderProps();
+  });
+}
+
+function renderOv() {
+  lOv.selectAll('*').remove();
+  if(!App.drawing) return;
+  const mach=curMach(); if(!mach) return;
+  const from=mach.states[App.drawing.fromId]; if(!from) return;
+  lOv.append('line')
+    .attr('x1',from.x).attr('y1',from.y)
+    .attr('x2',App.drawing.mx).attr('y2',App.drawing.my)
+    .attr('stroke','var(--accent)').attr('stroke-width',1.5)
+    .attr('stroke-dasharray','6,4').attr('marker-end','url(#ah-sel)');
+}
+
+// ── Breadcrumb ────────────────────────────────────────────
+function renderBC() {
+  const mach=curMach(); if(!mach) { document.getElementById('bc').innerHTML=''; return; }
+  let h='';
+  App.navStack.forEach((item,i)=>{
+    h+=`<span class="bc" onclick="navBack(${i})">${esc(item.label)}</span><span class="bc-sep"> › </span>`;
+  });
+  h+=`<span class="bc cur">${esc(mach.name)}</span>`;
+  document.getElementById('bc').innerHTML=h;
+}
+
+// ── Machine List ──────────────────────────────────────────
+function renderMachList() {
+  const el=document.getElementById('machine-list');
+  if(!App.project) { el.innerHTML=''; return; }
+  el.innerHTML=Object.values(App.project.machines).map(m=>`
+    <div class="m-item ${m.id===App.machId?'on':''}" onclick="switchMach('${m.id}')">
+      <span class="m-badge">${m.mode}</span>
+      <span class="m-name" title="${esc(m.name)}">${esc(m.name)}</span>
+      <button class="m-del" onclick="event.stopPropagation();deleteMach('${m.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── Properties Panel ──────────────────────────────────────
+function destroyCMs() {
+  Object.values(App.cms).forEach(cm=>{ try{cm.toTextArea();}catch(e){} });
+  App.cms={};
+}
+
+function renderProps() {
+  destroyCMs();
+  const body=document.getElementById('props-body');
+  if(!App.sel||!App.project) {
+    body.innerHTML='<div class="ph"><div class="ph-ico">◻</div><p>Select a state or transition to inspect and edit properties.</p></div>';
+    return;
+  }
+  const mach=curMach(); if(!mach) return;
+  if(App.sel.type==='state') {
+    const s=mach.states[App.sel.id]; if(!s) return;
+    renderStateProps(s,mach,body);
+  } else {
+    const t=mach.transitions[App.sel.id]; if(!t) return;
+    renderTransProps(t,mach,body);
+  }
+}
+
+function mkCM(id, field, obj, h) {
+  const el=document.getElementById(id); if(!el) return;
+  const cm=CodeMirror.fromTextArea(el,{
+    mode:'javascript',theme:'dracula',
+    lineNumbers:false,lineWrapping:true,tabSize:2
+  });
+  if(h) cm.setSize(null,h);
+  cm.on('change',()=>{ obj[field]=cm.getValue(); });
+  App.cms[id]=cm;
+}
+
+function renderStateProps(s, mach, body) {
+  const showCode=App.cx!=='simple';
+  body.innerHTML=`
+    <div class="p-sec">
+      <div class="p-lbl">LABEL</div>
+      <input class="p-inp" id="p-lbl" value="${esc(s.label)}" maxlength="24">
+    </div>
+    <div class="p-sec">
+      <div class="p-row"><input type="checkbox" id="p-init" ${s.isInitial?'checked':''}><label for="p-init">Initial state</label></div>
+      <div class="p-row"><input type="checkbox" id="p-acc" ${s.isAccepting?'checked':''}><label for="p-acc">Accepting / Final state</label></div>
+      ${mach.mode==='Moore'?`<div class="p-lbl" style="margin-top:6px">MOORE OUTPUT</div><input class="p-inp" id="p-mout" value="${esc(s.output||'')}" placeholder="output symbol">`:''} 
+    </div>
+    <div class="p-sec">
+      <div class="p-lbl">COLOR</div>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    ${showCode?`
+    <div class="p-sec">
+      <div class="p-lbl">ON ENTRY <span class="code-badge">JS</span></div>
+      <div class="cm-wrap"><textarea id="cm-ent">${esc(s.onEntry)}</textarea></div>
+    </div>
+    <div class="p-sec">
+      <div class="p-lbl">ON EXIT <span class="code-badge">JS</span></div>
+      <div class="cm-wrap"><textarea id="cm-ext">${esc(s.onExit)}</textarea></div>
+    </div>
+    `:''}
+    <div class="p-sec">
+      <div class="p-lbl">NOTES</div>
+      <textarea class="p-inp" id="p-notes" rows="3" style="resize:vertical">${esc(s.notes)}</textarea>
+    </div>
+    <div class="p-sec">
+      <div class="p-lbl">STATE ID</div>
+      <div style="font-size:9px;color:var(--text-dim);font-family:var(--mono)">${s.id}</div>
+    </div>
+  `;
+
+  // swatches
+  const sw=document.getElementById('swatches');
+  // null swatch
+  const ns=document.createElement('div');
+  ns.className='swatch'+(s.color===null?' on':'');
+  ns.style.cssText='background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.2)';
+  ns.title='None'; ns.onclick=()=>{ s.color=null; renderAll(); renderStateProps(s,mach,body); };
+  sw.appendChild(ns);
+  COLORS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='swatch'+(s.color===c?' on':'');
+    d.style.cssText=`background:${c}22;border-color:${c}`;
+    d.title=c; d.onclick=()=>{ s.color=(s.color===c?null:c); renderAll(); renderStateProps(s,mach,body); };
+    sw.appendChild(d);
+  });
+
+  // CodeMirror
+  if(showCode) { mkCM('cm-ent','onEntry',s); mkCM('cm-ext','onExit',s); }
+
+  // Binds
+  document.getElementById('p-lbl').oninput=e=>{ s.label=e.target.value; renderAll(); };
+  document.getElementById('p-init').onchange=e=>{
+    if(e.target.checked) Object.values(mach.states).forEach(st=>st.isInitial=false);
+    s.isInitial=e.target.checked; renderAll();
+  };
+  document.getElementById('p-acc').onchange=e=>{ s.isAccepting=e.target.checked; renderAll(); };
+  document.getElementById('p-notes').oninput=e=>s.notes=e.target.value;
+  const pm=document.getElementById('p-mout');
+  if(pm) pm.oninput=e=>{ s.output=e.target.value; renderAll(); };
+}
+
+function renderTransProps(t, mach, body) {
+  const from=mach.states[t.from], to=mach.states[t.to];
+  const isTM=mach.mode==='TM', isMealy=mach.mode==='Mealy';
+  const showCode=App.cx!=='simple', showSub=App.cx!=='simple';
+  const subMach=t.subMachineId&&App.project.machines[t.subMachineId];
+
+  body.innerHTML=`
+    <div class="p-sec">
+      <div class="p-lbl">TRANSITION</div>
+      <div style="font-size:11px;color:var(--accent);margin-bottom:4px">
+        ${esc(from?.label||'?')} <span style="color:var(--text-dim)">→</span> ${esc(to?.label||'?')}
+      </div>
+    </div>
+    <div class="p-sec">
+      <div class="p-lbl">${isTM?'READ SYMBOL':'INPUT SYMBOL'}</div>
+      <input class="p-inp" id="p-sym" value="${esc(t.symbol)}" placeholder="ε for epsilon">
+    </div>
+    ${(isMealy||isTM)?`
+    <div class="p-sec">
+      <div class="p-lbl">${isTM?'WRITE SYMBOL':'OUTPUT SYMBOL'}</div>
+      <input class="p-inp" id="p-out" value="${esc(t.output)}" placeholder="symbol">
+    </div>
+    `:''}
+    ${isTM?`
+    <div class="p-sec">
+      <div class="p-lbl">HEAD MOVEMENT</div>
+      <select class="p-inp" id="p-dir">
+        <option ${t.direction==='R'?'selected':''} value="R">R — Move Right</option>
+        <option ${t.direction==='L'?'selected':''} value="L">L — Move Left</option>
+        <option ${t.direction==='N'?'selected':''} value="N">N — Stay</option>
+      </select>
+    </div>
+    `:''}
+    ${showCode?`
+    <div class="p-sec">
+      <div class="p-lbl">GUARD CONDITION <span class="code-badge">JS → bool</span></div>
+      <div class="cm-wrap"><textarea id="cm-guard">${esc(t.guard)}</textarea></div>
+    </div>
+    <div class="p-sec">
+      <div class="p-lbl">TRANSITION ACTION <span class="code-badge">JS</span></div>
+      <div class="cm-wrap"><textarea id="cm-act">${esc(t.action)}</textarea></div>
+    </div>
+    `:''}
+    ${showSub?`
+    <div class="p-sec">
+      <div class="p-lbl">SUB-MACHINE</div>
+      ${subMach?`
+        <div style="font-size:11px;color:var(--purple);margin-bottom:6px">⬡ ${esc(subMach.name)}</div>
+        <button class="zoom-btn" id="btn-zin">⬡ ZOOM INTO SUB-MACHINE</button>
+        <button class="zoom-btn del" id="btn-rsub" style="margin-top:4px">✕ REMOVE SUB-MACHINE</button>
+      `:`
+        <button class="zoom-btn" id="btn-asub">⊕ ATTACH / CREATE SUB-MACHINE</button>
+      `}
+    </div>
+    `:''}
+    <div class="p-sec">
+      <div class="p-lbl">TRANSITION ID</div>
+      <div style="font-size:9px;color:var(--text-dim)">${t.id}</div>
+    </div>
+  `;
+
+  if(showCode) { mkCM('cm-guard','guard',t); mkCM('cm-act','action',t); }
+
+  document.getElementById('p-sym').oninput=e=>{ t.symbol=e.target.value; renderAll(); };
+  const po=document.getElementById('p-out'); if(po) po.oninput=e=>{ t.output=e.target.value; renderAll(); };
+  const pd=document.getElementById('p-dir'); if(pd) pd.onchange=e=>{ t.direction=e.target.value; };
+  const bz=document.getElementById('btn-zin'); if(bz) bz.onclick=()=>navInto(t.subMachineId,t);
+  const br=document.getElementById('btn-rsub'); if(br) br.onclick=()=>{ t.subMachineId=null; renderAll(); renderTransProps(t,mach,body); };
+  const ba=document.getElementById('btn-asub'); if(ba) ba.onclick=()=>showSubModal(t,mach,body);
+}
+
+// ── Navigation ────────────────────────────────────────────
+function navInto(machineId, fromTrans) {
+  if(!machineId||!App.project.machines[machineId]) return;
+  const cur=curMach();
+  App.navStack.push({machineId:App.machId,label:cur.name,transId:fromTrans?.id});
+  App.machId=machineId; App.sel=null;
+  App.stateCount=Object.keys(App.project.machines[machineId].states).length;
+  renderAll(); renderProps();
+}
+
+function navBack(idx) {
+  const item=App.navStack[idx];
+  App.navStack=App.navStack.slice(0,idx);
+  App.machId=item.machineId; App.sel=null;
+  App.stateCount=Object.keys(curMach().states).length;
+  renderAll(); renderProps(); updateModeEl();
+}
+window.navBack=navBack;
+
+function navRoot() {
+  if(App.navStack.length===0) return;
+  navBack(0);
+}
+
+// ── State Operations ──────────────────────────────────────
+function addState(x,y) {
+  const mach=curMach(); if(!mach) return;
+  App.stateCount++;
+  const s=mkState(x,y,'q'+(App.stateCount-1));
+  if(Object.keys(mach.states).length===0) s.isInitial=true;
+  mach.states[s.id]=s;
+  App.sel={type:'state',id:s.id};
+  renderAll(); renderProps();
+}
+
+function delState(id) {
+  const mach=curMach(); if(!mach) return;
+  delete mach.states[id];
+  Object.keys(mach.transitions).forEach(tid=>{
+    const t=mach.transitions[tid];
+    if(t.from===id||t.to===id) delete mach.transitions[tid];
+  });
+  if(App.sel?.id===id) App.sel=null;
+  renderAll(); renderProps();
+}
+
+function delTrans(id) {
+  const mach=curMach(); if(!mach) return;
+  delete mach.transitions[id];
+  if(App.sel?.id===id) App.sel=null;
+  renderAll(); renderProps();
+}
+
+function delSel() {
+  if(!App.sel) return;
+  if(App.sel.type==='state') delState(App.sel.id);
+  else delTrans(App.sel.id);
+}
+
+// ── Machine Operations ────────────────────────────────────
+function switchMach(id) {
+  App.machId=id; App.navStack=[]; App.sel=null;
+  App.stateCount=Object.keys(App.project.machines[id].states).length;
+  simReset(); renderAll(); renderProps(); updateModeEl();
+}
+
+function deleteMach(id) {
+  if(Object.keys(App.project.machines).length===1) { notify('Cannot delete the last machine','err'); return; }
+  delete App.project.machines[id];
+  if(App.machId===id) App.machId=Object.keys(App.project.machines)[0];
+  renderAll(); renderProps();
+}
+window.deleteMach=deleteMach;
+
+function switchMach(id) {
+  App.machId=id; App.navStack=[]; App.sel=null;
+  App.stateCount=Object.keys(App.project.machines[id].states).length;
+  simReset(); renderAll(); renderProps(); updateModeEl();
+}
+window.switchMach=switchMach;
+
+function updateModeEl() {
+  const m=curMach(); if(!m) return;
+  document.getElementById('mode-sel').value=m.mode;
+}
+
+function curMach() {
+  return App.project?.machines[App.machId];
+}
+
+// ── Auto Layout ───────────────────────────────────────────
+function autoLayout() {
+  const mach=curMach(); if(!mach) return;
+  if(Object.keys(mach.states).length===0) return;
+
+  const g=new dagre.graphlib.Graph();
+  g.setGraph({rankdir:'LR',nodesep:70,ranksep:130,marginx:60,marginy:60});
+  g.setDefaultEdgeLabel(()=>({}));
+  Object.values(mach.states).forEach(s=>g.setNode(s.id,{width:SR*2+8,height:SR*2+8}));
+  Object.values(mach.transitions).forEach(t=>{ if(t.from!==t.to) g.setEdge(t.from,t.to); });
+  dagre.layout(g);
+
+  g.nodes().forEach(nid=>{
+    const n=g.node(nid);
+    if(mach.states[nid]) { mach.states[nid].x=n.x; mach.states[nid].y=n.y; }
+  });
+  Object.values(mach.transitions).forEach(t=>{ t.cp1=null; t.cp2=null; });
+  renderAll(); fitScreen();
+}
+
+function fitScreen() {
+  const mach=curMach(); if(!mach) return;
+  const ss=Object.values(mach.states); if(!ss.length) return;
+  const xs=ss.map(s=>s.x), ys=ss.map(s=>s.y);
+  const minX=Math.min(...xs)-SR-50, minY=Math.min(...ys)-SR-50;
+  const maxX=Math.max(...xs)+SR+50, maxY=Math.max(...ys)+SR+50;
+  const r=document.getElementById('canvas-wrap').getBoundingClientRect();
+  const sc=Math.min(r.width/(maxX-minX),r.height/(maxY-minY),2.5)*0.9;
+  const tx=r.width/2-(minX+maxX)/2*sc;
+  const ty=r.height/2-(minY+maxY)/2*sc;
+  svg.call(zoomBeh.transform,d3.zoomIdentity.translate(tx,ty).scale(sc));
+}
+
+// ── Transition Modal ──────────────────────────────────────
+function showTransModal(fromId, toId) {
+  const mach=curMach();
+  const from=mach.states[fromId], to=mach.states[toId];
+  if(!from||!to) return;
+  const isTM=mach.mode==='TM', isMealy=mach.mode==='Mealy';
+  showModal(`TRANSITION: ${from.label} → ${to.label}`,`
+    <div class="m-lbl">${isTM?'READ SYMBOL':'SYMBOL(S) — space/comma separated for multiple'}</div>
+    <input class="m-inp" id="m-sym" value="a" autofocus>
+    ${(isMealy||isTM)?`<div class="m-lbl">${isTM?'WRITE SYMBOL':'OUTPUT'}</div><input class="m-inp" id="m-out" placeholder="output">`:'' }
+    ${isTM?`<div class="m-lbl">HEAD MOVEMENT</div>
+      <select class="m-sel" id="m-dir"><option value="R">R — Right</option><option value="L">L — Left</option><option value="N">N — Stay</option></select>`:''}
+  `,()=>{
+    const syms=(document.getElementById('m-sym').value.trim()||'a').split(/[\s,]+/).filter(Boolean);
+    const out=document.getElementById('m-out')?.value.trim()||'';
+    const dir=document.getElementById('m-dir')?.value||'R';
+    syms.forEach(sym=>{
+      const t=mkTrans(fromId,toId,sym);
+      t.output=out; t.direction=dir;
+      mach.transitions[t.id]=t;
+    });
+    renderAll();
+    notify(`Added ${syms.length} transition${syms.length>1?'s':''}`);
+  });
+  setTimeout(()=>document.getElementById('m-sym')?.select(),80);
+}
+
+function showSubModal(t, mach, body) {
+  const others=Object.values(App.project.machines).filter(m=>m.id!==App.machId);
+  const body2=others.length===0?`
+    <div style="color:var(--text-mid);font-size:11px;line-height:1.6;margin-bottom:8px">
+      No other machines in project. Create a new machine first, or create one now:
+    </div>
+    <div class="m-lbl">NEW MACHINE NAME</div>
+    <input class="m-inp" id="m-new-name" value="SubMachine" autofocus>
+    <div class="m-lbl">TYPE</div>
+    <select class="m-sel" id="m-new-mode"><option>DFA</option><option>NFA</option><option>Mealy</option><option>TM</option></select>
+  `:(`
+    <div class="m-lbl">ATTACH EXISTING</div>
+    <select class="m-sel" id="m-sub-id">
+      ${others.map(m=>`<option value="${m.id}">${esc(m.name)} (${m.mode})</option>`).join('')}
+    </select>
+    <div class="m-lbl" style="margin-top:4px">— OR CREATE NEW —</div>
+    <input class="m-inp" id="m-new-name" placeholder="New machine name (leave blank to use existing)">
+  `);
+  showModal('ATTACH SUB-MACHINE',body2,()=>{
+    const newName=document.getElementById('m-new-name')?.value.trim();
+    if(newName) {
+      const mode=document.getElementById('m-new-mode')?.value||'DFA';
+      const nm=mkMachine(newName,mode);
+      App.project.machines[nm.id]=nm;
+      t.subMachineId=nm.id;
+    } else {
+      t.subMachineId=document.getElementById('m-sub-id')?.value||null;
+    }
+    renderAll(); renderTransProps(t,mach,body); renderMachList();
+    notify('Sub-machine attached');
+  });
+  setTimeout(()=>document.getElementById('m-new-name')?.focus(),80);
+}
+
+// ── Simulation ────────────────────────────────────────────
+function simReset() {
+  clearInterval(App.sim.iid);
+  const mach=curMach(); if(!mach) return;
+  const init=Object.values(mach.states).find(s=>s.isInitial);
+  App.sim={
+    running:false, iid:null,
+    stateIds:init?[init.id]:[],
+    tape:document.getElementById('tape-in').value.trim().split(/\s+/).filter(Boolean),
+    pos:0, steps:0, output:[], status:'idle', lastTid:null
+  };
+  document.getElementById('sim-log').innerHTML='';
+  document.getElementById('sim-out').innerHTML='';
+  updateSimStat(); renderAll(); updateTape();
+}
+
+function simStep() {
+  const mach=curMach(); if(!mach) return;
+  const sim=App.sim;
+  if(sim.status==='accepted'||sim.status==='rejected') return;
+
+  // check tape exhausted (non-TM)
+  if(mach.mode!=='TM'&&sim.pos>=sim.tape.length) {
+    const acc=sim.stateIds.some(id=>mach.states[id]?.isAccepting);
+    sim.status=acc?'accepted':'rejected';
+    logE(sim.steps,'—','⊣',acc?'✓ ACCEPTED':'✗ REJECTED',null,acc?'le-ok':'le-err');
+    sim.running=false; clearInterval(sim.iid);
+    updateSimStat(); renderAll(); return;
+  }
+  // TM: check accepting (head off tape = reject)
+  if(mach.mode==='TM'&&(sim.pos<0||sim.pos>sim.tape.length+50)) {
+    sim.status='rejected'; logE(sim.steps,'—','—','✗ REJECTED (head off tape)',null,'le-err');
+    sim.running=false; clearInterval(sim.iid);
+    updateSimStat(); renderAll(); return;
+  }
+
+  const sym=mach.mode==='TM'?(sim.tape[sim.pos]||'_'):sim.tape[sim.pos];
+  const vars=curMach()?.variables||{};
+  const ctx={vars, sym, output:sim.output, step:sim.steps};
+
+  sim.lastTid=null;
+  const nextIds=new Set();
+  let transitioned=false;
+
+  // for each current state, find matching transition
+  const evalGuard=(t)=>{
+    if(!t.guard||App.cx==='simple') return true;
+    try { return !!new Function('vars','sym','output','step','return '+t.guard)(ctx.vars,sym,ctx.output,ctx.step); }
+    catch(e){ return false; }
+  };
+
+  sim.stateIds.forEach(sid=>{
+    const s=mach.states[sid]; if(!s) return;
+    // run onExit
+    if(s.onExit&&App.cx!=='simple') {
+      try{ new Function('vars','sym','output',s.onExit)(vars,sym,sim.output); }
+      catch(e){ logE(sim.steps,s.label,sym,`onExit err: ${e.message}`,null,'le-err'); }
+    }
+    const cands=Object.values(mach.transitions).filter(t=>{
+      if(t.from!==sid) return false;
+      if(t.symbol!==sym&&t.symbol!=='ε'&&t.symbol!=='*'&&t.symbol!=='_blank') return false;
+      return evalGuard(t);
+    });
+    // NFA: take all; DFA/Mealy/Moore/TM: take first
+    const chosen=mach.mode==='NFA'?cands:(cands.length>0?[cands[0]]:[]);
+    if(chosen.length===0) {
+      if(mach.mode!=='NFA') {
+        logE(sim.steps,s.label,sym,'NO TRANSITION',null,'le-err');
+        sim.status='rejected'; sim.running=false; clearInterval(sim.iid);
+      }
+      return;
+    }
+    chosen.forEach(t=>{
+      transitioned=true;
+      sim.lastTid=t.id;
+      const ns=mach.states[t.to]; if(!ns) return;
+
+      // action
+      if(t.action&&App.cx!=='simple') {
+        try{ new Function('vars','sym','output',t.action)(vars,sym,sim.output); }
+        catch(e){ logE(sim.steps,s.label,sym,`action err: ${e.message}`,null,'le-err'); }
+      }
+      // output (Mealy)
+      if(mach.mode==='Mealy'&&t.output) {
+        sim.output.push(t.output);
+        const o=document.getElementById('sim-out');
+        o.textContent+=t.output+' ';
+      }
+      // TM write + move
+      if(mach.mode==='TM') {
+        if(t.output) {
+          while(sim.tape.length<=sim.pos) sim.tape.push('_');
+          sim.tape[sim.pos]=t.output;
+        }
+        if(t.direction==='R') sim.pos++;
+        else if(t.direction==='L') sim.pos=Math.max(0,sim.pos-1);
+      }
+      // onEntry
+      if(ns.onEntry&&App.cx!=='simple') {
+        try{ new Function('vars','sym','output',ns.onEntry)(vars,sym,sim.output); }
+        catch(e){ logE(sim.steps,ns.label,sym,`onEntry err: ${e.message}`,null,'le-err'); }
+      }
+      // Moore output
+      if(mach.mode==='Moore'&&ns.output) {
+        sim.output.push(ns.output);
+        document.getElementById('sim-out').textContent+=ns.output+' ';
+      }
+
+      logE(sim.steps,s.label,sym,'→',ns.label);
+      nextIds.add(t.to);
+    });
+  });
+
+  if(sim.status==='rejected') { updateSimStat(); renderAll(); updateTape(); return; }
+
+  if(nextIds.size===0&&mach.mode!=='NFA') {
+    // no transitions found
+    if(!transitioned) {
+      sim.status='rejected';
+      updateSimStat(); renderAll(); updateTape(); return;
+    }
+  }
+
+  if(nextIds.size>0) sim.stateIds=[...nextIds];
+  if(mach.mode!=='TM') sim.pos++;
+  sim.steps++;
+  if(sim.status!=='rejected') sim.status='running';
+
+  updateSimStat(); renderAll(); updateTape();
+}
+
+function logE(n, state, sym, arrow, next, cls) {
+  const log=document.getElementById('sim-log');
+  const d=document.createElement('div');
+  d.className=`le ${cls||''}`;
+  d.innerHTML=`<span class="le-n">${n}</span><span class="le-s">${esc(state)}</span><span class="le-sym"> ${esc(sym)}</span><span class="le-arr"> ${arrow}</span>${next?`<span class="le-ns"> ${esc(next)}</span>`:''}`;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+function simRun() {
+  if(App.sim.status==='idle') simReset();
+  App.sim.running=true; App.sim.status='running'; updateSimStat();
+  const spd=parseInt(document.getElementById('sim-spd').value);
+  const delay=Math.max(50,Math.round(1100/spd));
+  App.sim.iid=setInterval(()=>{
+    if(!App.sim.running) { clearInterval(App.sim.iid); return; }
+    simStep();
+    if(App.sim.status==='accepted'||App.sim.status==='rejected') {
+      App.sim.running=false; clearInterval(App.sim.iid); updateSimStat();
+    }
+  },delay);
+}
+
+function simStop() {
+  App.sim.running=false; clearInterval(App.sim.iid);
+  if(App.sim.status==='running') App.sim.status='idle';
+  updateSimStat();
+}
+
+function updateSimStat() {
+  const el=document.getElementById('sim-stat');
+  const s=App.sim.status;
+  el.className=`sim-stat ${s}`;
+  const m={idle:'IDLE',running:`RUNNING · step ${App.sim.steps}`,accepted:'✓ ACCEPTED',rejected:'✗ REJECTED'};
+  el.textContent=m[s]||s;
+  document.getElementById('sb-run').disabled=App.sim.running;
+  document.getElementById('sb-step').disabled=App.sim.running||s==='accepted'||s==='rejected';
+  document.getElementById('sb-stop').disabled=!App.sim.running;
+
+  // Current state display
+  const mach=curMach();
+  const csEl=document.getElementById('sim-cur-state');
+  const symEl=document.getElementById('sim-cur-sym');
+  const tvEl=document.getElementById('sim-tape-vis');
+  if(!mach||s==='idle') {
+    csEl.textContent='—'; symEl.textContent='—'; tvEl.textContent='—';
+    return;
+  }
+  // state names
+  const names=App.sim.stateIds.map(id=>mach.states[id]?.label||'?');
+  csEl.textContent=names.length?names.join(', '):'(none)';
+  csEl.style.color=names.some(n=>App.sim.stateIds.some(id=>mach.states[id]?.isAccepting))?'var(--accept)':'var(--accent)';
+
+  // current symbol
+  const sym=App.sim.tape[App.sim.pos];
+  symEl.textContent=sym!==undefined?`"${sym}"`:(s==='accepted'||s==='rejected'?'⊣ (end)':'—');
+
+  // tape visualization with cursor
+  if(App.sim.tape.length===0) { tvEl.textContent='(empty)'; return; }
+  const tape=App.sim.tape;
+  const pos=App.sim.pos;
+  let html='';
+  tape.forEach((sym,i)=>{
+    if(i===pos) html+=`<span style="color:var(--amber);border-bottom:2px solid var(--amber);padding:0 1px">${esc(sym)}</span>`;
+    else if(i<pos) html+=`<span style="color:var(--text-dim)">${esc(sym)}</span>`;
+    else html+=`<span style="color:var(--text-mid)">${esc(sym)}</span>`;
+    if(i<tape.length-1) html+=' ';
+  });
+  if(pos>=tape.length) html+=' <span style="color:var(--amber)">⊣</span>';
+  tvEl.innerHTML=html;
+}
+
+function updateTape() {
+  const tape=document.getElementById('tm-tape');
+  const mach=curMach();
+  const show=mach?.mode==='TM'&&App.cx!=='simple';
+  tape.style.display=show?'flex':'none';
+  if(!show) return;
+  const sim=App.sim, pos=sim.pos;
+  const WIN=11, half=Math.floor(WIN/2);
+  const start=Math.max(0,pos-half);
+  let html='';
+  for(let i=start;i<start+WIN;i++) {
+    const sym=sim.tape[i]||'_';
+    html+=`<div class="tc ${i===pos?'hd':''}">${esc(sym)}</div>`;
+  }
+  tape.innerHTML=html;
+}
+
+// ── Project Management ────────────────────────────────────
+function initProject() {
+  const p=mkProject('Untitled Project');
+  const m=mkMachine('Main','DFA');
+  p.machines[m.id]=m;
+  App.project=p; App.machId=m.id; App.navStack=[]; App.sel=null; App.stateCount=0;
+  document.getElementById('project-name-input').value=p.name;
+  // sample states
+  const q0=mkState(160,200,'q0'); q0.isInitial=true;
+  const q1=mkState(360,200,'q1'); q1.isAccepting=true;
+  const q2=mkState(260,340,'q2');
+  m.states[q0.id]=q0; m.states[q1.id]=q1; m.states[q2.id]=q2;
+  const t1=mkTrans(q0.id,q1.id,'a');
+  const t2=mkTrans(q1.id,q1.id,'b');
+  const t3=mkTrans(q0.id,q2.id,'b');
+  const t4=mkTrans(q2.id,q0.id,'a');
+  [t1,t2,t3,t4].forEach(t=>m.transitions[t.id]=t);
+  App.stateCount=3;
+  simReset(); renderAll(); renderProps(); updateModeEl();
+  setTimeout(fitScreen,150);
+}
+
+function saveProject() {
+  if(!App.project) return;
+  App.project.name=document.getElementById('project-name-input').value.trim()||'Untitled';
+  const blob=new Blob([JSON.stringify(App.project,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=App.project.name.replace(/\s+/g,'_')+'.hsm.json';
+  a.click();
+  notify('Project saved','ok');
+}
+
+function loadProject(file) {
+  const r=new FileReader();
+  r.onload=e=>{
+    try {
+      const p=JSON.parse(e.target.result);
+      App.project=p; App.machId=Object.keys(p.machines)[0];
+      App.navStack=[]; App.sel=null;
+      App.stateCount=Object.keys(curMach()?.states||{}).length;
+      document.getElementById('project-name-input').value=p.name||'Untitled';
+      simReset(); renderAll(); renderProps(); updateModeEl();
+      setTimeout(fitScreen,150);
+      notify('Project loaded','ok');
+    } catch(e){ notify('Load failed: '+e.message,'err'); }
+  };
+  r.readAsText(file);
+}
+
+function exportDOT() {
+  const mach=curMach(); if(!mach) return;
+  const nm=mach.name.replace(/\W+/g,'_');
+  let dot=`digraph ${nm} {\n  rankdir=LR;\n  node [shape=circle fontname="Courier New" fontsize=12];\n  edge [fontname="Courier New" fontsize=10];\n\n`;
+  const init=Object.values(mach.states).find(s=>s.isInitial);
+  if(init) dot+=`  __start [shape=point width=0.2];\n  __start -> ${init.id};\n\n`;
+  Object.values(mach.states).forEach(s=>{
+    const shape=s.isAccepting?'doublecircle':'circle';
+    dot+=`  ${s.id} [label="${s.label}" shape=${shape}];\n`;
+  });
+  dot+='\n';
+  Object.values(mach.transitions).forEach(t=>{
+    let lbl=t.symbol;
+    if(t.output) lbl+=`/${t.output}`;
+    if(t.guard) lbl+=` [${t.guard}]`;
+    dot+=`  ${t.from} -> ${t.to} [label="${lbl.replace(/"/g,"'")}"];\n`;
+  });
+  dot+='}\n';
+  const blob=new Blob([dot],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=nm+'.dot'; a.click();
+  notify('Exported as Graphviz DOT','ok');
+}
+
+// ── Variables ─────────────────────────────────────────────
+function renderVars() {
+  const mach=curMach(); if(!mach) return;
+  const list=document.getElementById('vars-list');
+  list.innerHTML=Object.entries(mach.variables).map(([k,v])=>`
+    <div class="var-row">
+      <input class="vname" placeholder="name" value="${esc(k)}" onchange="renameVar('${esc(k)}',this.value)">
+      <input class="vval" placeholder="value" value="${esc(v)}" onchange="setVar('${esc(k)}',this.value)">
+      <button class="vdel" onclick="delVar('${esc(k)}')">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('vars-section').style.display=App.cx==='advanced'?'block':'none';
+}
+
+window.renameVar=(old,nw)=>{
+  const m=curMach(); if(!m||old===nw) return;
+  const v=m.variables[old]; delete m.variables[old]; m.variables[nw]=v; renderVars();
+};
+window.setVar=(k,v)=>{ const m=curMach(); if(m) m.variables[k]=v; };
+window.delVar=(k)=>{ const m=curMach(); if(m){ delete m.variables[k]; renderVars(); } };
+
+// ── Modal ─────────────────────────────────────────────────
+let modalCb=null;
+function showModal(title,html,onOk) {
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=html;
+  modalCb=onOk;
+  document.getElementById('modal-ok').style.display=onOk?'':'none';
+  document.getElementById('modal-bg').classList.add('show');
+}
+function hideModal() {
+  document.getElementById('modal-bg').classList.remove('show');
+  modalCb=null;
+}
+
+// ── Notification ──────────────────────────────────────────
+let notifT;
+function notify(msg,type='') {
+  const el=document.getElementById('notif');
+  el.textContent=msg; el.className=`show ${type}`;
+  clearTimeout(notifT); notifT=setTimeout(()=>el.className='',2600);
+}
+
+// ── Add Machine Modal ─────────────────────────────────────
+function showAddMachModal() {
+  showModal('NEW MACHINE',`
+    <div class="m-lbl">NAME</div>
+    <input class="m-inp" id="m-nm" value="Machine" autofocus>
+    <div class="m-lbl">TYPE</div>
+    <select class="m-sel" id="m-md">
+      <option>DFA</option><option>NFA</option><option>Mealy</option><option>Moore</option><option>TM</option>
+    </select>
+  `,()=>{
+    const name=document.getElementById('m-nm').value.trim()||'Machine';
+    const mode=document.getElementById('m-md').value;
+    const m=mkMachine(name,mode);
+    App.project.machines[m.id]=m;
+    switchMach(m.id);
+    notify(`Machine "${name}" created`);
+  });
+  setTimeout(()=>document.getElementById('m-nm')?.select(),80);
+}
+
+// ── Sim panel resize ──────────────────────────────────────
+let simResizing=false;
+document.getElementById('sim-resize').addEventListener('mousedown',e=>{
+  simResizing=true; document.body.style.cursor='ns-resize'; e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!simResizing) return;
+  const sp=document.getElementById('sim-panel');
+  const app=document.getElementById('app').getBoundingClientRect();
+  sp.style.height=clamp(app.bottom-e.clientY,60,450)+'px';
+});
+document.addEventListener('mouseup',()=>{ simResizing=false; document.body.style.cursor=''; });
+
+// ── Event Wiring ──────────────────────────────────────────
+document.getElementById('btn-new').onclick=()=>{
+  if(App.project&&!confirm('New project? Unsaved changes lost.')) return;
+  initProject();
+};
+document.getElementById('btn-save').onclick=saveProject;
+document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
+document.getElementById('file-in').onchange=e=>{ if(e.target.files[0]){ loadProject(e.target.files[0]); e.target.value=''; } };
+document.getElementById('btn-layout').onclick=autoLayout;
+document.getElementById('btn-fit').onclick=fitScreen;
+document.getElementById('btn-dot').onclick=exportDOT;
+document.getElementById('btn-add-m').onclick=showAddMachModal;
+document.getElementById('btn-add-var').onclick=()=>{
+  const m=curMach(); if(!m) return;
+  const k='var'+Object.keys(m.variables).length;
+  m.variables[k]='0'; renderVars();
+};
+
+document.getElementById('mode-sel').onchange=e=>{
+  const m=curMach(); if(!m) return;
+  m.mode=e.target.value; renderAll();
+};
+
+document.getElementById('project-name-input').oninput=e=>{
+  if(App.project) App.project.name=e.target.value;
+};
+
+// Complexity
+document.querySelectorAll('.cx-opt').forEach(opt=>opt.onclick=()=>{
+  document.querySelectorAll('.cx-opt').forEach(o=>o.classList.remove('on'));
+  opt.classList.add('on');
+  App.cx=opt.dataset.c;
+  document.getElementById('vars-section').style.display=App.cx==='advanced'?'block':'none';
+  renderAll(); renderProps(); updateTape();
+});
+
+// Tools
+document.querySelectorAll('.tool-btn').forEach(btn=>btn.onclick=()=>{
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); App.tool=btn.dataset.t;
+  const hints={
+    select:'Click to select · Drag states to move · Del to remove',
+    state:'Click on canvas to place a state',
+    transition:'Drag from one state to another to draw a transition',
+    delete:'Click any state or transition to delete it'
+  };
+  document.getElementById('canvas-hint').textContent=hints[App.tool]||'';
+  d3.select('#cvs').style('cursor',
+    App.tool==='state'?'crosshair':App.tool==='delete'?'not-allowed':'default');
+});
+
+// Modal
+document.getElementById('modal-cancel').onclick=hideModal;
+document.getElementById('modal-ok').onclick=()=>{ if(modalCb){ modalCb(); } hideModal(); };
+document.getElementById('modal-bg').onclick=e=>{ if(e.target===document.getElementById('modal-bg')) hideModal(); };
+
+// Sim
+document.getElementById('sb-run').onclick=()=>{ simReset(); simRun(); };
+document.getElementById('sb-step').onclick=()=>{ if(App.sim.status==='idle') simReset(); simStep(); };
+document.getElementById('sb-stop').onclick=simStop;
+document.getElementById('sb-reset').onclick=simReset;
+document.getElementById('sim-spd').oninput=e=>document.getElementById('spd-val').textContent=e.target.value;
+
+// ── Init ──────────────────────────────────────────────────
+initCanvas();
+initProject();
+</script>
+</body>
+</html>
