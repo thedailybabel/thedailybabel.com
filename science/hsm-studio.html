@@ -632,32 +632,49 @@ const App = {
 };
 
 // ── Routing ──────────────────────────────────────────────
-function autoCP(from, to, allStates, idx, total) {
+// allTransitions is the full array so we can detect opposing pairs
+function autoCP(from, to, allStates, allTransitions, t) {
   const dx=to.x-from.x, dy=to.y-from.y;
   const len=Math.sqrt(dx**2+dy**2)||1;
-  const px=-dy/len, py=dx/len; // perpendicular unit
+  const px=-dy/len, py=dx/len; // perpendicular unit vector (left of direction)
 
-  const offset = total>1 ? (idx-(total-1)/2)*PARA_OFF : 0;
+  const sameDir=allTransitions.filter(x=>x.from===from.id&&x.to===to.id);
+  const oppDir =allTransitions.filter(x=>x.from===to.id  &&x.to===from.id);
+  const idx=sameDir.findIndex(x=>x.id===t.id);
+  const total=sameDir.length;
 
-  // midpoint with parallel offset
-  let mx=(from.x+to.x)/2+px*offset, my=(from.y+to.y)/2+py*offset;
+  let offset;
+  if(total===1 && oppDir.length>0) {
+    // single transition with an opposing one – curve away from the chord
+    offset = PARA_OFF * 0.7;
+  } else if(total>1) {
+    // multiple same-direction transitions – spread symmetrically
+    offset = (idx-(total-1)/2)*PARA_OFF;
+  } else {
+    // lone transition: still add a tiny natural bow (not zero or it degenerates to a straight line visually)
+    offset = 0;
+  }
 
-  // obstacle repulsion
+  // midpoint shifted by offset
+  let mx=(from.x+to.x)/2 + px*offset;
+  let my=(from.y+to.y)/2 + py*offset;
+
+  // obstacle repulsion on midpoint
   let rx=0, ry=0;
-  allStates.forEach(s => {
-    if(s===from||s===to) return;
+  allStates.forEach(s=>{
+    if(s.id===from.id||s.id===to.id) return;
     const d=dist({x:mx,y:my},s);
-    if(d<OBS_R) {
+    if(d<OBS_R){
       const f=(OBS_R-d)/OBS_R*OBS_F;
       const dir=norm(sub({x:mx,y:my},s));
       rx+=dir.x*f; ry+=dir.y*f;
     }
   });
 
-  return [
-    {x:from.x+dx*.25+px*offset+rx*.6, y:from.y+dy*.25+py*offset+ry*.6},
-    {x:from.x+dx*.75+px*offset+rx*.6, y:from.y+dy*.75+py*offset+ry*.6}
-  ];
+  // CPs placed at ¼ and ¾ of the chord, displaced by offset + repulsion
+  const c1={x:from.x+dx*.25+px*offset+rx*.5, y:from.y+dy*.25+py*offset+ry*.5};
+  const c2={x:from.x+dx*.75+px*offset+rx*.5, y:from.y+dy*.75+py*offset+ry*.5};
+  return [c1,c2];
 }
 
 function loopPath(s, idx) {
@@ -680,12 +697,11 @@ function getPath(t, mach) {
   if(!from||!to) return '';
   if(t.from===t.to) {
     const loops=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
-    return loopPath(from, loops.indexOf(t));
+    return loopPath(from, loops.findIndex(x=>x.id===t.id));
   }
-  const sameDir=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
-  const idx=sameDir.indexOf(t);
+  const allTs=Object.values(mach.transitions);
   const ss=Object.values(mach.states);
-  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,idx,sameDir.length);
+  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,allTs,t);
   const d1=norm(sub(c1,from)), d2=norm(sub(c2,to));
   return `M${from.x+d1.x*SR},${from.y+d1.y*SR} C${c1.x},${c1.y} ${c2.x},${c2.y} ${to.x+d2.x*SR},${to.y+d2.y*SR}`;
 }
@@ -695,12 +711,11 @@ function getMid(t, mach) {
   if(!from||!to) return {x:0,y:0};
   if(t.from===t.to) {
     const loops=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
-    return loopMid(from, loops.indexOf(t));
+    return loopMid(from, loops.findIndex(x=>x.id===t.id));
   }
-  const sameDir=Object.values(mach.transitions).filter(x=>x.from===t.from&&x.to===t.to);
-  const idx=sameDir.indexOf(t);
+  const allTs=Object.values(mach.transitions);
   const ss=Object.values(mach.states);
-  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,idx,sameDir.length);
+  const [c1,c2]=t.cp1&&t.cp2?[t.cp1,t.cp2]:autoCP(from,to,ss,allTs,t);
   const d1=norm(sub(c1,from)), d2=norm(sub(c2,to));
   const p0={x:from.x+d1.x*SR,y:from.y+d1.y*SR};
   const p3={x:to.x+d2.x*SR,y:to.y+d2.y*SR};
@@ -718,10 +733,21 @@ function initCanvas() {
   lS=d3.select('#lyr-s');
   lOv=d3.select('#lyr-ov');
 
-  zoomBeh=d3.zoom().scaleExtent([0.08,5]).on('zoom',ev=>{
-    App.xf=ev.transform;
-    [lBg,lT,lS,lOv].forEach(l=>l.attr('transform',ev.transform));
-  });
+  zoomBeh=d3.zoom()
+    .scaleExtent([0.08,5])
+    .filter(ev=>{
+      // wheel always allowed (scroll-to-zoom)
+      if(ev.type==='wheel') return true;
+      // block pan-drag when the pointer is on a state or transition
+      if(ev.target && ev.target.closest) {
+        if(ev.target.closest('.s-group,.t-group,.cp-handle')) return false;
+      }
+      return true;
+    })
+    .on('zoom',ev=>{
+      App.xf=ev.transform;
+      [lBg,lT,lS,lOv].forEach(l=>l.attr('transform',ev.transform));
+    });
   svg.call(zoomBeh).on('dblclick.zoom',null);
 
   // canvas click → add state
@@ -913,20 +939,82 @@ function renderTransitions(mach) {
     ev.stopPropagation();
     if(App.tool==='delete') { delTrans(d.id); return; }
     App.sel={type:'transition',id:d.id};
-    renderAll(); renderProps();
+    renderAll(); renderProps(); renderOv();
   });
 }
 
 function renderOv() {
   lOv.selectAll('*').remove();
-  if(!App.drawing) return;
+
+  // drawing preview arrow
+  if(App.drawing) {
+    const mach=curMach(); if(!mach) return;
+    const from=mach.states[App.drawing.fromId]; if(!from) return;
+    lOv.append('line')
+      .attr('x1',from.x).attr('y1',from.y)
+      .attr('x2',App.drawing.mx).attr('y2',App.drawing.my)
+      .attr('stroke','var(--accent)').attr('stroke-width',1.5)
+      .attr('stroke-dasharray','6,4').attr('marker-end','url(#ah-sel)');
+    return;
+  }
+
+  // CP handles for selected transition
+  if(App.sel?.type!=='transition') return;
   const mach=curMach(); if(!mach) return;
-  const from=mach.states[App.drawing.fromId]; if(!from) return;
-  lOv.append('line')
-    .attr('x1',from.x).attr('y1',from.y)
-    .attr('x2',App.drawing.mx).attr('y2',App.drawing.my)
-    .attr('stroke','var(--accent)').attr('stroke-width',1.5)
-    .attr('stroke-dasharray','6,4').attr('marker-end','url(#ah-sel)');
+  const t=mach.transitions[App.sel.id]; if(!t||t.from===t.to) return;
+  const from=mach.states[t.from], to=mach.states[t.to];
+  if(!from||!to) return;
+
+  const allTs=Object.values(mach.transitions);
+  const ss=Object.values(mach.states);
+  // resolve current CPs (stored or auto)
+  let c1=t.cp1?{...t.cp1}:null, c2=t.cp2?{...t.cp2}:null;
+  if(!c1||!c2) { [c1,c2]=autoCP(from,to,ss,allTs,t); }
+
+  // dashed tangent lines
+  [[ {x:from.x,y:from.y}, c1], [{x:to.x,y:to.y}, c2]].forEach(([a,b])=>{
+    lOv.append('line')
+      .attr('x1',a.x).attr('y1',a.y).attr('x2',b.x).attr('y2',b.y)
+      .attr('stroke','var(--accent)').attr('stroke-width',.7)
+      .attr('stroke-dasharray','4,3').attr('opacity',.35);
+  });
+
+  // helper: append a draggable CP diamond handle
+  function cpHandle(cx, cy, onDrag, onReset) {
+    const size=7;
+    const pts=`${cx},${cy-size} ${cx+size},${cy} ${cx},${cy+size} ${cx-size},${cy}`;
+    const g=lOv.append('g').attr('class','cp-handle').style('cursor','grab');
+    g.append('polygon').attr('points',pts)
+      .attr('fill','var(--bg)').attr('stroke','var(--accent)').attr('stroke-width',1.5);
+    // invisible wider hit zone
+    g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',12)
+      .attr('fill','transparent').attr('stroke','none');
+    g.call(d3.drag()
+      .on('start', ev=>{ ev.sourceEvent.stopPropagation(); })
+      .on('drag',  ev=>{ onDrag(ev.dx, ev.dy); renderAll(); })
+    );
+    g.on('dblclick', ev=>{ ev.stopPropagation(); onReset(); renderAll(); });
+    return g;
+  }
+
+  // CP1 handle — drag moves cp1, double-click resets to auto
+  cpHandle(c1.x, c1.y,
+    (ddx,ddy)=>{ t.cp1={x:(t.cp1||c1).x+ddx, y:(t.cp1||c1).y+ddy}; c1=t.cp1; },
+    ()=>{ t.cp1=null; }
+  );
+  // CP2 handle
+  cpHandle(c2.x, c2.y,
+    (ddx,ddy)=>{ t.cp2={x:(t.cp2||c2).x+ddx, y:(t.cp2||c2).y+ddy}; c2=t.cp2; },
+    ()=>{ t.cp2=null; }
+  );
+
+  // small reset label
+  lOv.append('text')
+    .attr('x',( c1.x+c2.x)/2).attr('y',(c1.y+c2.y)/2-14)
+    .attr('text-anchor','middle')
+    .attr('fill','var(--text-dim)').attr('font-size',9).attr('font-family','var(--mono)')
+    .attr('pointer-events','none')
+    .text('drag ◆ to bend · dbl-click to reset');
 }
 
 // ── Breadcrumb ────────────────────────────────────────────
@@ -1110,12 +1198,16 @@ function renderTransProps(t, mach, body) {
     </div>
     `:''}
     <div class="p-sec">
-      <div class="p-lbl">TRANSITION ID</div>
-      <div style="font-size:9px;color:var(--text-dim)">${t.id}</div>
+      <div class="p-lbl">CURVE ROUTING</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px;line-height:1.5">Select this transition then drag the ◆ handles on the canvas to bend the curve. Double-click a handle to reset it.</div>
+      <button class="zoom-btn" id="btn-reset-curve" style="font-size:10px">↺ RESET CURVE TO AUTO</button>
     </div>
   `;
 
   if(showCode) { mkCM('cm-guard','guard',t); mkCM('cm-act','action',t); }
+
+  const brc=document.getElementById('btn-reset-curve');
+  if(brc) brc.onclick=()=>{ t.cp1=null; t.cp2=null; renderAll(); renderOv(); notify('Curve reset to auto'); };
 
   document.getElementById('p-sym').oninput=e=>{ t.symbol=e.target.value; renderAll(); };
   const po=document.getElementById('p-out'); if(po) po.oninput=e=>{ t.output=e.target.value; renderAll(); };
